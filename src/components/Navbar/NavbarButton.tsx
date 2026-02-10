@@ -1,13 +1,16 @@
-type navbarButtonProps = {
-    children: string;
+type NavbarButtonProps = {
+  children: string | React.ReactNode;
+  className?: string;
 };
 
-const NavbarButton = (props: navbarButtonProps) => {
-    return (
-        <button className="bg-primary-100 text-white p-3 font-sans rounded-4xl cursor-pointer hover:bg-secondary-300 duration-200 box-border">
-            {props.children}
-        </button>
-    );
+const NavbarButton = ({ children, className = "" }: NavbarButtonProps) => {
+  return (
+    <button
+      className={`bg-primary-100 hover:bg-secondary-300 active:bg-secondary-300 cursor-pointer rounded-4xl p-3 font-sans text-white duration-200 ${className}`}
+    >
+      {children}
+    </button>
+  );
 };
 
 export default NavbarButton;
