@@ -1,4 +1,5 @@
 import logo from "@/assets/logo.png";
 import menu from "@/assets/menu.png";
 import searchIcon from "@/assets/magnifying-glass.png";
-export { logo, menu, searchIcon };
+import arrow from "@/assets/arrow.png";
+export { logo, menu, searchIcon, arrow };

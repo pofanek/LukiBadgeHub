@@ -1,5 +1,5 @@
 import { NavbarButton, Searchbar, NavbarImage } from "./";
-import { logo, menu, searchIcon } from "../../assets";
+import { logo, menu, searchIcon, arrow } from "../../assets";
 import { APP_NAME, APP_SHORT_NAME, NAV_LABELS } from "../../constants";
 import { useState } from "react";
 //! 735px Games znika    845px Leaderboards znika
@@ -24,7 +24,7 @@ const Navbar = () => {
         </a>
       </div>
       <div className="flex h-full items-center pr-0 md:pr-4">
-        <Searchbar />
+        <Searchbar className="hidden" />
       </div>
       <div className="flex h-full grow basis-0 items-center justify-end gap-3 md:gap-4">
         <NavbarButton
@@ -48,7 +48,7 @@ const Navbar = () => {
         </button>
       </div>
       <ul
-        className={`bg-primary-700 fixed top-0 right-0 z-1 flex h-full w-48 transform flex-col items-center gap-6 pt-20 transition-transform duration-200 ease-in-out ${menuOpen ? "translate-x-0" : "translate-x-full"}`}
+        className={`bg-primary-700 fixed top-0 right-0 z-1 flex h-full w-54 transform flex-col items-center gap-6 pt-20 transition-transform duration-200 ease-in-out ${menuOpen ? "translate-x-0" : "translate-x-full"}`}
       >
         <NavbarButton className="w-40">Games</NavbarButton>
         <NavbarButton className="w-40">Leaderboards</NavbarButton>
@@ -57,6 +57,24 @@ const Navbar = () => {
         <NavbarButton className="w-40">Support Us!</NavbarButton>
         <NavbarButton className="w-40">Log out</NavbarButton>
       </ul>
+      <div
+        className={`bg-primary-500 top-0 left-0 z-3 flex h-16 w-full items-center justify-start pr-4 pl-4 ${searchbarOpen ? "fixed" : "hidden"}`}
+      >
+        <button
+          onClick={() => setSearchbarOpen(false)}
+          className="mr-4 flex h-10 w-10 items-center justify-center object-cover"
+        >
+          <img
+            src={arrow}
+            alt="arrow"
+            className="box-border h-8 w-8 object-cover"
+          />
+        </button>
+        <Searchbar
+          className="z-4 flex"
+          inputClasses="w-[calc(100vw-150px)] sm:w-[calc(100vw-200px)]"
+        />
+      </div>
       {menuOpen && (
         <div
           className="fixed inset-0 z-0 bg-black/20"
