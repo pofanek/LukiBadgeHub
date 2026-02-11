@@ -6,9 +6,6 @@
   /* fonty musza miec --font colory --color itd. */
   --font-serif: "Fenix", serif;
   --font-sans: "Inter", sans-serif;
-  --breakpoint-games-visible: 735px;
-  --breakpoint-title-visible: 450px;
-  --breakpoint-leaderboards-visible: 845px;
   --color-primary-100: #454545;
   --color-primary-200: #404040;
   --color-primary-300: #3b3b3b;
