@@ -5,4 +5,5 @@ export const NAV_LABELS = {
   GAMES: "Games",
   LEADERBOARDS: "Leaderboards",
   LOGIN: "Login",
+  HOME: "Home",
 };

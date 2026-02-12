@@ -6,16 +6,27 @@
   /* fonty musza miec --font colory --color itd. */
   --font-serif: "Fenix", serif;
   --font-sans: "Inter", sans-serif;
-  --color-primary-100: #454545;
-  --color-primary-200: #404040;
-  --color-primary-300: #3b3b3b;
-  --color-primary-400: #363636;
-  --color-primary-500: #323232;
-  --color-primary-600: #2d2d2d;
-  --color-primary-700: #282828;
-  --color-primary-800: #232323;
-  --color-primary-900: #1e1e1e;
-  --color-secondary-100: #69b4ff;
-  --color-secondary-200: #0085ff;
-  --color-secondary-300: #006fff;
+
+  --color-primary: #0b1b2b;
+  --color-surface: #1a2433;
+  --color-surface-soft: rgb(thirty, 41, 56);
+
+  --color-brand-primary: #3a3f6b;
+  --color-brand-secondary: #2f3a6a;
+  --color-brand-tertiary: #253058;
+
+  --color-accent-cold: #1e3a57;
+  --color-accent-main: #c2d0ff;
+
+  --color-focus-tab: linear-gradient(
+    90deg,
+    var(--color-brand-primary),
+    var(--color-brand-secondary)
+  );
+
+  --color-text-primary: #e6f1ff;
+  --color-text-muted: #b9c7df;
+
+  --color-effect-glass: rgba(255, 255, 255, 0.04);
+  --shadow-black: 0 8px 28px rgba(3, 8, 18, 1);
 }

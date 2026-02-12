@@ -12,7 +12,7 @@ const NavbarButton = ({
   return (
     <button
       onClick={onClick}
-      className={`bg-primary-100 hover:bg-secondary-300 active:bg-secondary-300 cursor-pointer rounded-4xl p-3 font-sans text-white duration-200 ${className}`}
+      className={`hover:bg-effect-glass active:bg-effect-glass hover:text-accent-main active:text-accent-main text-text-primary hover: transform cursor-pointer rounded-xl p-1.5 pr-3 pl-3 font-sans transition-all duration-200 ease-out hover:-translate-y-0.5 ${className}`}
     >
       {children}
     </button>
