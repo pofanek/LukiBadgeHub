@@ -2,11 +2,15 @@
 * {
   box-sizing: border-box;
 }
+html,
+body {
+  overflow-x: hidden;
+}
 @theme {
   /* fonty musza miec --font colory --color itd. */
   --font-serif: "Fenix", serif;
   --font-sans: "Inter", sans-serif;
-
+  --breakpoint-under380px: 380px;
   --color-primary: #0b1b2b;
   --color-surface: #1a2433;
   --color-surface-soft: rgb(thirty, 41, 56);
@@ -16,7 +20,10 @@
   --color-brand-tertiary: #253058;
 
   --color-accent-cold: #1e3a57;
-  --color-accent-main: #c2d0ff;
+  --color-accent-main: #a5baff;
+
+  --color-link-primary: #1a73e8;
+  --color-link-secondary: #498be8;
 
   --color-focus-tab: linear-gradient(
     90deg,

@@ -4,6 +4,10 @@ export const APP_SHORT_NAME = "L. B. H.";
 export const NAV_LABELS = {
   GAMES: "Games",
   LEADERBOARDS: "Leaderboards",
-  LOGIN: "Login",
   HOME: "Home",
+  LOGIN: "Login",
+  SETTINGS: "Settings",
+  SUPPORTME: "Support Me!",
+  DISCORD: "Discord",
+  LOGOUT: "Logout",
 };

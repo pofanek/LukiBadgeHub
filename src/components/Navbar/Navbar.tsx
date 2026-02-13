@@ -1,6 +1,6 @@
 import { NavbarButton, Searchbar, NavbarImage } from "./";
 import { logo, menu, searchIcon, arrow, cross } from "../../assets";
-import { APP_NAME, APP_SHORT_NAME, NAV_LABELS } from "../../constants";
+import * as Constants from "../../constants";
 import { useState } from "react";
 //! 735px Games znika    845px Leaderboards znika
 type NavbarProps = {
@@ -11,7 +11,7 @@ const Navbar = ({ activeTab }: NavbarProps) => {
   const [searchbarOpen, setSearchbarOpen] = useState(false);
   return (
     // basis-0 grow sprawia ze są równe odstępy pomiędzy elementami z różnymi width.
-    <nav className="gray-1 fixed flex h-16 w-full items-center justify-between p-1 md:p-4">
+    <nav className="sticky flex h-16 w-full items-center justify-between p-1 md:p-4">
       <div className="grow-0 basis-0 pr-0 md:grow md:pr-2">
         <a
           href="#"
@@ -20,20 +20,20 @@ const Navbar = ({ activeTab }: NavbarProps) => {
           <NavbarImage
             className={`${searchbarOpen ? "shadow-none" : "shadow-black"}`}
             image={logo}
-            alter={`${APP_SHORT_NAME} Logo`}
+            alter={`${Constants.APP_SHORT_NAME} Logo`}
           />
           <p className="text-text-primary hidden font-serif text-3xl whitespace-nowrap sm:block">
-            {APP_NAME}
+            {Constants.APP_NAME}
           </p>
           <p className="text-text-primary block font-serif text-4xl whitespace-nowrap sm:hidden">
-            {APP_SHORT_NAME}
+            {Constants.APP_SHORT_NAME}
           </p>
         </a>
       </div>
       <div className="flex h-full items-center pr-0 md:pr-4">
         <Searchbar className="hidden" />
       </div>
-      <div className="flex h-full grow basis-0 items-center justify-end gap-3 md:gap-4">
+      <div className="under380px:gap-3 flex h-full grow basis-0 items-center justify-end gap-1 md:gap-4">
         <NavbarButton
           onClick={() => setSearchbarOpen(!searchbarOpen)}
           className="from-brand-primary to-brand-secondary w-16 cursor-pointer bg-linear-to-r p-0 md:hidden"
@@ -43,22 +43,22 @@ const Navbar = ({ activeTab }: NavbarProps) => {
         <NavbarButton
           className={`${activeTab === "Home" ? "from-brand-primary to-brand-secondary hover:text-text-primary active:text-text-primary bg-linear-to-r" : ""} hidden lg:block`}
         >
-          {NAV_LABELS.HOME}
+          {Constants.NAV_LABELS.HOME}
         </NavbarButton>
         <NavbarButton
           className={`${activeTab === "Games" ? "from-brand-primary to-brand-secondary hover:text-text-primary active:text-text-primary bg-linear-to-r" : ""} hidden sm:block`}
         >
-          {NAV_LABELS.GAMES}
+          {Constants.NAV_LABELS.GAMES}
         </NavbarButton>
         <NavbarButton
           className={`${activeTab === "Leaderboards" ? "from-brand-primary to-brand-secondary hover:text-text-primary active:text-text-primary bg-linear-to-r" : ""} hidden sm:block`}
         >
-          {NAV_LABELS.LEADERBOARDS}
+          {Constants.NAV_LABELS.LEADERBOARDS}
         </NavbarButton>
         <NavbarButton
           className={`${activeTab === "Login" ? "from-brand-primary to-brand-secondary hover:text-text-primary active:text-text-primary bg-linear-to-r" : ""} `}
         >
-          {NAV_LABELS.LOGIN}
+          {Constants.NAV_LABELS.LOGIN}
         </NavbarButton>
         <button
           className="block h-12.5 w-12.5 sm:hidden"
@@ -82,22 +82,34 @@ const Navbar = ({ activeTab }: NavbarProps) => {
         }`}
       >
         <li className="w-1/1.5 mb-3 flex justify-center border-b border-white pb-3">
-          <NavbarButton className="w-40">Games</NavbarButton>
+          <NavbarButton className="w-40">
+            {Constants.NAV_LABELS.GAMES}
+          </NavbarButton>
         </li>
         <li className="w-1/1.5 mb-3 flex justify-center border-b border-white pb-3">
-          <NavbarButton className="w-40">Leaderboards</NavbarButton>
+          <NavbarButton className="w-40">
+            {Constants.NAV_LABELS.LEADERBOARDS}
+          </NavbarButton>
         </li>
         <li className="w-1/1.5 mb-3 flex justify-center border-b border-white pb-3">
-          <NavbarButton className="w-40">Settings</NavbarButton>
+          <NavbarButton className="w-40">
+            {Constants.NAV_LABELS.SETTINGS}
+          </NavbarButton>
         </li>
         <li className="w-1/1.5 mb-3 flex justify-center border-b border-white pb-3">
-          <NavbarButton className="w-40">Discord</NavbarButton>
+          <NavbarButton className="w-40">
+            {Constants.NAV_LABELS.DISCORD}
+          </NavbarButton>
         </li>
         <li className="w-1/1.5 mb-3 flex justify-center border-b border-white pb-3">
-          <NavbarButton className="w-40">Support Us!</NavbarButton>
+          <NavbarButton className="w-40">
+            {Constants.NAV_LABELS.SUPPORTME}
+          </NavbarButton>
         </li>
         <li className="w-1/1.5 flex justify-center">
-          <NavbarButton className="w-40">Log out</NavbarButton>
+          <NavbarButton className="w-40">
+            {Constants.NAV_LABELS.LOGOUT}
+          </NavbarButton>
         </li>
       </ul>
 
@@ -108,11 +120,7 @@ const Navbar = ({ activeTab }: NavbarProps) => {
           onClick={() => setSearchbarOpen(false)}
           className="mr-4 flex h-10 w-10 items-center justify-center object-cover"
         >
-          <img
-            src={arrow}
-            alt="arrow"
-            className="box-border h-8 w-8 object-cover"
-          />
+          <img src={arrow} alt="arrow" className="h-8 w-8 object-cover" />
         </button>
         <Searchbar className="z-4 flex" inputClasses="w-[calc(100vw-250px)]" />
       </div>

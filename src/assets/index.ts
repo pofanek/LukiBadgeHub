@@ -3,4 +3,6 @@ import menu from "@/assets/menu.png";
 import searchIcon from "@/assets/magnifying-glass.png";
 import arrow from "@/assets/arrow.png";
 import cross from "@/assets/cross.png";
-export { logo, menu, searchIcon, arrow, cross };
+import discord from "@/assets/discord.png";
+import kofi from "@/assets/ko-fi.png";
+export { logo, menu, searchIcon, arrow, cross, discord, kofi };
