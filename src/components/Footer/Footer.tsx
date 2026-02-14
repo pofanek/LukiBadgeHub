@@ -25,7 +25,7 @@ const Footer = () => {
         </a>
       </div>
       <div className="gap flex h-[33%] w-full items-center justify-center gap-1 lg:order-1">
-        <p className="text-text-primary font-sans">
+        <p className="text-font-primary font-sans">
           © Luki Badge Hub - Created By
         </p>
         <a href="https://github.com/pofanek">

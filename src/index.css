@@ -7,33 +7,40 @@ body {
   overflow-x: hidden;
 }
 @theme {
-  /* fonty musza miec --font colory --color itd. */
   --font-serif: "Fenix", serif;
   --font-sans: "Inter", sans-serif;
-  --breakpoint-under380px: 380px;
-  --color-primary: #0b1b2b;
-  --color-surface: #1a2433;
-  --color-surface-soft: rgb(thirty, 41, 56);
+  --breakpoint-jebanyPrzycisk: 1130px;
 
-  --color-brand-primary: #3a3f6b;
+  --color-primary: #0b1b2b; /* bg */
+  --color-brand-primary: #3a3f6b; /* navbar buttons */
   --color-brand-secondary: #2f3a6a;
   --color-brand-tertiary: #253058;
 
-  --color-accent-cold: #1e3a57;
-  --color-accent-main: #a5baff;
+  /* texts */
+  --color-font-primary: #e6f1ff; /* font */
+  --color-hover: #a5baff; /* font hover */
 
-  --color-link-primary: #1a73e8;
+  --color-link-primary: #1a73e8; /* links */
   --color-link-secondary: #498be8;
 
-  --color-focus-tab: linear-gradient(
-    90deg,
-    var(--color-brand-primary),
-    var(--color-brand-secondary)
-  );
+  --color-effect-glass: rgba(255, 255, 255, 0.04); /* button hover */
+  --shadow-black: 0 8px 28px rgba(3, 8, 18, 1); /* shadow */
 
-  --color-text-primary: #e6f1ff;
-  --color-text-muted: #b9c7df;
+  /* containers */
+  --color-surface: #0f2235;
+  --color-surface-soft: #152a40;
+  --color-surface-raised: #1a3250;
+  --color-surface-overlay: #1e3a5a;
 
-  --color-effect-glass: rgba(255, 255, 255, 0.04);
-  --shadow-black: 0 8px 28px rgba(3, 8, 18, 1);
+  /* borders */
+  --color-border: rgba(165, 186, 255, 0.1);
+  --color-border-strong: rgba(165, 186, 255, 0.22);
+
+  /* tags*/
+  --color-accent-cold: #3d8ef0;
+  --color-accent-cold-dim: rgba(61, 142, 240, 0.15);
+
+  /* Font secondary */
+  --color-font-secondary: #7a9abf; /* muted tekst, opisy, placeholdery */
+  --color-font-muted: #4a6a8a; /* bardzo wyciszony tekst */
 }
