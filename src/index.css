@@ -6,7 +6,6 @@ body {
 @theme {
   --font-serif: "Fenix", serif;
   --font-sans: "Inter", sans-serif;
-  --breakpoint-jebanyPrzycisk: 1130px;
 
   --color-primary: #0b1b2b; /* bg */
   --color-brand-primary: #3a3f6b; /* navbar buttons */

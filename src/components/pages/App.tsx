@@ -1,6 +1,6 @@
-import Navbar from "./components/Navbar/Navbar";
-import Footer from "./components/Footer/Footer";
-import HomepageContent from "./components/HomepageContent/HomepageContent";
+import Navbar from "../Navbar/Navbar";
+import Footer from "../Footer/Footer";
+import HomepageContent from "../HomepageContent/HomepageContent";
 function App() {
   return (
     <div className="flex min-h-screen flex-col">

@@ -3,7 +3,7 @@ export const APP_SHORT_NAME = "L. B. H.";
 
 export const NAV_LABELS = {
   GAMES: "Games",
-  LEADERBOARDS: "Leaderboards",
+  LEADERBOARDS: "Rankings",
   HOME: "Home",
   LOGIN: "Login",
   SETTINGS: "Settings",

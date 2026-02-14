@@ -28,13 +28,13 @@ const Navbar = ({ activeTab }: NavbarProps) => {
         <div className="flex h-full items-center pr-0 md:pr-4">
           <Searchbar className="hidden" />
         </div>
-        <div className="flex h-full flex-1 items-center justify-end gap-2 lg:gap-0">
+        <div className="flex h-full flex-1 items-center justify-end gap-2">
           <SearchbarButton value={searchbarOpen} setter={setSearchbarOpen} />
           <NavbarButtonRightPanel
             label={Constants.NAV_LABELS.HOME}
             tabName="Home"
             activeTab={activeTab}
-            className="jebanyPrzycisk:mr-3 hidden lg:block"
+            className="hidden lg:block"
           />
           <NavbarButtonRightPanel
             label={Constants.NAV_LABELS.GAMES}

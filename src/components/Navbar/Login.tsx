@@ -21,7 +21,7 @@ const Login = ({
         <NavbarImage
           image={logo}
           alt="image"
-          className="hover:cursor-pointer active:cursor-pointer"
+          className="ml-1 hover:cursor-pointer active:cursor-pointer"
           onClick={() => {
             setProfileMenu(!profileMenuOpen);
           }}
