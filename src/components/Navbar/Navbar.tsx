@@ -10,7 +10,7 @@ import {
   NavbarButtonRightPanel,
 } from "./";
 import * as Constants from "../../constants";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 type NavbarProps = {
   activeTab: "Home" | "Games" | "Leaderboards" | "Login";
 };
@@ -18,10 +18,7 @@ const Navbar = ({ activeTab }: NavbarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchbarOpen, setSearchbarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenu] = useState(false);
-  const [IsLoggedIn, setIsLoggedIn] = useState(false);
-  useEffect(() => {
-    setIsLoggedIn(true);
-  }, []);
+  const [IsLoggedIn] = useState(true);
   return (
     <>
       <nav className="bg-primary border-border sticky mt-7 mr-2 ml-2 flex h-16 items-center justify-between rounded-xl border p-1 shadow-black sm:mr-7 sm:ml-7">
@@ -52,9 +49,9 @@ const Navbar = ({ activeTab }: NavbarProps) => {
             className="hidden sm:block"
           />
           <Login
-            value={IsLoggedIn}
-            value2={profileMenuOpen}
-            setter2={setProfileMenu}
+            IsLoggedIn={IsLoggedIn}
+            profileMenuOpen={profileMenuOpen}
+            setProfileMenu={setProfileMenu}
             activeTab={activeTab}
           />
           <MenuButton value={menuOpen} setter={setMenuOpen} />
@@ -64,6 +61,7 @@ const Navbar = ({ activeTab }: NavbarProps) => {
         <HamburgerMenu value={menuOpen} setter={setMenuOpen} />
         <ProfileCard
           className={`${profileMenuOpen ? "opacity-100" : "opacity-0"}`}
+          profileMenuOpen={profileMenuOpen}
         />
       </nav>
     </>

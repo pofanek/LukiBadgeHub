@@ -12,12 +12,12 @@ const MenuButton = ({ value, setter }: MenuButtonProps) => {
     >
       <NavbarImage
         image={menu}
-        alter=""
+        alt=""
         className={`${value ? "hidden" : "block"}`}
       />
       <NavbarImage
         image={cross}
-        alter=""
+        alt=""
         className={`z-20 ${value ? "block" : "hidden"}`}
       />
     </button>

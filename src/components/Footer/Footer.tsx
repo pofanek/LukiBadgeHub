@@ -1,5 +1,6 @@
 import FooterText from "./FooterText";
 import { discord, kofi } from "../../assets";
+import * as Constants from "../../constants";
 const Footer = () => {
   return (
     <footer className="flex h-32 w-full flex-col items-center justify-between lg:h-12 lg:flex-row">
@@ -14,17 +15,19 @@ const Footer = () => {
           className="flex items-center justify-center gap-1"
         >
           <img src={discord} alt="discord" className="h-6 w-6 object-cover" />
-          <FooterText isLink={true}>Join Our Discord!</FooterText>
+          <FooterText isLink={true}>{Constants.NAV_LABELS.DISCORD}</FooterText>
         </a>
         <a
           href="https://ko-fi.com/"
           className="flex items-center justify-center gap-1"
         >
           <img src={kofi} alt="kofi" className="h-6 w-6 object-cover" />
-          <FooterText isLink={true}>Support Me!</FooterText>
+          <FooterText isLink={true}>
+            {Constants.NAV_LABELS.SUPPORTME}
+          </FooterText>
         </a>
       </div>
-      <div className="gap flex h-[33%] w-full items-center justify-center gap-1 lg:order-1">
+      <div className="flex h-[33%] w-full items-center justify-center gap-1 lg:order-1">
         <p className="text-font-primary font-sans">
           © Luki Badge Hub - Created By
         </p>

@@ -3,22 +3,27 @@ import * as Constants from "../../constants";
 import NavbarButtonRightPanel from "./NavbarButtonRightPanel";
 import NavbarImage from "./NavbarImage";
 
-type MenuButtonProps = {
-  value: boolean; // loggedIn
-  value2: boolean; // prof
-  setter2: React.Dispatch<React.SetStateAction<boolean>>; // prof
+type LoginProps = {
+  IsLoggedIn: boolean; // loggedIn
+  profileMenuOpen: boolean; // prof
+  setProfileMenu: React.Dispatch<React.SetStateAction<boolean>>; // prof
   activeTab: "Home" | "Games" | "Leaderboards" | "Login";
 };
-const Login = ({ value, value2, setter2, activeTab }: MenuButtonProps) => {
+const Login = ({
+  IsLoggedIn,
+  profileMenuOpen,
+  setProfileMenu,
+  activeTab,
+}: LoginProps) => {
   return (
     <>
-      {value ? (
+      {IsLoggedIn ? (
         <NavbarImage
           image={logo}
-          alter="image"
+          alt="image"
           className="hover:cursor-pointer active:cursor-pointer"
           onClick={() => {
-            setter2(!value2);
+            setProfileMenu(!profileMenuOpen);
           }}
         />
       ) : (

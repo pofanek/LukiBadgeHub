@@ -8,6 +8,6 @@ export const NAV_LABELS = {
   LOGIN: "Login",
   SETTINGS: "Settings",
   SUPPORTME: "Support Me!",
-  DISCORD: "Discord",
+  DISCORD: "Join Our Discord!",
   LOGOUT: "Logout",
 };

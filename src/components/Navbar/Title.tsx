@@ -13,7 +13,7 @@ const Title = ({ value }: TitleProps) => {
       <NavbarImage
         className={`${value ? "shadow-none" : "shadow-black"}`}
         image={logo}
-        alter={`${Constants.APP_SHORT_NAME} Logo`}
+        alt={`${Constants.APP_SHORT_NAME} Logo`}
       />
       <p className="text-font-primary hidden font-serif text-3xl whitespace-nowrap sm:block">
         {Constants.APP_NAME}
