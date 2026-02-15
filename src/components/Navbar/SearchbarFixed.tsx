@@ -1,4 +1,4 @@
-import { arrow } from "../../assets";
+import { FaArrowLeft } from "react-icons/fa";
 import Searchbar from "./Searchbar";
 type SearchbarFixedProps = {
   value: boolean;
@@ -14,7 +14,7 @@ const SearchbarFixed = ({ value, setter }: SearchbarFixedProps) => {
         onClick={() => setter(false)}
         className="mr-4 flex h-10 w-10 items-center justify-center object-cover"
       >
-        <img src={arrow} alt="arrow" className="h-8 w-8 object-cover" />
+        <FaArrowLeft size={32} color="#FFFFFF" />
       </button>
       <Searchbar className="z-40 flex" inputClasses="w-[calc(100vw-250px)]" />
     </div>

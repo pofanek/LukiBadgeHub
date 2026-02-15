@@ -1,6 +1,7 @@
 import FooterText from "./FooterText";
 import FooterLink from "./FooterLink";
-import { discord, kofi } from "../../assets";
+import { SiKofi } from "react-icons/si";
+import { FaDiscord } from "react-icons/fa";
 import * as Constants from "../../constants";
 const Footer = () => {
   return (
@@ -12,13 +13,13 @@ const Footer = () => {
       </div>
       <div className="flex h-[33%] w-full items-center justify-center gap-6 lg:order-3">
         <div className="flex items-center justify-center gap-1">
-          <img src={discord} alt="discord" className="h-6 w-6 object-cover" />
+          <FaDiscord size={26} color="#818181" />
           <FooterLink pathTo="https://discord.gg/UH6eUVQQMX">
             {Constants.NAV_LABELS.DISCORD}
           </FooterLink>
         </div>
         <div className="flex items-center justify-center gap-1">
-          <img src={kofi} alt="kofi" className="h-6 w-6 object-cover" />
+          <SiKofi size={24} color="#818181" />
           <FooterLink pathTo="https://ko-fi.com/">
             {Constants.NAV_LABELS.SUPPORTUS}
           </FooterLink>

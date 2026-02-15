@@ -41,5 +41,5 @@ body {
   --color-accent-cold-dim: #428fee;
 
   /* other */
-  --bg-image: url("/src/assets/bg.png");
+  --bg-image: url("/public/bg.png");
 }

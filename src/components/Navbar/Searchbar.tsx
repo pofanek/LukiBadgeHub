@@ -1,4 +1,4 @@
-import { searchIcon } from "../../assets";
+import { CiSearch } from "react-icons/ci";
 type SearchbarProps = {
   className?: string;
   inputClasses?: string;
@@ -17,7 +17,7 @@ const Searchbar = ({ className = "", inputClasses }: SearchbarProps) => {
         className="w-16 cursor-pointer rounded-l-none"
         aria-label="Search"
       >
-        <img className="m-auto h-8 w-8" src={searchIcon} />
+        <CiSearch className="m-auto" size={32} color="#e6f1ff" />
       </button>
     </form>
   );
