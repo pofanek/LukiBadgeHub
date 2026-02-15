@@ -5,4 +5,5 @@ import arrow from "@/assets/arrow.png";
 import cross from "@/assets/cross.png";
 import discord from "@/assets/discord.png";
 import kofi from "@/assets/ko-fi.png";
-export { logo, menu, searchIcon, arrow, cross, discord, kofi };
+import bg from "@/assets/bg.png";
+export { logo, menu, searchIcon, arrow, cross, discord, kofi, bg };

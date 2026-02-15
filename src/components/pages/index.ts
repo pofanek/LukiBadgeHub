@@ -1,0 +1,9 @@
+export { default as About } from "./About";
+export { default as App } from "./App";
+export { default as Games } from "./Games";
+export { default as Contact } from "./Contact";
+export { default as Logout } from "./Logout";
+export { default as Rankings } from "./Rankings";
+export { default as Settings } from "./Settings";
+export { default as Terms } from "./Terms";
+export { default as Profile } from "./Profile";

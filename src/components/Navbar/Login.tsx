@@ -7,7 +7,7 @@ type LoginProps = {
   IsLoggedIn: boolean; // loggedIn
   profileMenuOpen: boolean; // prof
   setProfileMenu: React.Dispatch<React.SetStateAction<boolean>>; // prof
-  activeTab: "Home" | "Games" | "Leaderboards" | "Login";
+  activeTab: "Home" | "Games" | "Rankings" | "Login";
 };
 const Login = ({
   IsLoggedIn,
@@ -21,7 +21,7 @@ const Login = ({
         <NavbarImage
           image={logo}
           alt="image"
-          className="ml-1 hover:cursor-pointer active:cursor-pointer"
+          className="ml-2 hover:cursor-pointer active:cursor-pointer"
           onClick={() => {
             setProfileMenu(!profileMenuOpen);
           }}
@@ -31,6 +31,7 @@ const Login = ({
           label={Constants.NAV_LABELS.LOGIN}
           tabName="Login"
           activeTab={activeTab}
+          pathTo="/Login"
         />
       )}
     </>

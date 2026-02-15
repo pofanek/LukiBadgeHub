@@ -5,7 +5,7 @@ type FooterTextProps = {
   children: string | React.ReactNode;
   className?: string;
   isLink?: boolean;
-  pathTo?: string;
+  pathTo: string;
 };
 
 const FooterText = ({

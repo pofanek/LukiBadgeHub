@@ -14,29 +14,54 @@ const HamburgerMenu = ({ value, setter }: HamburgerMenuProps) => {
       >
         <ul className="h-full w-full overflow-x-hidden overflow-y-auto">
           <li>
-            <CardItem className="h-15">{Constants.NAV_LABELS.GAMES}</CardItem>
-          </li>
-          <li>
-            <CardItem className="h-15">
-              {Constants.NAV_LABELS.LEADERBOARDS}
+            <CardItem
+              pathTo={`/${Constants.NAV_LABELS.GAMES}`}
+              className="h-15"
+            >
+              {Constants.NAV_LABELS.GAMES}
             </CardItem>
           </li>
           <li>
-            <CardItem className="h-15">
+            <CardItem
+              className="h-15"
+              pathTo={`/${Constants.NAV_LABELS.RANKINGS}`}
+            >
+              {Constants.NAV_LABELS.RANKINGS}
+            </CardItem>
+          </li>
+          <li>
+            <CardItem
+              className="h-15"
+              pathTo={`/${Constants.NAV_LABELS.SETTINGS}`}
+            >
               {Constants.NAV_LABELS.SETTINGS}
             </CardItem>
           </li>
           <li>
-            <CardItem className="h-15">{Constants.NAV_LABELS.DISCORD}</CardItem>
-          </li>
-          <li>
-            <CardItem className="h-15">
-              {Constants.NAV_LABELS.SUPPORTME}
+            <CardItem
+              isLink={true}
+              pathTo={"https://discord.gg/UH6eUVQQMX"}
+              className="h-15"
+            >
+              {Constants.NAV_LABELS.DISCORD}
             </CardItem>
           </li>
           <li>
-            <CardItem lastItem={true} className="h-15">
-              {Constants.NAV_LABELS.LOGOUT}
+            <CardItem
+              isLink={true}
+              pathTo={"https://ko-fi.com/"}
+              className="h-15"
+            >
+              {Constants.NAV_LABELS.SUPPORTUS}
+            </CardItem>
+          </li>
+          <li>
+            <CardItem
+              pathTo={`/${Constants.USER_RELATED.LOGOUT}`}
+              lastItem={true}
+              className="h-15"
+            >
+              {Constants.USER_RELATED.LOGOUT}
             </CardItem>
           </li>
         </ul>

@@ -1,8 +1,7 @@
 import Navbar from "../Navbar/Navbar";
 import Footer from "../Footer/Footer";
 import ContactContent from "../ContactContent/ContactContent";
-
-function Contact() {
+function Profile() {
   return (
     <div className="flex h-screen flex-col">
       <Navbar activeTab="Home" />
@@ -12,4 +11,4 @@ function Contact() {
   );
 }
 
-export default Contact;
+export default Profile;

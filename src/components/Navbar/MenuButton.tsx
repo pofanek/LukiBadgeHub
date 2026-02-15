@@ -7,7 +7,7 @@ type MenuButtonProps = {
 const MenuButton = ({ value, setter }: MenuButtonProps) => {
   return (
     <button
-      className="block h-12.5 w-12.5 sm:hidden"
+      className="ml-1 block h-12.5 w-12.5 sm:hidden"
       onClick={() => setter(!value)}
     >
       <NavbarImage

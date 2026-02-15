@@ -14,6 +14,10 @@ body {
 
   /* texts */
   --color-font-primary: #e6f1ff; /* font */
+  --color-font-secondary: #9cbde3; /* font */
+  --color-font-muted: #7a9abf; /* muted tekst, opisy, placeholdery */
+  --color-font-muted-2: #4a6a8a; /* bardzo wyciszony tekst */
+
   --color-hover: #a5baff; /* font hover */
 
   --color-link-primary: #1a73e8; /* links */
@@ -34,9 +38,8 @@ body {
 
   /* tags*/
   --color-accent-cold: #3d8ef0;
-  --color-accent-cold-dim: rgba(61, 142, 240, 0.15);
+  --color-accent-cold-dim: #428fee;
 
-  /* Font secondary */
-  --color-font-secondary: #7a9abf; /* muted tekst, opisy, placeholdery */
-  --color-font-muted: #4a6a8a; /* bardzo wyciszony tekst */
+  /* other */
+  --bg-image: url("/src/assets/bg.png");
 }
