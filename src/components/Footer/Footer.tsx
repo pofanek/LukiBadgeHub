@@ -12,24 +12,28 @@ const Footer = () => {
         <FooterText pathTo="/Contact">Contact</FooterText>
       </div>
       <div className="flex h-[33%] w-full items-center justify-center gap-6 lg:order-3">
-        <div className="flex items-center justify-center gap-1">
+        <a
+          href="https://discord.gg/UH6eUVQQMX"
+          className="flex items-center justify-center gap-1"
+        >
           <FaDiscord size={26} color="#818181" />
-          <FooterLink pathTo="https://discord.gg/UH6eUVQQMX">
-            {Constants.NAV_LABELS.DISCORD}
-          </FooterLink>
-        </div>
-        <div className="flex items-center justify-center gap-1">
+          <FooterLink>{Constants.NAV_LABELS.DISCORD}</FooterLink>
+        </a>
+        <a
+          href="https://ko-fi.com/"
+          className="flex items-center justify-center gap-1"
+        >
           <SiKofi size={24} color="#818181" />
-          <FooterLink pathTo="https://ko-fi.com/">
-            {Constants.NAV_LABELS.SUPPORTUS}
-          </FooterLink>
-        </div>
+          <FooterLink>{Constants.NAV_LABELS.SUPPORTUS}</FooterLink>
+        </a>
       </div>
       <div className="flex h-[33%] w-full items-center justify-center gap-1 lg:order-1">
         <p className="text-font-primary font-sans">
           © Luki Badge Hub - Created By
         </p>
-        <FooterLink pathTo="https://github.com/pofanek">Pofanek</FooterLink>
+        <a href="https://github.com/pofanek">
+          <FooterLink>Pofanek</FooterLink>
+        </a>
       </div>
     </footer>
   );

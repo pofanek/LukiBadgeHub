@@ -4,7 +4,6 @@ type CardItemProps = {
   children: string;
   lastItem?: boolean;
   className?: string;
-  profileMenuOpen?: boolean;
   pathTo: string;
   isLink?: boolean;
 };
@@ -13,7 +12,6 @@ const CardItem = ({
   children,
   lastItem = false,
   className = "",
-  profileMenuOpen,
   pathTo,
   isLink = false,
 }: CardItemProps) => {

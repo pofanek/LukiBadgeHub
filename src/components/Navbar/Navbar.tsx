@@ -12,7 +12,7 @@ import {
 import * as Constants from "../../constants";
 import { useState } from "react";
 type NavbarProps = {
-  activeTab: "Home" | "Games" | "Rankings" | "Login";
+  activeTab: "Home" | "Games" | "Rankings" | "Login" | "None";
 };
 const Navbar = ({ activeTab }: NavbarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);

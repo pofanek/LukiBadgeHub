@@ -1,13 +1,13 @@
-import { logo } from "../../assets";
+import { userchomik } from "../../assets";
 import * as Constants from "../../constants";
 import NavbarButtonRightPanel from "./NavbarButtonRightPanel";
 import NavbarImage from "./NavbarImage";
 
 type LoginProps = {
-  IsLoggedIn: boolean; // loggedIn
-  profileMenuOpen: boolean; // prof
-  setProfileMenu: React.Dispatch<React.SetStateAction<boolean>>; // prof
-  activeTab: "Home" | "Games" | "Rankings" | "Login";
+  IsLoggedIn: boolean;
+  profileMenuOpen: boolean;
+  setProfileMenu: React.Dispatch<React.SetStateAction<boolean>>;
+  activeTab: "Home" | "Games" | "Rankings" | "Login" | "None";
 };
 const Login = ({
   IsLoggedIn,
@@ -19,7 +19,7 @@ const Login = ({
     <>
       {IsLoggedIn ? (
         <NavbarImage
-          image={logo}
+          image={userchomik}
           alt="image"
           className="ml-2 hover:cursor-pointer active:cursor-pointer"
           onClick={() => {

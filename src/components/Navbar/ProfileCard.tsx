@@ -15,6 +15,9 @@ const ProfileCard = ({ className = "" }: ProfileCardProps) => {
       <CardItem pathTo={`/${Constants.NAV_LABELS.SETTINGS}`} className="h-1/3">
         {Constants.NAV_LABELS.SETTINGS}
       </CardItem>
+      <CardItem pathTo={`/${Constants.NAV_LABELS.BILLING}`} className="h-1/3">
+        {Constants.NAV_LABELS.BILLING}
+      </CardItem>
       <CardItem
         pathTo={`/${Constants.USER_RELATED.LOGOUT}`}
         className="h-1/3"

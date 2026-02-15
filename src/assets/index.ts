@@ -1,2 +1,3 @@
 import logo from "@/assets/logo.png";
-export { logo };
+import userchomik from "@/assets/USERCHOMIK.png";
+export { logo, userchomik };

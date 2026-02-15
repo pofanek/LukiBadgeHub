@@ -1,10 +1,18 @@
 import ContactLabel from "./ContactLabel";
 import ContactInput from "./ContactInput";
-import TextArea from "./TextArea";
+import Textarea from "./Textarea";
 import Submit from "./Submit";
 import Dropdown from "./Dropdown";
-
+import { useState } from "react";
+import type { ContactTopic } from "../../types/Contact";
 const ContactContent = () => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [selectedOption, setSelectedOption] =
+    useState<ContactTopic>("Feedback");
+  const [message, setMessage] = useState("");
+  const values = [selectedOption, name, email, message];
+  const setters = [setName, setEmail, setMessage];
   return (
     <main className="flex flex-1 items-center justify-center">
       <form
@@ -20,16 +28,24 @@ const ContactContent = () => {
         <div className="flex flex-col lg:flex-row">
           <div className="flex w-full flex-col gap-6 lg:gap-3">
             <ContactLabel htmlFor="topic" text="Topic" />
-            <Dropdown />
+            <Dropdown
+              selectedOption={selectedOption}
+              setSelectedOption={setSelectedOption}
+              id="topic"
+            />
             <ContactLabel htmlFor="name" text="Name &#10088;Optional&#10089;" />
-            <ContactInput />
+            <ContactInput value={name} id="name" setter={setName} />
             <ContactLabel htmlFor="email" text="E-mail address" />
-            <ContactInput />
+            <ContactInput value={email} id="email" setter={setEmail} />
           </div>
           <div className="mt-6 flex w-full flex-col gap-6 lg:mt-0 lg:ml-6 lg:justify-evenly lg:gap-3">
             <ContactLabel text="Message" />
-            <TextArea />
-            <Submit />
+            <Textarea message={message} setMessage={setMessage} />
+            <Submit
+              values={values}
+              setters={setters}
+              setSelectedOption={setSelectedOption}
+            />
           </div>
         </div>
       </form>

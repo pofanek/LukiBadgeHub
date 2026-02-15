@@ -1,7 +1,9 @@
+import type { ContactTopic } from "../../types/Contact";
+
 type DropdownItemProps = {
-  text: string;
+  text: ContactTopic;
   className?: string;
-  setSelectedOption: React.Dispatch<React.SetStateAction<string>>;
+  setSelectedOption: React.Dispatch<React.SetStateAction<ContactTopic>>;
   setisDropdownOpen: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
