@@ -16,8 +16,9 @@ const ContactContent = () => {
   return (
     <main className="flex flex-1 items-center justify-center">
       <form
+        autoComplete="false"
         method="POST"
-        className="bg-surface-soft mx-30 mt-10 mb-10 flex h-auto max-w-119.5 flex-1 flex-col gap-4 rounded-xl p-5 shadow-black lg:max-w-200"
+        className="bg-surface-soft mx-85 mt-10 mb-10 flex h-auto max-w-119.5 flex-1 flex-col gap-4 rounded-xl p-5 shadow-black lg:max-w-200"
       >
         <ContactLabel text="Contact Us" bigText={true} />
         <ContactLabel
@@ -34,13 +35,23 @@ const ContactContent = () => {
               id="topic"
             />
             <ContactLabel htmlFor="name" text="Name &#10088;Optional&#10089;" />
-            <ContactInput value={name} id="name" setter={setName} />
+            <ContactInput
+              placeholder="John Doe"
+              value={name}
+              id="name"
+              setter={setName}
+            />
             <ContactLabel htmlFor="email" text="E-mail address" />
-            <ContactInput value={email} id="email" setter={setEmail} />
+            <ContactInput
+              placeholder="john.doe@example.com"
+              value={email}
+              id="email"
+              setter={setEmail}
+            />
           </div>
           <div className="mt-6 flex w-full flex-col gap-6 lg:mt-0 lg:ml-6 lg:justify-evenly lg:gap-3">
-            <ContactLabel text="Message" />
-            <Textarea message={message} setMessage={setMessage} />
+            <ContactLabel htmlFor="message" text="Message" />
+            <Textarea id="message" message={message} setMessage={setMessage} />
             <Submit
               values={values}
               setters={setters}

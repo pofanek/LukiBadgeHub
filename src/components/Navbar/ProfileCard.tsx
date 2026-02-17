@@ -1,30 +1,39 @@
-import CardItem from "./CardItem";
+import ProfileItem from "./ProfileItem";
 import * as Constants from "../../constants";
 type ProfileCardProps = {
   className?: string;
 };
-
+import { FiUser } from "react-icons/fi";
+import { FiSettings } from "react-icons/fi";
+import { FiCreditCard } from "react-icons/fi";
+import { FiLogOut } from "react-icons/fi";
 const ProfileCard = ({ className = "" }: ProfileCardProps) => {
   return (
     <ul
-      className={`${className} bg-surface-raised border-border fixed top-26 right-3.5 z-9 flex h-54 w-46 flex-col items-center justify-center rounded-xl p-2 shadow-black transition-opacity duration-300 ease-in-out sm:right-2 sm:w-52`}
+      className={`${className} bg-surface-raised border-border fixed top-26 right-3.5 z-9 flex h-48 w-38 flex-col items-center justify-center rounded-xl p-2 shadow-black transition-opacity duration-200 ease-in-out sm:right-7`}
     >
-      <CardItem pathTo={`/${Constants.USER_RELATED.PROFILE}`} className="h-1/3">
+      <ProfileItem pathTo={`/${Constants.USER_RELATED.PROFILE}`} Icon={FiUser}>
         {Constants.USER_RELATED.PROFILE}
-      </CardItem>
-      <CardItem pathTo={`/${Constants.NAV_LABELS.SETTINGS}`} className="h-1/3">
-        {Constants.NAV_LABELS.SETTINGS}
-      </CardItem>
-      <CardItem pathTo={`/${Constants.NAV_LABELS.BILLING}`} className="h-1/3">
+      </ProfileItem>
+      <ProfileItem
+        pathTo={`/${Constants.NAV_LABELS.BILLING}`}
+        Icon={FiCreditCard}
+      >
         {Constants.NAV_LABELS.BILLING}
-      </CardItem>
-      <CardItem
+      </ProfileItem>
+      <ProfileItem
+        pathTo={`/${Constants.NAV_LABELS.SETTINGS}`}
+        Icon={FiSettings}
+      >
+        {Constants.NAV_LABELS.SETTINGS}
+      </ProfileItem>
+      <ProfileItem
         pathTo={`/${Constants.USER_RELATED.LOGOUT}`}
-        className="h-1/3"
-        lastItem={true}
+        logoutItem={true}
+        Icon={FiLogOut}
       >
         {Constants.USER_RELATED.LOGOUT}
-      </CardItem>
+      </ProfileItem>
     </ul>
   );
 };

@@ -16,7 +16,7 @@ const Submit = ({ values, setters, setSelectedOption }: SubmitProps) => {
         const WEBHOOK_EMBED = {
           title: "CATEGORY: " + values[0].toUpperCase(),
           color: TOPIC_COLORS[values[0]],
-          timestamp: "2026-02-15T17:25:50.822Z",
+          timestamp: new Date().toISOString(),
           description: "─────────────────────────────────────",
           footer: {
             icon_url: "https://i.ibb.co/TMvd0jHX/logo.jpg",
@@ -53,7 +53,7 @@ const Submit = ({ values, setters, setSelectedOption }: SubmitProps) => {
         setSelectedOption("Feedback");
         sendWebhook({ type: "embed", embed: WEBHOOK_EMBED });
       }}
-      className="bg-surface text-font-primary from-accent-cold to-accent-cold-dim max-w-119.5 cursor-pointer rounded-xl bg-linear-to-r p-2 transition-transform duration-300 hover:scale-[103%]"
+      className="bg-surface text-font-primary from-accent-cold to-accent-cold-dim cursor-pointer rounded-xl bg-linear-to-r p-1.5 transition-transform duration-300 hover:scale-[103%]"
       type="button"
     >
       Send

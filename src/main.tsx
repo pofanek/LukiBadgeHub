@@ -2,7 +2,9 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./index.css";
-// TODO Czerwony przycisk logout
+// TODO required fieldy i typy fieldow
+// TODO notifications jak np sie wysyla w contact page wiadomosc (useContextem)
+// TODO dodac cooldown na wysylanie wiadomosci
 import {
   App,
   About,
@@ -13,6 +15,7 @@ import {
   Settings,
   Terms,
   Profile,
+  Billing,
 } from "./components/pages";
 const router = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -24,6 +27,7 @@ const router = createBrowserRouter([
   { path: "/Rankings", element: <Rankings /> },
   { path: "/Profile", element: <Profile /> },
   { path: "/Logout", element: <Logout /> },
+  { path: "/Billing", element: <Billing /> },
 ]);
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

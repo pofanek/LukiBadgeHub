@@ -6,7 +6,6 @@ body {
 @theme {
   --font-serif: "Fenix", serif;
   --font-sans: "Inter", sans-serif;
-
   --color-primary: #0b1b2b; /* bg */
   --color-brand-primary: #3a3f6b; /* navbar buttons */
   --color-brand-secondary: #2f3a6a;
@@ -34,7 +33,7 @@ body {
 
   /* borders */
   --color-border: rgba(165, 186, 255, 0.1);
-  --color-border-strong: rgba(165, 186, 255, 0.22);
+  --color-border-strong: ;
 
   /* tags*/
   --color-accent-cold: #3d8ef0;
@@ -42,4 +41,6 @@ body {
 
   /* other */
   --bg-image: url("/public/bg.png");
+  --color-destructive: lab(63.7053% 60.745 31.3109);
+  --color-destructive-background: rgba(255, 100, 102, 0.3);
 }
