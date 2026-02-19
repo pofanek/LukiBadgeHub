@@ -7,6 +7,7 @@ type TextareaProps = {
 const Textarea = ({ message, setMessage, id }: TextareaProps) => {
   return (
     <textarea
+      required
       id={id}
       value={message}
       onChange={(e) => setMessage(e.target.value)}

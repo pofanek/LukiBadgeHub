@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { FaCaretDown } from "react-icons/fa";
 import { FaCaretUp } from "react-icons/fa";
 import type { ContactTopic } from "../../types/Contact";
@@ -6,12 +5,19 @@ import type { ContactTopic } from "../../types/Contact";
 type DropdownProps = {
   selectedOption: ContactTopic;
   setSelectedOption: React.Dispatch<React.SetStateAction<ContactTopic>>;
+  setisDropdownOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isDropdownOpen: boolean;
   id: string;
 };
 
 import DropdownItem from "./DropdownItem";
-const Dropdown = ({ selectedOption, setSelectedOption, id }: DropdownProps) => {
-  const [isDropdownOpen, setisDropdownOpen] = useState(false);
+const Dropdown = ({
+  selectedOption,
+  setSelectedOption,
+  setisDropdownOpen,
+  isDropdownOpen,
+  id,
+}: DropdownProps) => {
   return (
     <>
       <div

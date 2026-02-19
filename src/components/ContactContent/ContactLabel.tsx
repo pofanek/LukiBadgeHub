@@ -3,6 +3,7 @@ type ContactLabelProps = {
   smallText?: boolean;
   bigText?: boolean;
   htmlFor?: string;
+  setisDropdownOpen?: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 const ContactLabel = ({
@@ -10,6 +11,7 @@ const ContactLabel = ({
   smallText = false,
   bigText = false,
   htmlFor,
+  setisDropdownOpen,
 }: ContactLabelProps) => {
   if (smallText || bigText) {
     return (
@@ -24,6 +26,13 @@ const ContactLabel = ({
       <label
         className={`text-font-secondary font-sans text-lg`}
         htmlFor={htmlFor}
+        onClick={
+          setisDropdownOpen
+            ? () => {
+                setisDropdownOpen(true);
+              }
+            : undefined
+        }
       >
         {text}
       </label>

@@ -63,6 +63,8 @@ const Navbar = ({ activeTab }: NavbarProps) => {
         <SearchbarFixed value={searchbarOpen} setter={setSearchbarOpen} />
         <HamburgerMenu value={menuOpen} setter={setMenuOpen} />
         <ProfileCard
+          setProfileMenu={setProfileMenu}
+          profileMenuOpen={profileMenuOpen}
           className={`${profileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
         />
       </nav>

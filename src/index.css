@@ -40,7 +40,7 @@ body {
   --color-accent-cold-dim: #428fee;
 
   /* other */
-  --bg-image: url("/public/bg.png");
+  --bg-image: url("/bg.png");
   --color-destructive: lab(63.7053% 60.745 31.3109);
   --color-destructive-background: rgba(255, 100, 102, 0.3);
 }

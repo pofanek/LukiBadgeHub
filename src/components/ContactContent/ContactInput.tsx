@@ -3,6 +3,8 @@ type ContactInputProps = {
   setter: React.Dispatch<React.SetStateAction<string>>;
   id: string;
   placeholder: string;
+  required?: boolean;
+  type?: string;
 };
 
 const ContactInput = ({
@@ -10,14 +12,17 @@ const ContactInput = ({
   setter,
   id,
   placeholder,
+  required = true,
+  type = "text",
 }: ContactInputProps) => {
   return (
     <input
       id={id}
       onChange={(e) => setter(e.target.value)}
-      type="text"
+      type={type}
       value={value}
       placeholder={placeholder}
+      required={required}
       className={`text-font-primary bg-surface hover:ring-brand-secondary focus-within:ring-brand-secondary text-md max-w-full flex-1 rounded-2xl bg-linear-to-r p-1.5 px-4 transition-all duration-200 outline-none focus-within:ring-2 hover:ring-2 lg:max-w-[80%]`}
     />
   );

@@ -2,9 +2,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./index.css";
-// TODO required fieldy i typy fieldow
-// TODO notifications jak np sie wysyla w contact page wiadomosc (useContextem)
-// TODO dodac cooldown na wysylanie wiadomosci
 import {
   App,
   About,
