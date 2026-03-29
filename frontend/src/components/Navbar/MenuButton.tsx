@@ -12,10 +12,10 @@ const MenuButton = ({ value, setter }: MenuButtonProps) => {
     >
       {value ? (
         <div className="relative z-100 rotate-45">
-          <GoPlus size={50} color="FFFFFF" />
+          <GoPlus size={50} className="text-white hover:cursor-pointer" />
         </div>
       ) : (
-        <IoIosMenu size={50} color="FFFFFF" />
+        <IoIosMenu size={50} className="text-white hover:cursor-pointer" />
       )}
     </button>
   );

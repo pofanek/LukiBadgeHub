@@ -1,5 +1,4 @@
 import { CardItem } from "./";
-import * as Constants from "../../constants";
 type HamburgerMenuProps = {
   value: boolean;
   setter: React.Dispatch<React.SetStateAction<boolean>>;
@@ -14,27 +13,18 @@ const HamburgerMenu = ({ value, setter }: HamburgerMenuProps) => {
       >
         <ul className="h-full w-full overflow-x-hidden overflow-y-auto">
           <li>
-            <CardItem
-              pathTo={`/${Constants.NAV_LABELS.GAMES}`}
-              className="h-15"
-            >
-              {Constants.NAV_LABELS.GAMES}
+            <CardItem pathTo={`/Games`} className="h-15">
+              Games
             </CardItem>
           </li>
           <li>
-            <CardItem
-              className="h-15"
-              pathTo={`/${Constants.NAV_LABELS.RANKINGS}`}
-            >
-              {Constants.NAV_LABELS.RANKINGS}
+            <CardItem className="h-15" pathTo={`/Rankings`}>
+              Rankings
             </CardItem>
           </li>
           <li>
-            <CardItem
-              className="h-15"
-              pathTo={`/${Constants.NAV_LABELS.SETTINGS}`}
-            >
-              {Constants.NAV_LABELS.SETTINGS}
+            <CardItem className="h-15" pathTo={`/Settings`}>
+              Settings
             </CardItem>
           </li>
           <li>
@@ -43,7 +33,7 @@ const HamburgerMenu = ({ value, setter }: HamburgerMenuProps) => {
               pathTo={"https://discord.gg/UH6eUVQQMX"}
               className="h-15"
             >
-              {Constants.NAV_LABELS.DISCORD}
+              Discord
             </CardItem>
           </li>
           <li>
@@ -52,16 +42,12 @@ const HamburgerMenu = ({ value, setter }: HamburgerMenuProps) => {
               pathTo={"https://ko-fi.com/"}
               className="h-15"
             >
-              {Constants.NAV_LABELS.SUPPORTUS}
+              Support Us!
             </CardItem>
           </li>
           <li>
-            <CardItem
-              pathTo={`/${Constants.USER_RELATED.LOGOUT}`}
-              lastItem={true}
-              className="h-15"
-            >
-              {Constants.USER_RELATED.LOGOUT}
+            <CardItem pathTo={`/Logout`} lastItem={true} className="h-15">
+              Logout
             </CardItem>
           </li>
         </ul>

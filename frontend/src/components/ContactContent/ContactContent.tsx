@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { ContactLabel, ContactInput, Textarea, Submit, Dropdown } from "./";
+import { ContactLabel, ContactInput, Textarea, Dropdown } from "./";
 import { TOPIC_COLORS } from "../../constants";
 import { sendWebhook } from "../../utils/webhook";
 import type { ContactTopic } from "../../types/Contact";
+import { Submit } from "../UI";
 
 const COOLDOWN_TIME = 60000;
 
@@ -119,7 +120,7 @@ const ContactContent = () => {
           <div className="mt-6 flex w-full flex-col gap-6 lg:mt-0 lg:ml-6 lg:gap-3">
             <ContactLabel htmlFor="message" text="Message" />
             <Textarea id="message" message={message} setMessage={setMessage} />
-            <Submit cooldown={cooldown} />
+            <Submit label="Submit" cooldown={cooldown} />
           </div>
         </div>
       </form>

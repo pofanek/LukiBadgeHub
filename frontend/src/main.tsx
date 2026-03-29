@@ -13,6 +13,7 @@ import {
   Terms,
   Profile,
   Billing,
+  Login,
 } from "./components/pages";
 const router = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -25,12 +26,18 @@ const router = createBrowserRouter([
   { path: "/Profile", element: <Profile /> },
   { path: "/Logout", element: <Logout /> },
   { path: "/Billing", element: <Billing /> },
+  { path: "/Login", element: <Login /> },
 ]);
 // TODO - add error page
 // TODO bedzie trzeba dodać loading
 // TODO - kolory ikon na białe
 // TODO moze custom scroll
 // TODO w contact dodac opcje balance suggestion
+// TODO bardziej wyróżniający się login button
+// TODO menu profilu na navbarze zimprovować
+// TODO logout w  hamburgermenu znika w zaleznosci od tego czy user jest zalogowany czy nie
+// TODO hamburgermenu wyglada chujowo swoja droga
+// TODO przerobić footer aby na MD było na górze Luki badge hub na dole created by pofaneki oraz Join our discord na górze i support us na dole wciąż w tej pozycji lewo prawo po to aby sie tak szybko nie zawijało
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />

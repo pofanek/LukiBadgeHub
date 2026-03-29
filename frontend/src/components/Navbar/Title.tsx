@@ -3,23 +3,28 @@ import { logo } from "../../assets";
 import { NavbarImage } from "./";
 import { Link } from "react-router-dom";
 type TitleProps = {
-  value: boolean;
+  value?: boolean;
+  longNavbar?: boolean;
 };
-const Title = ({ value }: TitleProps) => {
+const Title = ({ value, longNavbar = true }: TitleProps) => {
   return (
     <Link
       to="/"
-      className="ml-2 flex h-full w-42 items-center gap-2 duration-300 hover:scale-105 hover:cursor-pointer sm:w-67 md:gap-6"
+      className={`flex h-full items-center duration-300 hover:scale-105 hover:cursor-pointer ${longNavbar ? "m:w-67 ml-2 w-42 gap-2 md:gap-6" : "w-67 justify-center gap-6"} `}
     >
       <NavbarImage
         className={`${value ? "shadow-none" : "shadow-black"}`}
         image={logo}
         alt={`${Constants.APP_SHORT_NAME} Logo`}
       />
-      <p className="text-font-primary hidden font-serif text-3xl whitespace-nowrap sm:block">
+      <p
+        className={`text-font-primary font-serif text-3xl whitespace-nowrap ${longNavbar ? "hidden sm:block" : "hidden sm:block"}`}
+      >
         {Constants.APP_NAME}
       </p>
-      <p className="text-font-primary block font-serif text-4xl whitespace-nowrap sm:hidden">
+      <p
+        className={`text-font-primary block font-serif text-4xl whitespace-nowrap ${longNavbar ? "sm:hidden" : "sm:hidden"} `}
+      >
         {Constants.APP_SHORT_NAME}
       </p>
     </Link>

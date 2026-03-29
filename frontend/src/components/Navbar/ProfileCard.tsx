@@ -1,5 +1,4 @@
 import ProfileItem from "./ProfileItem";
-import * as Constants from "../../constants";
 type ProfileCardProps = {
   className?: string;
   profileMenuOpen: boolean;
@@ -19,30 +18,17 @@ const ProfileCard = ({
       <ul
         className={`${className} bg-surface-raised border-border fixed top-26 right-3.5 z-9 flex h-48 w-38 flex-col items-center justify-center rounded-xl p-2 shadow-black transition-opacity duration-200 ease-in-out sm:right-7`}
       >
-        <ProfileItem
-          pathTo={`/${Constants.USER_RELATED.PROFILE}`}
-          Icon={FiUser}
-        >
-          {Constants.USER_RELATED.PROFILE}
+        <ProfileItem pathTo={`/Profile`} Icon={FiUser}>
+          Profile
         </ProfileItem>
-        <ProfileItem
-          pathTo={`/${Constants.NAV_LABELS.BILLING}`}
-          Icon={FiCreditCard}
-        >
-          {Constants.NAV_LABELS.BILLING}
+        <ProfileItem pathTo={`/Billing`} Icon={FiCreditCard}>
+          Billing
         </ProfileItem>
-        <ProfileItem
-          pathTo={`/${Constants.NAV_LABELS.SETTINGS}`}
-          Icon={FiSettings}
-        >
-          {Constants.NAV_LABELS.SETTINGS}
+        <ProfileItem pathTo={`/Settings`} Icon={FiSettings}>
+          Settings
         </ProfileItem>
-        <ProfileItem
-          pathTo={`/${Constants.USER_RELATED.LOGOUT}`}
-          logoutItem={true}
-          Icon={FiLogOut}
-        >
-          {Constants.USER_RELATED.LOGOUT}
+        <ProfileItem pathTo={`/Logout`} logoutItem={true} Icon={FiLogOut}>
+          Logout
         </ProfileItem>
       </ul>
       {profileMenuOpen && (

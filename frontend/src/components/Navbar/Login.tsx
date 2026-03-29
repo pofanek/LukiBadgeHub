@@ -1,5 +1,4 @@
 import { userchomik } from "../../assets";
-import * as Constants from "../../constants";
 import NavbarButtonRightPanel from "./NavbarButtonRightPanel";
 import NavbarImage from "./NavbarImage";
 
@@ -28,7 +27,7 @@ const Login = ({
         />
       ) : (
         <NavbarButtonRightPanel
-          label={Constants.NAV_LABELS.LOGIN}
+          label={"Login"}
           tabName="Login"
           activeTab={activeTab}
           pathTo="/Login"
