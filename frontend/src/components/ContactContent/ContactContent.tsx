@@ -80,7 +80,7 @@ const ContactContent = () => {
         autoComplete="off"
         className="bg-surface-soft mx-85 mt-10 mb-10 flex h-auto max-w-119.5 flex-1 flex-col gap-4 rounded-xl p-5 shadow-black lg:max-w-200"
       >
-        <ContactLabel text="Contact Us" bigText />
+        <ContactLabel text="Contact Us" />
         <ContactLabel
           text="Here you can report bugs, request features or send feedback!"
           smallText

@@ -1,0 +1,8 @@
+dist
+node_modules
+.env
+.prettierrc
+info.txt
+test.html
+test2.html
+test3.html

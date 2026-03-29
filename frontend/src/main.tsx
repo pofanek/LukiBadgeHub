@@ -26,6 +26,11 @@ const router = createBrowserRouter([
   { path: "/Logout", element: <Logout /> },
   { path: "/Billing", element: <Billing /> },
 ]);
+// TODO - add error page
+// TODO bedzie trzeba dodać loading
+// TODO - kolory ikon na białe
+// TODO moze custom scroll
+// TODO w contact dodac opcje balance suggestion
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />
