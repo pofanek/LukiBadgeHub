@@ -14,13 +14,24 @@ const NavbarButtonRightPanel = ({
   label,
   pathTo,
 }: NavbarButtonItemProps) => {
+  const isActive = activeTab === tabName;
+  const isLogin = tabName === "Login";
+
+  const loginStyles =
+    "from-accent-cold to-accent-cold-dim bg-linear-to-r ml-2 text-font-primary hover:brightness-110";
+  const activeStyles = "text-font-primary font-medium";
+  const defaultStyles =
+    "text-font-secondary hover:text-font-primary hover:bg-effect-glass";
+
+  const styles = isLogin
+    ? loginStyles
+    : isActive
+      ? activeStyles
+      : defaultStyles;
+
   return (
     <Link to={pathTo}>
-      <NavbarButton
-        className={`${activeTab === tabName ? "from-brand-primary to-brand-secondary hover:text-font-primary active:text-font-primary bg-linear-to-r" : ""} ${className}`}
-      >
-        {label}
-      </NavbarButton>
+      <NavbarButton className={`${styles} ${className}`}>{label}</NavbarButton>
     </Link>
   );
 };

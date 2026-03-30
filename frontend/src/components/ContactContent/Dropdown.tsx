@@ -1,7 +1,6 @@
 import { FaCaretDown } from "react-icons/fa";
 import { FaCaretUp } from "react-icons/fa";
 import type { ContactTopic } from "../../types/Contact";
-
 type DropdownProps = {
   selectedOption: ContactTopic;
   setSelectedOption: React.Dispatch<React.SetStateAction<ContactTopic>>;
@@ -53,6 +52,18 @@ const Dropdown = ({
             setSelectedOption={setSelectedOption}
             text="Feature Request"
             className={`rounded-b-lg ${selectedOption === "Feature Request" ? "bg-brand-tertiary text-font-secondary" : "bg-surface text-font-primary"}`}
+          />
+          <DropdownItem
+            setisDropdownOpen={setisDropdownOpen}
+            setSelectedOption={setSelectedOption}
+            text="Balance Suggestion"
+            className={`rounded-b-lg ${selectedOption === "Balance Suggestion" ? "bg-brand-tertiary text-font-secondary" : "bg-surface text-font-primary"}`}
+          />
+          <DropdownItem
+            setisDropdownOpen={setisDropdownOpen}
+            setSelectedOption={setSelectedOption}
+            text="Other"
+            className={`rounded-b-lg ${selectedOption === "Other" ? "bg-brand-tertiary text-font-secondary" : "bg-surface text-font-primary"}`}
           />
         </div>
       </div>

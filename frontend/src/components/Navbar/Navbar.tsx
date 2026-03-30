@@ -20,7 +20,7 @@ const Navbar = ({ activeTab }: NavbarProps) => {
   const [IsLoggedIn] = useState(false);
   return (
     <>
-      <nav className="border-border bg-surface-overlay/40 sticky z-10 mt-7 mr-2 ml-2 flex h-16 items-center justify-between rounded-xl border p-1 shadow-black sm:mr-7 sm:ml-7">
+      <nav className="border-border bg-surface-overlay/40 sticky z-10 mx-2 mt-7 flex h-16 min-w-94 items-center justify-between rounded-xl border p-1 pr-3 shadow-black sm:mr-7 sm:ml-7">
         <div className="flex-1 pr-0 md:grow md:pr-2">
           <Title value={searchbarOpen} />
         </div>

@@ -3,6 +3,22 @@ html,
 body {
   overflow-x: hidden;
 }
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-secondary);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-primary);
+}
 @theme {
   --font-serif: "Fenix", serif;
   --font-sans: "Inter", sans-serif;

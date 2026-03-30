@@ -6,4 +6,6 @@ export const TOPIC_COLORS: Record<string, number> = {
   Feedback: 3866481,
   "Bug Report": 15548997,
   "Feature Request": 5814783,
+  "Balance Suggestion": 16763904,
+  Other: 16777215,
 };

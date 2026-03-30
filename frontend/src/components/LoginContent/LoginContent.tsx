@@ -1,11 +1,13 @@
 import { useState } from "react";
-import EmailInput from "./EmailInput";
-import PasswordInput from "./PasswordInput";
-import Splitter from "./Splitter";
-import RememberMe from "./RememberMe";
-import SocialLogin from "./SocialLogin";
-import NoAccount from "./NoAccount";
-import LoginLink from "./LoginLink";
+import {
+  EmailInput,
+  PasswordInput,
+  Splitter,
+  RememberMe,
+  SocialLogin,
+  NoAccount,
+  LoginLink,
+} from ".";
 import { FcGoogle } from "react-icons/fc";
 import { FaDiscord } from "react-icons/fa";
 import { Submit } from "../UI";
