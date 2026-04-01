@@ -5,3 +5,5 @@ export { default as LoginLink } from "./LoginLink";
 export { default as RememberMe } from "./RememberMe";
 export { default as SocialLogin } from "./SocialLogin";
 export { default as NoAccount } from "./NoAccount";
+export { default as Card } from "./Card";
+export { default as FormFooter } from "./FormFooter";

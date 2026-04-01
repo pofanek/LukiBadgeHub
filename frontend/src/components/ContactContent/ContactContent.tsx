@@ -3,7 +3,7 @@ import { ContactLabel, ContactInput, Textarea, Dropdown } from "./";
 import { TOPIC_COLORS } from "../../constants";
 import { sendWebhook } from "../../utils/webhook";
 import type { ContactTopic } from "../../types/Contact";
-import { Submit } from "../UI";
+import { FocusContent, Submit } from "../UI";
 
 const COOLDOWN_TIME = 60000;
 
@@ -75,7 +75,7 @@ const ContactContent = () => {
   };
 
   return (
-    <main className="flex flex-1 items-center justify-center">
+    <FocusContent>
       <form
         onSubmit={handleSubmit}
         autoComplete="off"
@@ -124,7 +124,7 @@ const ContactContent = () => {
           </div>
         </div>
       </form>
-    </main>
+    </FocusContent>
   );
 };
 

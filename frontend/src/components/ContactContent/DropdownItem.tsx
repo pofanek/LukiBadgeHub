@@ -20,7 +20,7 @@ const DropdownItem = ({
         setisDropdownOpen(false);
       }}
       type="button"
-      className={`${className} hover:bg-brand-secondary active:bg-brand-secondary hover:text-font-secondary font flex w-full cursor-pointer items-center justify-start p-2 pl-5 transition-all duration-200`}
+      className={`${className} hover:bg-brand-secondary active:bg-brand-secondary hover:text-font-secondary flex w-full cursor-pointer items-center justify-start p-2 pl-5 transition-all duration-200`}
     >
       {text}
     </button>

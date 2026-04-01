@@ -14,7 +14,7 @@ const ContactLabel = ({
   if (smallText) {
     return (
       <p
-        className={`${smallText ? "text-font-muted max-w-full text-sm lg:max-w-500" : "text-font-secondary text-xl"} font-sans`}
+        className={`${smallText ? "text-font-muted max-w-full text-sm" : "text-font-secondary text-xl"} font-sans`}
       >
         {text}
       </p>

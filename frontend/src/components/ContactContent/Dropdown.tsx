@@ -21,12 +21,12 @@ const Dropdown = ({
     <>
       <div
         id={id}
-        className={`bg-surface text-md relative z-8 flex max-w-full flex-1 flex-col rounded-2xl lg:max-w-[80%]`}
+        className={`bg-surface relative z-8 flex max-w-full flex-1 flex-col rounded-2xl lg:max-w-[80%]`}
       >
         <button
           type="button"
           onClick={() => setisDropdownOpen(!isDropdownOpen)}
-          className={`text-font-primary text-md flex cursor-pointer items-center justify-between rounded-2xl p-1.5 px-4 ring-2 transition-all duration-200 outline-none ${
+          className={`text-font-primary flex cursor-pointer items-center justify-between rounded-2xl p-1.5 px-4 ring-2 transition-all duration-200 outline-none ${
             isDropdownOpen ? "ring-brand-primary" : "ring-transparent"
           }`}
         >

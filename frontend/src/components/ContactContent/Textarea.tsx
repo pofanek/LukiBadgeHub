@@ -12,7 +12,7 @@ const Textarea = ({ message, setMessage, id }: TextareaProps) => {
       value={message}
       onChange={(e) => setMessage(e.target.value)}
       placeholder="Your message here..."
-      className="bg-surface text-font-primary text-md focus-within:ring-brand-secondary max-w-full flex-1 rounded-lg p-2 transition-all duration-100 outline-none focus-within:ring-2"
+      className="bg-surface text-font-primary focus:ring-brand-secondary max-w-full flex-1 rounded-lg p-2 transition-all duration-100 outline-none focus:ring-2"
     />
   );
 };

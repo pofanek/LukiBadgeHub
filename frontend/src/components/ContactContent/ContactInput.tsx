@@ -23,7 +23,7 @@ const ContactInput = ({
       value={value}
       placeholder={placeholder}
       required={required}
-      className={`text-font-primary bg-surface hover:ring-brand-secondary focus-within:ring-brand-secondary text-md max-w-full flex-1 rounded-2xl bg-linear-to-r p-1.5 px-4 transition-all duration-200 outline-none focus-within:ring-2 hover:ring-2 lg:max-w-[80%]`}
+      className={`text-font-primary bg-surface hover:ring-brand-secondary focus:ring-brand-secondary max-w-full flex-1 rounded-2xl bg-linear-to-r p-1.5 px-4 transition-all duration-200 outline-none hover:ring-2 focus:ring-2 lg:max-w-[80%]`}
     />
   );
 };

@@ -12,7 +12,7 @@ const EmailInput = ({ value, setter, id }: EmailInputProps) => {
       onClick={() => {
         inputRef.current?.focus();
       }}
-      className="text-font-primary border-surface-soft hover:ring-surface-raised focus-within:ring-surface-raised text-md flex w-[80%] max-w-full min-w-64 gap-3 rounded-xl border-2 px-4 py-2 transition-all duration-200 outline-none focus-within:ring-2 hover:ring-2"
+      className="text-font-primary border-surface-soft hover:ring-surface-raised focus-within:ring-surface-raised flex w-[80%] max-w-full min-w-64 gap-3 rounded-xl border-2 px-4 py-2 transition-all duration-200 outline-none focus-within:ring-2 hover:ring-2"
     >
       <LuMail size={24} className="shrink-0 text-gray-500" />
       <input
