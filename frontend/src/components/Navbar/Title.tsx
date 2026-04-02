@@ -5,8 +5,13 @@ import { Link } from "react-router-dom";
 type TitleProps = {
   value?: boolean;
   longNavbar?: boolean;
+  alwaysExpandText?: boolean;
 };
-const Title = ({ value, longNavbar = true }: TitleProps) => {
+const Title = ({
+  value,
+  longNavbar = true,
+  alwaysExpandText = false,
+}: TitleProps) => {
   return (
     <Link
       to="/"
@@ -18,12 +23,20 @@ const Title = ({ value, longNavbar = true }: TitleProps) => {
         alt={`${Constants.APP_SHORT_NAME} Logo`}
       />
       <p
-        className={`text-font-primary font-serif text-3xl whitespace-nowrap ${longNavbar ? "hidden sm:block" : "hidden sm:block"}`}
+        className={`text-font-primary font-serif text-3xl whitespace-nowrap ${
+          alwaysExpandText
+            ? "block"
+            : longNavbar
+              ? "hidden sm:block"
+              : "hidden sm:block"
+        }`}
       >
         {Constants.APP_NAME}
       </p>
       <p
-        className={`text-font-primary block font-serif text-4xl whitespace-nowrap ${longNavbar ? "sm:hidden" : "sm:hidden"} `}
+        className={`text-font-primary font-serif text-4xl whitespace-nowrap ${
+          alwaysExpandText ? "hidden" : "sm:hidden"
+        }`}
       >
         {Constants.APP_SHORT_NAME}
       </p>
