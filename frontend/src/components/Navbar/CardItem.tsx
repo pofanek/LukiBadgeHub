@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-
+import { Divider } from "../UI";
 type CardItemProps = {
   children: string;
   lastItem?: boolean;
@@ -25,9 +25,7 @@ const CardItem = ({
           >
             {children}
           </a>
-          <div
-            className={`bg-border m-2 h-0.5 w-full ${lastItem ? "hidden" : "block"}`}
-          ></div>
+          {lastItem ? <div></div> : <Divider />}
         </>
       ) : (
         <>
@@ -37,9 +35,8 @@ const CardItem = ({
           >
             {children}
           </Link>
-          <div
-            className={`bg-border m-2 h-0.5 w-full ${lastItem ? "hidden" : "block"}`}
-          ></div>
+
+          {lastItem ? <div></div> : <Divider />}
         </>
       )}
     </>

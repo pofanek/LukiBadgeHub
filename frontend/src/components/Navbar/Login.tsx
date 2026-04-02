@@ -20,7 +20,11 @@ const Login = ({
         <NavbarImage
           image={userchomik}
           alt="image"
-          className="ml-2 hover:cursor-pointer active:cursor-pointer"
+          className={`ml-2 hover:cursor-pointer active:cursor-pointer ${
+            profileMenuOpen
+              ? "ring-accent-cold ring-offset-primary rounded-full ring-2 ring-offset-1"
+              : ""
+          }`}
           onClick={() => {
             setProfileMenu(!profileMenuOpen);
           }}

@@ -16,6 +16,8 @@ import {
   Login,
   Register,
   ErrorPage,
+  Notifications,
+  Friends,
 } from "./components/pages";
 const router = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -30,10 +32,11 @@ const router = createBrowserRouter([
   { path: "/Billing", element: <Billing /> },
   { path: "/Login", element: <Login /> },
   { path: "/Register", element: <Register /> },
+  { path: "/Notifications", element: <Notifications /> },
+  { path: "/Friends", element: <Friends /> },
   { path: "*", element: <ErrorPage /> },
 ]);
 // TODO bedzie trzeba dodać loading przy ładowaniu z API
-// TODO menu po kliknięciu profilu na navbarze zimprovować
 // TODO logout w hamburgermenu znika w zaleznosci od tego czy user jest zalogowany czy nie
 // TODO hamburgermenu wyglada chujowo swoja droga
 // TODO przerobić footer aby na MD było na górze Luki badge hub na dole created by pofaneki oraz Join our discord na górze i support us na dole wciąż w tej pozycji lewo prawo po to aby sie tak szybko nie zawijało

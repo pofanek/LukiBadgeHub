@@ -1,4 +1,6 @@
 import ProfileItem from "./ProfileItem";
+import ProfileUserInfo from "./ProfileUserInfo";
+import { Divider } from "../UI";
 type ProfileCardProps = {
   className?: string;
   profileMenuOpen: boolean;
@@ -7,7 +9,10 @@ type ProfileCardProps = {
 import { FiUser } from "react-icons/fi";
 import { FiSettings } from "react-icons/fi";
 import { FiCreditCard } from "react-icons/fi";
+import { FiBell } from "react-icons/fi";
+import { FiUsers } from "react-icons/fi";
 import { FiLogOut } from "react-icons/fi";
+
 const ProfileCard = ({
   className = "",
   setProfileMenu,
@@ -16,14 +21,26 @@ const ProfileCard = ({
   return (
     <>
       <ul
-        className={`${className} bg-surface-raised border-border fixed top-26 right-3.5 z-9 flex h-48 w-38 flex-col items-center justify-center rounded-xl p-2 shadow-black transition-opacity duration-200 ease-in-out sm:right-7`}
+        className={`${className} bg-surface-raised border-border fixed top-25 right-3.5 z-9 flex w-45 flex-col rounded-2xl border p-2 shadow-black transition-opacity duration-200 ease-in-out sm:right-7 sm:w-52`}
       >
+        {/* User info header */}
+        <ProfileUserInfo />
+        {/* Divider */}
+        <Divider />
+
         <ProfileItem pathTo={`/Profile`} Icon={FiUser}>
           Profile
         </ProfileItem>
         <ProfileItem pathTo={`/Billing`} Icon={FiCreditCard}>
           Billing
         </ProfileItem>
+        <ProfileItem pathTo={`/Friends`} Icon={FiUsers}>
+          Friends
+        </ProfileItem>
+        <ProfileItem pathTo={`/Notifications`} Icon={FiBell}>
+          Notifications
+        </ProfileItem>
+
         <ProfileItem pathTo={`/Settings`} Icon={FiSettings}>
           Settings
         </ProfileItem>
@@ -40,5 +57,4 @@ const ProfileCard = ({
     </>
   );
 };
-
 export default ProfileCard;

@@ -1,5 +1,6 @@
 import type { IconType } from "react-icons";
 import { Link } from "react-router-dom";
+import { Divider } from "../UI";
 
 type CardItemProps = {
   children: string;
@@ -21,25 +22,23 @@ const ProfileItem = ({
     <>
       {logoutItem ? (
         <>
-          <div className={`bg-border m-2 h-0.5 w-full`}></div>
+          <Divider />
           <Link
             to={pathTo}
-            className={`${className} text-destructive hover:bg-destructive-background active:bg-destructive-background active:text-destructive-hover flex h-1/3 w-full cursor-pointer items-center justify-start gap-2 rounded-lg pl-2 transition-all duration-200`}
+            className={`${className} text-destructive hover:bg-destructive-background active:bg-destructive-background flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200`}
           >
-            <Icon size={18} />
+            <Icon size={16} />
             {children}
           </Link>
         </>
       ) : (
-        <>
-          <Link
-            to={pathTo}
-            className={`${className} text-font-primary hover:text-hover active:text-hover hover:bg-brand-secondary active:bg-brand-secondary flex h-1/3 w-full cursor-pointer items-center justify-start gap-2 rounded-lg pl-2 transition-all duration-200`}
-          >
-            <Icon size={18} />
-            {children}
-          </Link>
-        </>
+        <Link
+          to={pathTo}
+          className={`${className} text-font-secondary hover:text-font-primary hover:bg-brand-secondary flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200`}
+        >
+          <Icon size={16} />
+          {children}
+        </Link>
       )}
     </>
   );

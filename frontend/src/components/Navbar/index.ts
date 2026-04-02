@@ -10,3 +10,4 @@ export { default as SearchbarFixed } from "./SearchbarFixed";
 export { default as MenuButton } from "./MenuButton";
 export { default as Login } from "./Login";
 export { default as NavbarButtonRightPanel } from "./NavbarButtonRightPanel";
+export { default as ProfileUserInfo } from "./ProfileUserInfo";
