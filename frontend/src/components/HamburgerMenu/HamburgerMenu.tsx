@@ -1,6 +1,6 @@
 import { Divider } from "../UI";
 import { CardItem } from "./";
-import { Title } from "./";
+import Title from "../Navbar/Title";
 import { MENU_SECTIONS } from "./menuSections";
 type HamburgerMenuProps = {
   value: boolean;
@@ -11,11 +11,11 @@ type HamburgerMenuProps = {
 const HamburgerMenu = ({ value, setter, isLoggedIn }: HamburgerMenuProps) => {
   const visibleSections = isLoggedIn
     ? MENU_SECTIONS
-    : MENU_SECTIONS.filter((_, i) => i !== 1); // hide index 1 - account
+    : MENU_SECTIONS.filter((_, i) => i !== 1); // hide index 1 - account related
   return (
     <>
       <div
-        className={`bg-surface-raised border-border fixed top-0 right-0 left-0 z-10 border-b px-7 pt-7 pb-9 shadow-black backdrop-blur-md transition-transform duration-400 ease-in-out ${
+        className={`bg-surface-raised border-border fixed top-0 right-0 left-0 z-10 max-h-screen overflow-y-auto border-b px-7 pt-7 pb-9 shadow-black backdrop-blur-md transition-transform duration-400 ease-in-out ${
           value ? "translate-y-0" : "-translate-y-[110%]"
         }`}
       >

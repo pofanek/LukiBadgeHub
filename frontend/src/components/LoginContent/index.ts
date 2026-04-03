@@ -1,3 +1,5 @@
+export { default as LoginContent } from "./LoginContent";
+export { default as RegisterContent } from "./RegisterContent";
 export { default as EmailInput } from "./EmailInput";
 export { default as PasswordInput } from "./PasswordInput";
 export { default as Splitter } from "./Splitter";

@@ -18,7 +18,7 @@ import {
   ErrorPage,
   Notifications,
   Friends,
-} from "./components/pages";
+} from "./pages";
 const router = createBrowserRouter([
   { path: "/", element: <App /> },
   { path: "/About", element: <About /> },
@@ -37,7 +37,6 @@ const router = createBrowserRouter([
   { path: "*", element: <ErrorPage /> },
 ]);
 // TODO bedzie trzeba dodać loading przy ładowaniu z API
-// TODO treść kategorii z profile w hamburgermenu znika w zaleznosci od tego czy user jest zalogowany czy nie
 // TODO przerobić footer aby na MD było na górze Luki badge hub na dole created by pofaneki oraz Join our discord na górze i support us na dole wciąż w tej pozycji lewo prawo po to aby sie tak szybko nie zawijało
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

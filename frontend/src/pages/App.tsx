@@ -1,6 +1,4 @@
-import Navbar from "../Navbar/Navbar";
-import Footer from "../Footer/Footer";
-import HomepageContent from "../HomepageContent/HomepageContent";
+import { Navbar, HomepageContent, Footer } from "../components";
 
 function App() {
   return (

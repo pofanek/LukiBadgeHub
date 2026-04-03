@@ -1,5 +1,4 @@
-import FooterText from "./FooterText";
-import FooterLink from "./FooterLink";
+import { FooterText, FooterLink } from "./";
 import { SiKofi } from "react-icons/si";
 import { FaDiscord } from "react-icons/fa";
 const Footer = () => {

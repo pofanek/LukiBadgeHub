@@ -1,6 +1,4 @@
-import Navbar from "../Navbar/Navbar";
-import Footer from "../Footer/Footer";
-import ContactContent from "../ContactContent/ContactContent";
+import { Navbar, ContactContent, Footer } from "../components";
 function Contact() {
   return (
     <div className="flex h-screen flex-col">
