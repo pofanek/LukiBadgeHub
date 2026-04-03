@@ -36,8 +36,6 @@ const router = createBrowserRouter([
   { path: "/Friends", element: <Friends /> },
   { path: "*", element: <ErrorPage /> },
 ]);
-// TODO bedzie trzeba dodać loading przy ładowaniu z API
-// TODO przerobić footer aby na MD było na górze Luki badge hub na dole created by pofaneki oraz Join our discord na górze i support us na dole wciąż w tej pozycji lewo prawo po to aby sie tak szybko nie zawijało
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />
