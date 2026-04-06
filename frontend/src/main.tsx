@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./index.css";
 import {
-  App,
   About,
   Contact,
   Games,
@@ -18,24 +17,40 @@ import {
   ErrorPage,
   Notifications,
   Friends,
+  AuthCallback,
+  Homepage,
 } from "./pages";
+import { MainLayout, EmptyLayout } from "./layouts/";
 const router = createBrowserRouter([
-  { path: "/", element: <App /> },
-  { path: "/About", element: <About /> },
-  { path: "/Terms", element: <Terms /> },
-  { path: "/Contact", element: <Contact /> },
-  { path: "/Games", element: <Games /> },
-  { path: "/Settings", element: <Settings /> },
-  { path: "/Rankings", element: <Rankings /> },
-  { path: "/Profile", element: <Profile /> },
-  { path: "/Logout", element: <Logout /> },
-  { path: "/Billing", element: <Billing /> },
-  { path: "/Login", element: <Login /> },
-  { path: "/Register", element: <Register /> },
-  { path: "/Notifications", element: <Notifications /> },
-  { path: "/Friends", element: <Friends /> },
-  { path: "*", element: <ErrorPage /> },
+  {
+    element: <MainLayout />,
+    children: [
+      { path: "/", element: <Homepage /> },
+      { path: "/about", element: <About /> },
+      { path: "/terms", element: <Terms /> },
+      { path: "/contact", element: <Contact /> },
+      { path: "/games", element: <Games /> },
+      { path: "/settings", element: <Settings /> },
+      { path: "/rankings", element: <Rankings /> },
+      { path: "/profile", element: <Profile /> },
+      { path: "/logout", element: <Logout /> },
+      { path: "/billing", element: <Billing /> },
+      { path: "/login", element: <Login /> },
+      { path: "/register", element: <Register /> },
+      { path: "/notifications", element: <Notifications /> },
+      { path: "/friends", element: <Friends /> },
+    ],
+  },
+  {
+    element: <EmptyLayout />,
+    children: [
+      { path: "/auth/callback", element: <AuthCallback /> },
+      { path: "*", element: <ErrorPage /> },
+    ],
+  },
 ]);
+// TODO kolor searchbara jest z pizdy i mnie wkurwia
+// TODO ContactContent na md szerszy troche
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />

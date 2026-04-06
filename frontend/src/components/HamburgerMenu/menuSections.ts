@@ -21,16 +21,16 @@ export type MenuItem = {
 
 export const MENU_SECTIONS: MenuItem[][] = [
   [
-    { label: "Games", pathTo: "/Games", icon: IoGameControllerOutline },
-    { label: "Rankings", pathTo: "/Rankings", icon: FiAward },
+    { label: "Games", pathTo: "/games", icon: IoGameControllerOutline },
+    { label: "Rankings", pathTo: "/rankings", icon: FiAward },
   ],
   [
-    { label: "Profile", pathTo: "/Profile", icon: FiUser },
-    { label: "Friends", pathTo: "/Friends", icon: FiUsers },
-    { label: "Notifications", pathTo: "/Notifications", icon: FiBell },
-    { label: "Billing", pathTo: "/Billing", icon: FiCreditCard },
-    { label: "Settings", pathTo: "/Settings", icon: FiSettings },
-    { label: "Logout", pathTo: "/Logout", icon: FiLogOut },
+    { label: "Profile", pathTo: "/profile", icon: FiUser },
+    { label: "Friends", pathTo: "/friends", icon: FiUsers },
+    { label: "Notifications", pathTo: "/notifications", icon: FiBell },
+    { label: "Billing", pathTo: "/billing", icon: FiCreditCard },
+    { label: "Settings", pathTo: "/settings", icon: FiSettings },
+    { label: "Logout", pathTo: "/logout", icon: FiLogOut },
   ],
   [
     {

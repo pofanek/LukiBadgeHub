@@ -14,9 +14,10 @@ const NavbarButtonRightPanel = ({
   label,
   pathTo,
 }: NavbarButtonItemProps) => {
-  const isActive = activeTab === tabName;
-  const isLogin = tabName === "Login";
-
+  const formatPath = (path: string) =>
+    "/" + path.slice(1, 2).toUpperCase() + path.slice(2);
+  const isActive = activeTab === tabName || activeTab === formatPath(tabName);
+  const isLogin = tabName === "Login" || tabName === "login";
   const loginStyles =
     "from-accent-cold to-accent-cold-dim bg-linear-to-r ml-2 text-font-primary hover:brightness-110";
   const activeStyles = "text-font-primary font-medium";

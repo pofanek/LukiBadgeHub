@@ -31,20 +31,20 @@ const ProfileCard = ({
         <ProfileItem pathTo={`/Profile`} Icon={FiUser}>
           Profile
         </ProfileItem>
-        <ProfileItem pathTo={`/Billing`} Icon={FiCreditCard}>
+        <ProfileItem pathTo={`/billing`} Icon={FiCreditCard}>
           Billing
         </ProfileItem>
-        <ProfileItem pathTo={`/Friends`} Icon={FiUsers}>
+        <ProfileItem pathTo={`/friends`} Icon={FiUsers}>
           Friends
         </ProfileItem>
-        <ProfileItem pathTo={`/Notifications`} Icon={FiBell}>
+        <ProfileItem pathTo={`/notifications`} Icon={FiBell}>
           Notifications
         </ProfileItem>
 
-        <ProfileItem pathTo={`/Settings`} Icon={FiSettings}>
+        <ProfileItem pathTo={`/settings`} Icon={FiSettings}>
           Settings
         </ProfileItem>
-        <ProfileItem pathTo={`/Logout`} logoutItem={true} Icon={FiLogOut}>
+        <ProfileItem pathTo={`/logout`} logoutItem={true} Icon={FiLogOut}>
           Logout
         </ProfileItem>
       </ul>

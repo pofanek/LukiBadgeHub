@@ -15,7 +15,7 @@ type WebhookPayload =
   | { type: "message"; content: string }
   | { type: "embed"; embed: WebhookEmbed };
 
-export const sendWebhook = async (payload: WebhookPayload) => {
+export const sendFeedbackWebhook = async (payload: WebhookPayload) => {
   const body =
     payload.type === "message"
       ? { content: payload.content }

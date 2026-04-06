@@ -6,9 +6,9 @@ const Footer = () => {
   return (
     <footer className="flex h-32 w-full flex-col items-center sm:h-auto sm:flex-row sm:items-center sm:px-0 sm:py-2">
       <div className="flex h-[33%] w-full min-w-69 items-center justify-center gap-6 sm:order-2 sm:h-auto">
-        <FooterText pathTo="/About">About</FooterText>
-        <FooterText pathTo="/Terms">Terms & Privacy</FooterText>
-        <FooterText pathTo="/Contact">Contact</FooterText>
+        <FooterText pathTo="/about">About</FooterText>
+        <FooterText pathTo="/terms">Terms & Privacy</FooterText>
+        <FooterText pathTo="/contact">Contact</FooterText>
       </div>
 
       <div className="flex h-[33%] w-full min-w-34 items-center justify-center gap-6 sm:order-3 sm:mr-7 sm:h-auto sm:justify-end">

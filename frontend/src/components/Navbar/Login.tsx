@@ -6,7 +6,7 @@ type LoginProps = {
   IsLoggedIn: boolean;
   profileMenuOpen: boolean;
   setProfileMenu: React.Dispatch<React.SetStateAction<boolean>>;
-  activeTab: "Home" | "Games" | "Rankings" | "Login" | "None";
+  activeTab: "Home" | "Games" | "Rankings" | "Login" | string;
 };
 const Login = ({
   IsLoggedIn,
@@ -32,9 +32,9 @@ const Login = ({
       ) : (
         <NavbarButtonRightPanel
           label={"Login"}
-          tabName="Login"
+          tabName="login"
           activeTab={activeTab}
-          pathTo="/Login"
+          pathTo="/login"
         />
       )}
     </>
