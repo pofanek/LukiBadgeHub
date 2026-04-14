@@ -19,14 +19,14 @@ const Register = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const handleLogin = async (e: any) => {
+  const handleRegister = async (e: any) => {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: email,
       password: password,
       options: {
-        emailRedirectTo: "http://localhost:5173/auth/callback",
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     if (error) {
@@ -36,23 +36,40 @@ const Register = () => {
       setSuccess(true);
       setLoading(false);
     }
-    console.log(data);
+  };
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
   };
 
+  const handleDiscordLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "discord",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+  };
   return (
     <FocusContent>
       <form
         className="bg-surface-overlay/40 mx-20 mt-15 mb-15 flex h-145 max-w-110 min-w-85 flex-1 flex-col items-center justify-center gap-6 rounded-xl px-5 shadow-black outline-none"
-        onSubmit={handleLogin}
+        onSubmit={handleRegister}
       >
-        <h1 className="text-font-primary font-serif text-5xl">Register</h1>
+        <h1 className="text-font-primary font-serif text-5xl">Sign Up</h1>
         <SocialLogin
           icon={<FcGoogle size={24} />}
           label="Continue with Google"
+          onClick={handleGoogleLogin}
         />
         <SocialLogin
           icon={<FaDiscord size={24} />}
           label="Continue with Discord"
+          onClick={handleDiscordLogin}
         />
         <Splitter />
         <EmailInput value={email} id="email" setter={setEmail} />
@@ -67,8 +84,8 @@ const Register = () => {
         </FormFooter>
       </form>
       {success && (
-        <p className="text-font-secondary font-sans text-lg">
-          check your mail.
+        <p className="text-font-secondary hover:text-font-primary cursor-pointer text-sm underline transition-colors">
+          check your e-mail address.
         </p>
       )}
       {error && (

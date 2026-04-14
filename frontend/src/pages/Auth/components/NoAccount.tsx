@@ -7,7 +7,7 @@ const NoAccount = ({ login }: props) => {
     <div className="flex w-[80%] items-center justify-center gap-3">
       <span className="text-font-secondary font-sans text-sm">
         Don't have an account?
-        <LoginLink pathTo="/register"> Sign up</LoginLink>
+        <LoginLink pathTo="/signup"> Sign Up</LoginLink>
       </span>
     </div>
   ) : (
@@ -15,7 +15,7 @@ const NoAccount = ({ login }: props) => {
       <span className="text-font-secondary font-sans text-sm">
         Already have an account?
       </span>
-      <LoginLink pathTo="/login">Log in</LoginLink>
+      <LoginLink pathTo="/login">Log In</LoginLink>
     </div>
   );
 };

@@ -36,7 +36,7 @@ const router = createBrowserRouter([
       { path: "/logout", element: <Logout /> },
       { path: "/billing", element: <Billing /> },
       { path: "/login", element: <Login /> },
-      { path: "/register", element: <Register /> },
+      { path: "/signup", element: <Register /> },
       { path: "/notifications", element: <Notifications /> },
       { path: "/friends", element: <Friends /> },
     ],
@@ -51,6 +51,7 @@ const router = createBrowserRouter([
 ]);
 // TODO kolor searchbara jest z pizdy i mnie wkurwia
 // TODO ContactContent na md szerszy troche
+// TODO dodać do navbara sign up i zmienić login na Log in
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />

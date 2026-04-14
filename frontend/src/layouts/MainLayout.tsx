@@ -4,9 +4,14 @@ import { useAuthListener } from "../hooks/useAuthListener";
 function MainLayout() {
   useAuthListener();
   const location = useLocation();
-  const titleOnly = ["/login", "/Login", "/register", "/Register"].includes(
-    location.pathname,
-  );
+  const titleOnly = [
+    "/login",
+    "/Login",
+    "/LogIn",
+    "/signup",
+    "/Signup",
+    "/SignUp",
+  ].includes(location.pathname);
   return (
     <div className="flex h-screen flex-col">
       <Navbar activeTab={location.pathname} titleOnly={titleOnly} />

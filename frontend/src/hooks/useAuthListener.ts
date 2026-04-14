@@ -11,7 +11,7 @@ export function useAuthListener() {
         navigate("/");
       }
       if (event === "SIGNED_OUT") {
-        navigate("/Login");
+        navigate("/login");
       }
     });
 

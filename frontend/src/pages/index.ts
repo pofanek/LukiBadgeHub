@@ -1,5 +1,5 @@
 export { default as Login } from "./Auth/Login";
-export { default as Register } from "./Auth/Register";
+export { default as Register } from "./Auth/SignUp";
 export { default as ErrorPage } from "./ErrorPage/ErrorPage";
 export { default as Homepage } from "./Homepage/Homepage";
 export { default as About } from "./About/About";
