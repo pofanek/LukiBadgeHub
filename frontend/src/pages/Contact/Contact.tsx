@@ -79,7 +79,7 @@ const Contact = () => {
       <form
         onSubmit={handleSubmit}
         autoComplete="off"
-        className="bg-surface-soft mx-85 mt-10 mb-10 flex h-auto max-w-119.5 flex-1 flex-col gap-4 rounded-xl p-5 shadow-black lg:max-w-200"
+        className="bg-surface-soft mx-40 mt-10 mb-10 flex h-auto flex-1 flex-col gap-4 rounded-xl p-5 shadow-black md:max-w-200"
       >
         <ContactLabel text="Contact Us" />
         <ContactLabel
@@ -87,8 +87,8 @@ const Contact = () => {
           smallText
         />
 
-        <div className="flex flex-col lg:flex-row">
-          <div className="flex w-full flex-col gap-6 lg:gap-3">
+        <div className="flex flex-col md:flex-row">
+          <div className="flex w-full flex-col gap-6 md:gap-3">
             <ContactLabel text="Topic" setisDropdownOpen={setisDropdownOpen} />
             <Dropdown
               selectedOption={selectedOption}
@@ -118,7 +118,7 @@ const Contact = () => {
             />
           </div>
 
-          <div className="mt-6 flex w-full flex-col gap-6 lg:mt-0 lg:ml-6 lg:gap-3">
+          <div className="mt-6 flex w-full flex-col gap-6 md:mt-0 md:ml-6 md:gap-3">
             <ContactLabel htmlFor="message" text="Message" />
             <Textarea id="message" message={message} setMessage={setMessage} />
             <Submit

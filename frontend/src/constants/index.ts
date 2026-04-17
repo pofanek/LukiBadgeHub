@@ -9,3 +9,19 @@ export const TOPIC_COLORS: Record<string, number> = {
   "Balance Suggestion": 16763904,
   Other: 16777215,
 };
+export const SHORT_NAVBAR_PAGES = [
+  "/login",
+  "/Login",
+  "/LogIn",
+  "/signup",
+  "/Signup",
+  "/SignUp",
+  "/forgot-password",
+  "/Forgot-password",
+  "/Forgot-Password",
+  "/forgot-Password",
+  "/reset-password",
+  "/Reset-password",
+  "/Reset-Password",
+  "/reset-Password",
+];

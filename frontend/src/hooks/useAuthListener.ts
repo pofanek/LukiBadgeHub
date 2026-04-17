@@ -6,14 +6,30 @@ export function useAuthListener() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
-        navigate("/");
-      }
-      if (event === "SIGNED_OUT") {
-        navigate("/login");
-      }
+    let previousUserId: string | undefined;
+
+    supabase.auth.getSession().then(({ data }) => {
+      previousUserId = data.session?.user.id;
     });
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "PASSWORD_RECOVERY") return;
+
+        if (event === "SIGNED_IN") {
+          if (session?.user.id !== previousUserId) {
+            previousUserId = session?.user.id;
+            navigate("/");
+          }
+          previousUserId = session?.user.id;
+        }
+
+        if (event === "SIGNED_OUT") {
+          previousUserId = undefined;
+          navigate("/login");
+        }
+      },
+    );
 
     return () => listener.subscription.unsubscribe();
   }, [navigate]);

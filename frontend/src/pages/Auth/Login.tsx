@@ -90,7 +90,7 @@ const Login = () => {
         <FormFooter>
           <PasswordInput id="password" value={password} setter={setPassword} />
           <div className="flex w-[80%] justify-center">
-            <LoginLink pathTo="/">Forgot password?</LoginLink>
+            <LoginLink pathTo="/forgot-password">Forgot password?</LoginLink>
           </div>
         </FormFooter>
         <FormFooter>

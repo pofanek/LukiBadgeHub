@@ -6,7 +6,6 @@ import {
   About,
   Contact,
   Games,
-  Logout,
   Rankings,
   Settings,
   Terms,
@@ -19,6 +18,8 @@ import {
   Friends,
   AuthCallback,
   Homepage,
+  ForgotPassword,
+  ResetPassword,
 } from "./pages";
 import { MainLayout, EmptyLayout } from "./layouts/";
 const router = createBrowserRouter([
@@ -33,12 +34,13 @@ const router = createBrowserRouter([
       { path: "/settings", element: <Settings /> },
       { path: "/rankings", element: <Rankings /> },
       { path: "/profile", element: <Profile /> },
-      { path: "/logout", element: <Logout /> },
       { path: "/billing", element: <Billing /> },
       { path: "/login", element: <Login /> },
       { path: "/signup", element: <Register /> },
       { path: "/notifications", element: <Notifications /> },
       { path: "/friends", element: <Friends /> },
+      { path: "/forgot-password", element: <ForgotPassword /> },
+      { path: "/reset-password", element: <ResetPassword /> },
     ],
   },
   {
@@ -52,6 +54,7 @@ const router = createBrowserRouter([
 // TODO kolor searchbara jest z pizdy i mnie wkurwia
 // TODO ContactContent na md szerszy troche
 // TODO dodać do navbara sign up i zmienić login na Log in
+// TODO shadcn.
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />
