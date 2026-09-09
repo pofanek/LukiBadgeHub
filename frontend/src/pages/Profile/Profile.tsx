@@ -16,7 +16,7 @@ function Profile() {
 
   return (
     <FocusContent>
-      <section className="w-full self-stretch pb-6 sm:pb-8 lg:pb-10">
+      <section className="bg-primary w-full self-stretch pb-6 sm:pb-8 lg:pb-10">
         <div className="mx-auto w-full max-w-6xl px-3 sm:px-7">
           <ProfileHeader />
           <div>

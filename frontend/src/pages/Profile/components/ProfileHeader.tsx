@@ -1,7 +1,7 @@
 import { FaInstagram, FaSteam, FaYoutube } from "react-icons/fa";
 import { FiUserPlus } from "react-icons/fi";
 import { SiBluesky } from "react-icons/si";
-import { logo, userchomik } from "../../../assets";
+import { userchomik } from "../../../assets";
 
 const socialLinks = [
   { label: "Steam", icon: FaSteam },
@@ -12,16 +12,16 @@ const socialLinks = [
 
 function ProfileHeader() {
   return (
-    <header className="relative isolate mx-auto w-full max-w-4xl">
-      <div className="relative min-h-[35rem] sm:min-h-[29rem] lg:h-[23rem] lg:min-h-0">
+    <header className="relative isolate mx-auto w-full max-w-4xl [clip-path:inset(0_-100vw_0_-100vw)]">
+      <div className="relative min-h-[35rem] sm:min-h-[33rem] lg:h-[23rem] lg:min-h-0">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-0 left-1/2 -z-10 h-[calc(100%+10rem)] w-screen -translate-x-1/2 bg-cover bg-center [mask-image:linear-gradient(to_bottom,#000_0%,#000_26%,transparent_78%)] [-webkit-mask-image:linear-gradient(to_bottom,#000_0%,#000_26%,transparent_78%)] sm:h-[calc(100%+6rem)]"
-          style={{ backgroundImage: `url(${logo})` }}
+          className="pointer-events-none absolute top-0 left-1/2 -z-10 h-full w-screen -translate-x-1/2 bg-cover bg-center [mask-image:linear-gradient(to_bottom,#000_0%,#000_26%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,#000_0%,#000_26%,transparent_100%)]"
+          style={{ backgroundImage: `url(https://assets.ppy.sh/user-profile-covers/31245051/d1980b379fb235442597240312d267d02472c4970c7261ee4a21135f95a72f50.png)` }}
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-0 left-1/2 -z-10 h-[calc(100%+10rem)] w-screen -translate-x-1/2 bg-linear-to-b from-surface-overlay via-surface-overlay/80 via-[48%] to-primary to-[78%] sm:h-[calc(100%+6rem)]"
+          className="pointer-events-none absolute top-0 left-1/2 -z-10 h-full w-screen -translate-x-1/2 bg-linear-to-b from-surface-overlay via-surface-overlay/80 via-[48%] to-primary"
         />
 
         <div className="absolute inset-x-0 top-0 bottom-6 grid grid-cols-[7rem_minmax(0,1fr)] gap-5 gap-x-4 p-4 sm:top-auto sm:bottom-16 sm:gap-x-6 sm:p-6 lg:grid-cols-[7rem_minmax(0,1fr)_auto] lg:gap-7 lg:p-7">
