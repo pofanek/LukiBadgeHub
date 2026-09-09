@@ -1,5 +1,6 @@
 import { FaInstagram, FaSteam, FaYoutube } from "react-icons/fa";
-import { FiUserPlus } from "react-icons/fi";
+import { FiEdit3, FiUserPlus } from "react-icons/fi";
+import { Link } from "react-router-dom";
 import { SiBluesky } from "react-icons/si";
 import { userchomik } from "../../../assets";
 import type { UserProfile } from "../../../hooks/useUserProfile";
@@ -59,10 +60,17 @@ function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
           <div className="min-w-0 self-start sm:pt-1">
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-font-primary break-words font-serif text-3xl leading-none sm:text-4xl">{profile.username}</h1>
-              <button className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors">
-                <FiUserPlus />
-                {isOwnProfile ? "Edit" : "Follow"}
-              </button>
+              {isOwnProfile ? (
+                <Link to="/settings" className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors">
+                  <FiEdit3 />
+                  Edit
+                </Link>
+              ) : (
+                <button className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors">
+                  <FiUserPlus />
+                  Follow
+                </button>
+              )}
             </div>
             <p className="text-font-secondary mt-3 flex items-center gap-2 text-sm">
               <span aria-label="Poland" role="img">🇵🇱</span>
