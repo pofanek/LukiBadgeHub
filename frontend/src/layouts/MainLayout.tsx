@@ -7,9 +7,11 @@ function MainLayout() {
   const location = useLocation();
   const titleOnly = SHORT_NAVBAR_PAGES.includes(location.pathname);
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex min-h-screen flex-col">
       <Navbar activeTab={location.pathname} titleOnly={titleOnly} />
-      <Outlet />
+      <main className="flex-1">
+        <Outlet />
+      </main>
       <Footer />
     </div>
   );
