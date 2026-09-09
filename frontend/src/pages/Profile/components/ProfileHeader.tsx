@@ -2,6 +2,7 @@ import { FaInstagram, FaSteam, FaYoutube } from "react-icons/fa";
 import { FiUserPlus } from "react-icons/fi";
 import { SiBluesky } from "react-icons/si";
 import { userchomik } from "../../../assets";
+import type { UserProfile } from "../../../hooks/useUserProfile";
 
 const socialLinks = [
   { label: "Steam", icon: FaSteam },
@@ -10,7 +11,12 @@ const socialLinks = [
   { label: "Bluesky", icon: SiBluesky },
 ];
 
-function ProfileHeader() {
+type ProfileHeaderProps = {
+  profile: UserProfile;
+  isOwnProfile: boolean;
+};
+
+function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
   return (
     <header className="relative isolate mx-auto w-full max-w-4xl [clip-path:inset(0_-100vw_0_-100vw)]">
       <div className="relative min-h-[35rem] sm:min-h-[33rem] lg:h-[23rem] lg:min-h-0">
@@ -27,8 +33,8 @@ function ProfileHeader() {
         <div className="absolute inset-x-0 top-0 bottom-6 grid grid-cols-[7rem_minmax(0,1fr)] gap-5 gap-x-4 p-4 sm:top-auto sm:bottom-16 sm:gap-x-6 sm:p-6 lg:grid-cols-[7rem_minmax(0,1fr)_auto] lg:gap-7 lg:p-7">
           <div className="w-28">
             <img
-              src={userchomik}
-              alt="Loliksbol's profile"
+              src={profile.avatar_path || userchomik}
+              alt={`${profile.username}'s profile`}
               className="border-border bg-surface-soft h-28 w-28 rounded-2xl border object-cover shadow-black"
             />
             <div className="mt-3 grid grid-cols-4 gap-x-1 text-center">
@@ -52,23 +58,23 @@ function ProfileHeader() {
 
           <div className="min-w-0 self-start sm:pt-1">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-font-primary font-serif text-3xl leading-none sm:text-4xl">Loliksbol</h1>
+              <h1 className="text-font-primary font-serif text-3xl leading-none sm:text-4xl">{profile.username}</h1>
               <button className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors">
                 <FiUserPlus />
-                Follow
+                {isOwnProfile ? "Edit" : "Follow"}
               </button>
             </div>
             <p className="text-font-secondary mt-3 flex items-center gap-2 text-sm">
               <span aria-label="Poland" role="img">🇵🇱</span>
-              Poland
+              {profile.country || "Unknown"}
             </p>
             <p className="text-font-secondary mt-3 hidden max-w-3xl leading-relaxed lg:block">
-              Chasing difficult achievements, collecting badges, and always looking for the next game to complete.
+              {profile.bio || "No bio provided."}
             </p>
           </div>
 
           <p className="text-font-secondary col-span-2 max-w-3xl leading-relaxed lg:hidden">
-            Chasing difficult achievements, collecting badges, and always looking for the next game to complete.
+            {profile.bio || "No bio provided."}
           </p>
 
           <div className="self-start  lg:col-start-auto lg:justify-self-end lg:pt-1">

@@ -9,6 +9,7 @@ const MenuButton = ({ value, setter }: MenuButtonProps) => {
     <button
       className="ml-1 block h-12.5 w-12.5 sm:hidden"
       onClick={() => setter(!value)}
+      aria-label={value ? "Close navigation menu" : "Open navigation menu"}
     >
       {value ? (
         <div className="relative z-100 rotate-45">

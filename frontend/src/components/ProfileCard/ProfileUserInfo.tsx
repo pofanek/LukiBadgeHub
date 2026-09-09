@@ -1,17 +1,23 @@
 import { userchomik } from "../../assets";
+import type { User } from "@supabase/supabase-js";
+import type { UserProfile } from "../../hooks/useUserProfile";
 
-const ProfileUserInfo = () => {
-  const name = "Pofanek";
-  const email = "pofanek@mail.com";
-  const plan = "Free";
+type ProfileUserInfoProps = {
+  user: User;
+  profile: UserProfile | null;
+};
+
+const ProfileUserInfo = ({ user, profile }: ProfileUserInfoProps) => {
+  const name = profile?.username || user.email?.split("@")[0] || "User";
+  const email = user.email || "";
 
   return (
     <li className="flex flex-col gap-2 px-2 py-2.5">
       <div className="flex items-center gap-3">
         <div className="relative shrink-0">
           <img
-            src={userchomik}
-            alt="avatar"
+            src={profile?.avatar_path || user.user_metadata.avatar_url || userchomik}
+            alt={`${name}'s avatar`}
             className="h-11 w-11 rounded-full object-cover"
           />
         </div>
@@ -23,12 +29,7 @@ const ProfileUserInfo = () => {
         </div>
       </div>
 
-      <div className="mt-1 flex items-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-2.5 py-1 text-xs font-medium text-amber-300 ring-1 ring-amber-400/25">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-          {plan} plan
-        </span>
-      </div>
+      
     </li>
   );
 };

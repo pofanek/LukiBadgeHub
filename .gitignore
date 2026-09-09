@@ -33,3 +33,4 @@ prompt.txt
 skills-lock.json
 AGENTS.md
 .agents
+.env.test

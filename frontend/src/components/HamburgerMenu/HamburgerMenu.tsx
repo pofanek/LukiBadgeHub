@@ -6,15 +6,24 @@ type HamburgerMenuProps = {
   value: boolean;
   setter: React.Dispatch<React.SetStateAction<boolean>>;
   isLoggedIn: boolean;
+  profilePath: string;
+  onLogout: () => Promise<void>;
 };
 
-const HamburgerMenu = ({ value, setter, isLoggedIn }: HamburgerMenuProps) => {
+const HamburgerMenu = ({
+  value,
+  setter,
+  isLoggedIn,
+  profilePath,
+  onLogout,
+}: HamburgerMenuProps) => {
   const visibleSections = isLoggedIn
     ? MENU_SECTIONS
     : MENU_SECTIONS.filter((_, i) => i !== 1); // hide index 1 - account related
   return (
     <>
       <div
+        aria-label="Main navigation menu"
         className={`bg-surface-raised border-border fixed top-0 right-0 left-0 z-10 max-h-screen overflow-y-auto border-b px-7 pt-7 pb-9 shadow-black backdrop-blur-md transition-transform duration-400 ease-in-out ${
           value ? "translate-y-0" : "-translate-y-[110%]"
         }`}
@@ -37,20 +46,33 @@ const HamburgerMenu = ({ value, setter, isLoggedIn }: HamburgerMenuProps) => {
             return (
               <li key={sectionIndex}>
                 <ul>
-                  {section.map(({ label, pathTo, isLink, icon }, i) => (
-                    <li key={pathTo}>
-                      <CardItem
-                        pathTo={pathTo}
-                        className="h-15"
-                        index={globalOffset + i}
-                        open={value}
-                        isLink={isLink}
-                        icon={icon}
-                      >
-                        {label}
-                      </CardItem>
-                    </li>
-                  ))}
+                  {section.map(({ label, pathTo, isLink, icon }, i) => {
+                    const isLogout = label === "Logout";
+                    const destination = label === "Profile" ? profilePath : pathTo;
+
+                    return (
+                      <li key={pathTo}>
+                        <CardItem
+                          pathTo={destination}
+                          className="h-15"
+                          index={globalOffset + i}
+                          open={value}
+                          isLink={isLink}
+                          icon={icon}
+                          onClick={
+                            isLogout
+                              ? async () => {
+                                  setter(false);
+                                  await onLogout();
+                                }
+                              : undefined
+                          }
+                        >
+                          {label}
+                        </CardItem>
+                      </li>
+                    );
+                  })}
                 </ul>
                 {sectionIndex < visibleSections.length - 1 && <Divider />}
               </li>

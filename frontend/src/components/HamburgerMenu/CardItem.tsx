@@ -10,6 +10,7 @@ type CardItemProps = {
   index?: number;
   open?: boolean;
   icon?: IconType;
+  onClick?: () => void | Promise<void>;
 };
 
 const CardItem = ({
@@ -20,6 +21,7 @@ const CardItem = ({
   open = true,
   icon: Icon,
   children,
+  onClick,
 }: CardItemProps) => {
   const delayMs = open ? 80 + index * 40 : (TOTAL_ITEMS - index) * 20;
 
@@ -33,8 +35,13 @@ const CardItem = ({
     style: { transitionDelay: `${delayMs}ms` },
   };
 
-  return isLink ? (
-    <a href={pathTo} {...props}>
+  return onClick ? (
+    <button type="button" onClick={onClick} {...props}>
+      {Icon && <Icon size={22} />}
+      {children}
+    </button>
+  ) : isLink ? (
+    <a href={pathTo} target="_blank" rel="noreferrer" {...props}>
       {Icon && <Icon size={22} />}
       {children}
     </a>

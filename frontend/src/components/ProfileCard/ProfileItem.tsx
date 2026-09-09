@@ -4,11 +4,12 @@ import { Divider } from "../UI";
 
 type CardItemProps = {
   children: string;
-  pathTo: string;
+  pathTo?: string;
   className?: string;
   isLink?: boolean;
   logoutItem?: boolean;
   Icon: IconType;
+  onClick?: () => void | Promise<void>;
 };
 
 const ProfileItem = ({
@@ -17,23 +18,26 @@ const ProfileItem = ({
   pathTo,
   logoutItem = false,
   Icon,
+  onClick,
 }: CardItemProps) => {
   return (
     <>
       {logoutItem ? (
         <>
           <Divider />
-          <Link
-            to={pathTo}
+          <button
+            type="button"
+            onClick={onClick}
             className={`${className} text-destructive hover:bg-destructive-background active:bg-destructive-background flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200`}
           >
             <Icon size={16} />
             {children}
-          </Link>
+          </button>
         </>
       ) : (
         <Link
-          to={pathTo}
+          to={pathTo || "/"}
+          onClick={onClick}
           className={`${className} text-font-secondary hover:text-font-primary hover:bg-brand-secondary flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200`}
         >
           <Icon size={16} />

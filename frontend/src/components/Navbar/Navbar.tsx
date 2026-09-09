@@ -10,6 +10,9 @@ import {
   NavbarButtonRightPanel,
 } from "./";
 import { useState } from "react";
+import { supabase } from "../../utils/supabase";
+import { useAuthUser } from "../../hooks/useAuthUser";
+import { useUserProfile } from "../../hooks/useUserProfile";
 type NavbarProps = {
   activeTab?: "Home" | "Games" | "Rankings" | "Login" | string;
   titleOnly?: boolean;
@@ -18,7 +21,15 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchbarOpen, setSearchbarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenu] = useState(false);
-  const [IsLoggedIn] = useState(false);
+  const { user } = useAuthUser();
+  const { profile } = useUserProfile(user?.id);
+  const profilePath = user ? `/profile/${user.id}` : "/login";
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setProfileMenu(false);
+    setMenuOpen(false);
+  };
   return (
     <>
       {titleOnly ? (
@@ -57,7 +68,8 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
               pathTo="/rankings"
             />
             <Login
-              IsLoggedIn={IsLoggedIn}
+              user={user}
+              profile={profile}
               profileMenuOpen={profileMenuOpen}
               setProfileMenu={setProfileMenu}
               activeTab={activeTab}
@@ -67,6 +79,10 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
           {/* all fixed pos */}
           <SearchbarFixed value={searchbarOpen} setter={setSearchbarOpen} />
           <ProfileCard
+            user={user}
+            profile={profile}
+            profilePath={profilePath}
+            onLogout={handleLogout}
             setProfileMenu={setProfileMenu}
             profileMenuOpen={profileMenuOpen}
             className={`${profileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
@@ -74,7 +90,9 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
           <HamburgerMenu
             value={menuOpen}
             setter={setMenuOpen}
-            isLoggedIn={IsLoggedIn}
+            isLoggedIn={Boolean(user)}
+            profilePath={profilePath}
+            onLogout={handleLogout}
           />
         </nav>
       )}
