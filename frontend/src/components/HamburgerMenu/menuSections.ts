@@ -3,7 +3,6 @@ import {
   FiSettings,
   FiCreditCard,
   FiBell,
-  FiUsers,
   FiLogOut,
   FiAward,
   FiCoffee,
@@ -26,7 +25,6 @@ export const MENU_SECTIONS: MenuItem[][] = [
   ],
   [
     { label: "Profile", pathTo: "/profile", icon: FiUser },
-    { label: "Friends", pathTo: "/friends", icon: FiUsers },
     { label: "Notifications", pathTo: "/notifications", icon: FiBell },
     { label: "Billing", pathTo: "/billing", icon: FiCreditCard },
     { label: "Settings", pathTo: "/settings", icon: FiSettings },

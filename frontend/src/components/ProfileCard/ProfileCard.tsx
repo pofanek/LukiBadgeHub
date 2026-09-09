@@ -16,7 +16,6 @@ import { FiUser } from "react-icons/fi";
 import { FiSettings } from "react-icons/fi";
 import { FiCreditCard } from "react-icons/fi";
 import { FiBell } from "react-icons/fi";
-import { FiUsers } from "react-icons/fi";
 import { FiLogOut } from "react-icons/fi";
 
 const ProfileCard = ({
@@ -35,7 +34,7 @@ const ProfileCard = ({
   return (
     <>
       <ul
-        className={`${className} bg-surface-raised border-border fixed top-25 right-3.5 z-9 flex max-h-[calc(100vh-100px)] w-45 flex-col overflow-y-auto rounded-2xl border p-2 shadow-black transition-opacity duration-200 ease-in-out sm:right-7 sm:w-52`}
+        className={`${className} bg-surface-raised border-border fixed top-20 right-3.5 z-9 flex max-h-[calc(100vh-100px)] w-45 flex-col overflow-y-auto rounded-2xl border p-2 shadow-black transition-opacity duration-200 ease-in-out sm:right-7 sm:w-52`}
       >
         {/* User info header */}
         <ProfileUserInfo user={user} profile={profile} />
@@ -47,9 +46,6 @@ const ProfileCard = ({
         </ProfileItem>
         <ProfileItem pathTo="/billing" onClick={closeMenu} Icon={FiCreditCard}>
           Billing
-        </ProfileItem>
-        <ProfileItem pathTo="/friends" onClick={closeMenu} Icon={FiUsers}>
-          Friends
         </ProfileItem>
         <ProfileItem pathTo="/notifications" onClick={closeMenu} Icon={FiBell}>
           Notifications

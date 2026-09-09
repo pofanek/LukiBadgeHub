@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
-import { FocusContent } from "../../components";
+import { FocusContent, LoadingIndicator } from "../../components";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import {
@@ -28,7 +28,7 @@ function Profile() {
   if (isAuthLoading || isProfileLoading) {
     return (
       <FocusContent>
-        <p className="text-font-secondary">Loading profile...</p>
+        <LoadingIndicator label="Loading profile..." />
       </FocusContent>
     );
   }

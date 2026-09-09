@@ -30,7 +30,7 @@ function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
           className="pointer-events-none absolute top-0 left-1/2 -z-10 h-full w-screen -translate-x-1/2 bg-linear-to-b from-surface-overlay via-surface-overlay/80 via-[48%] to-primary"
         />
 
-        <div className="absolute inset-x-0 top-0 bottom-6 grid grid-cols-[7rem_minmax(0,1fr)] gap-5 gap-x-4 p-4 sm:top-auto sm:bottom-16 sm:gap-x-6 sm:p-6 lg:grid-cols-[7rem_minmax(0,1fr)_auto] lg:gap-7 lg:p-7">
+        <div className="absolute inset-x-0 top-0 bottom-6 grid grid-cols-[7rem_minmax(0,1fr)] gap-5 gap-x-4 max-sm:gap-y-2 p-4 sm:top-auto sm:bottom-16 sm:gap-x-6 sm:p-6 lg:grid-cols-[7rem_minmax(0,1fr)_auto] lg:gap-7 lg:p-7">
           <div className="w-28">
             <img
               src={profile.avatar_path || userchomik}
@@ -58,7 +58,7 @@ function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
 
           <div className="min-w-0 self-start sm:pt-1">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-font-primary font-serif text-3xl leading-none sm:text-4xl">{profile.username}</h1>
+              <h1 className="text-font-primary break-words font-serif text-3xl leading-none sm:text-4xl">{profile.username}</h1>
               <button className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors">
                 <FiUserPlus />
                 {isOwnProfile ? "Edit" : "Follow"}
@@ -68,12 +68,12 @@ function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
               <span aria-label="Poland" role="img">🇵🇱</span>
               {profile.country || "Unknown"}
             </p>
-            <p className="text-font-secondary mt-3 hidden max-w-3xl leading-relaxed lg:block">
+            <p className="text-font-secondary mt-3 hidden max-w-3xl break-words leading-relaxed lg:block">
               {profile.bio || "No bio provided."}
             </p>
           </div>
 
-          <p className="text-font-secondary col-span-2 max-w-3xl leading-relaxed lg:hidden">
+          <p className="text-font-secondary col-span-2 max-w-3xl break-words leading-relaxed lg:hidden">
             {profile.bio || "No bio provided."}
           </p>
 

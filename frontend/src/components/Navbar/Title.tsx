@@ -15,7 +15,7 @@ const Title = ({
   return (
     <Link
       to="/"
-      className={`flex h-full items-center duration-300 hover:scale-105 hover:cursor-pointer ${longNavbar ? "m:w-67 ml-2 w-42 gap-2 md:gap-6" : "w-67 justify-center gap-6"} `}
+      className={`flex h-full items-center duration-300 hover:scale-105 hover:cursor-pointer ${longNavbar ? "m:w-67 ml-2 w-42 gap-2 sm:ml-0 md:gap-6" : "w-67 justify-center gap-6"} `}
     >
       <NavbarImage
         className={`${value ? "shadow-none" : "shadow-black"}`}
