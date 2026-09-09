@@ -14,7 +14,7 @@ const tabs: { id: ProfileTab; label: string }[] = [
 
 function ProfileTabs({ activeTab, onChange }: ProfileTabsProps) {
   return (
-    <nav aria-label="Profile sections" className="border-border overflow-x-auto border-b">
+    <nav aria-label="Profile sections" className="overflow-x-auto">
       <div className="flex min-w-max px-2 sm:min-w-0 sm:px-4">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;

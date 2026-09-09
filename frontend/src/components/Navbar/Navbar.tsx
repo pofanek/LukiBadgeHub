@@ -22,11 +22,11 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
   return (
     <>
       {titleOnly ? (
-        <nav className="border-border bg-surface-overlay/40 sticky top-0 z-10 flex h-16 max-h-16 flex-1 flex-row items-center justify-center border border-x-0 border-t-0 p-1 shadow-black">
+        <nav className="border-border bg-surface-overlay sticky top-0 z-10 flex h-16 max-h-16 flex-1 flex-row items-center justify-center border border-x-0 border-t-0 p-1 shadow-black">
           <Title longNavbar={false} />
         </nav>
       ) : (
-        <nav className="border-border bg-surface-overlay/40 sticky top-0 z-40 flex h-16 min-w-0 items-center justify-between border border-x-0 border-t-0 p-1 pr-3 shadow-black">
+        <nav className="border-border bg-surface-overlay sticky top-0 z-40 flex h-16 min-w-0 items-center justify-between border border-x-0 border-t-0 p-1 pr-3 shadow-black">
           <div className="flex-1 pr-0 md:grow md:pr-2">
             <Title value={searchbarOpen} />
           </div>

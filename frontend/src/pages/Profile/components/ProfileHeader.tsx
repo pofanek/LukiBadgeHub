@@ -12,21 +12,26 @@ const socialLinks = [
 
 function ProfileHeader() {
   return (
-    <header className="border-border bg-surface-overlay overflow-hidden rounded-2xl border shadow-black">
-      <div
-        className="relative min-h-[35rem] bg-cover bg-center sm:min-h-[29rem] lg:h-[23rem] lg:min-h-0"
-        style={{ backgroundImage: `url(${logo})` }}
-      >
-        <div className="from-surface-overlay/15 via-surface-overlay/60 to-surface-overlay absolute inset-0 bg-linear-to-b" />
+    <header className="relative isolate mx-auto w-full max-w-4xl">
+      <div className="relative min-h-[35rem] sm:min-h-[29rem] lg:h-[23rem] lg:min-h-0">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute top-0 left-1/2 -z-10 h-[calc(100%+10rem)] w-screen -translate-x-1/2 bg-cover bg-center [mask-image:linear-gradient(to_bottom,#000_0%,#000_26%,transparent_78%)] [-webkit-mask-image:linear-gradient(to_bottom,#000_0%,#000_26%,transparent_78%)] sm:h-[calc(100%+6rem)]"
+          style={{ backgroundImage: `url(${logo})` }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute top-0 left-1/2 -z-10 h-[calc(100%+10rem)] w-screen -translate-x-1/2 bg-linear-to-b from-surface-overlay via-surface-overlay/80 via-[48%] to-primary to-[78%] sm:h-[calc(100%+6rem)]"
+        />
 
-        <div className="absolute inset-x-0 bottom-16 grid gap-5 p-4 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-x-6 sm:p-6 lg:grid-cols-[7rem_minmax(0,1fr)_auto] lg:gap-7 lg:p-7">
+        <div className="absolute inset-x-0 top-0 bottom-6 grid grid-cols-[7rem_minmax(0,1fr)] gap-5 gap-x-4 p-4 sm:top-auto sm:bottom-16 sm:gap-x-6 sm:p-6 lg:grid-cols-[7rem_minmax(0,1fr)_auto] lg:gap-7 lg:p-7">
           <div className="w-28">
             <img
               src={userchomik}
               alt="Loliksbol's profile"
               className="border-border bg-surface-soft h-28 w-28 rounded-2xl border object-cover shadow-black"
             />
-            <div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-2 text-center">
+            <div className="mt-3 grid grid-cols-4 gap-x-1 text-center">
               {socialLinks.map(({ label, icon: Icon }) => (
                 <a
                   key={label}
@@ -38,10 +43,10 @@ function ProfileHeader() {
                 </a>
               ))}
             </div>
-            <div className="text-font-muted mt-3 grid grid-cols-3 gap-x-3 text-center text-[10px] leading-tight">
-              <span>12<br />mutuals</span>
-              <span>86<br />followers</span>
-              <span>44<br />following</span>
+            <div className="text-font-muted mt-4 grid grid-cols-3 gap-x-1 text-center text-[8px] leading-3">
+              <span className="whitespace-nowrap">12<br />mutuals</span>
+              <span className="whitespace-nowrap">86<br />followers</span>
+              <span className="whitespace-nowrap">44<br />following</span>
             </div>
           </div>
 
@@ -57,10 +62,14 @@ function ProfileHeader() {
               <span aria-label="Poland" role="img">🇵🇱</span>
               Poland
             </p>
-            <p className="text-font-secondary mt-3 max-w-3xl leading-relaxed">
+            <p className="text-font-secondary mt-3 hidden max-w-3xl leading-relaxed lg:block">
               Chasing difficult achievements, collecting badges, and always looking for the next game to complete.
             </p>
           </div>
+
+          <p className="text-font-secondary col-span-2 max-w-3xl leading-relaxed lg:hidden">
+            Chasing difficult achievements, collecting badges, and always looking for the next game to complete.
+          </p>
 
           <div className="self-start  lg:col-start-auto lg:justify-self-end lg:pt-1">
             <p className="text-font-primary font-serif text-2xl">Level 24</p>
