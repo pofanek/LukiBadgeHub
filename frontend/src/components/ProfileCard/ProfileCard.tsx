@@ -14,7 +14,6 @@ type ProfileCardProps = {
 };
 import { FiUser } from "react-icons/fi";
 import { FiSettings } from "react-icons/fi";
-import { FiCreditCard } from "react-icons/fi";
 import { FiBell } from "react-icons/fi";
 import { FiLogOut } from "react-icons/fi";
 
@@ -43,9 +42,6 @@ const ProfileCard = ({
 
         <ProfileItem pathTo={profilePath} onClick={closeMenu} Icon={FiUser}>
           Profile
-        </ProfileItem>
-        <ProfileItem pathTo="/billing" onClick={closeMenu} Icon={FiCreditCard}>
-          Billing
         </ProfileItem>
         <ProfileItem pathTo="/notifications" onClick={closeMenu} Icon={FiBell}>
           Notifications

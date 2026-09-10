@@ -16,7 +16,7 @@ const ProfileUserInfo = ({ user, profile }: ProfileUserInfoProps) => {
       <div className="flex items-center gap-3">
         <div className="relative shrink-0">
           <img
-            src={profile?.avatar_path || user.user_metadata.avatar_url || userchomik}
+            src={profile?.avatar_url || user.user_metadata.avatar_url || userchomik}
             alt={`${name}'s avatar`}
             className="h-11 w-11 rounded-full object-cover"
           />

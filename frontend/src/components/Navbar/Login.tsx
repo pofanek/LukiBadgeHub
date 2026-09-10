@@ -34,7 +34,7 @@ const Login = ({
           }}
         >
           <NavbarImage
-            image={profile?.avatar_path || user.user_metadata.avatar_url || userchomik}
+            image={profile?.avatar_url || user.user_metadata.avatar_url || userchomik}
             alt={`${profile?.username || user.email || "User"}'s avatar`}
             className="hover:cursor-pointer active:cursor-pointer"
           />

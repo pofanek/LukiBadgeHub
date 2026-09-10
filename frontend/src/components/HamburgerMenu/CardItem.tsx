@@ -26,7 +26,7 @@ const CardItem = ({
   const delayMs = open ? 80 + index * 40 : (TOTAL_ITEMS - index) * 20;
 
   const baseClass = `${className} flex w-full cursor-pointer items-center justify-center gap-3 rounded-lg
-    text-2xl text-font-primary transition-all duration-200
+    break-words px-2 text-xl text-font-primary transition-all duration-200 sm:text-2xl
     hover:text-hover hover:bg-effect-glass active:text-hover active:bg-effect-glass
     ${open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`;
 

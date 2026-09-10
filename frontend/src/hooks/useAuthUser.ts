@@ -7,8 +7,11 @@ export function useAuthUser() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
+    // getSession reads the persisted browser session immediately. Using getUser here
+    // makes every remount wait for a network validation, which is especially visible
+    // after the browser restores a backgrounded tab.
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
       setIsLoading(false);
     });
 

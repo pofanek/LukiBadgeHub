@@ -11,6 +11,8 @@ import { FcGoogle } from "react-icons/fc";
 import { FaDiscord } from "react-icons/fa";
 import { FocusContent, Submit } from "../../components/UI";
 import { supabase } from "../../utils/supabase";
+import { PasswordRequirements } from "../../components/UI";
+import { passwordIsValid } from "../../utils/password";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -19,8 +21,12 @@ const Register = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const handleRegister = async (e: any) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!passwordIsValid(password)) {
+      setError("Choose a password that meets every requirement below.");
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email: email,
@@ -74,6 +80,7 @@ const Register = () => {
         <Splitter />
         <EmailInput value={email} id="email" setter={setEmail} />
         <PasswordInput id="password" value={password} setter={setPassword} />
+        <div className="w-[80%] min-w-64"><PasswordRequirements password={password} /></div>
         <FormFooter>
           <Submit
             disabled={loading}

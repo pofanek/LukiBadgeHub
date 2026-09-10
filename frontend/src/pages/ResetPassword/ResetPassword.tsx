@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../utils/supabase";
+import { PasswordRequirements } from "../../components/UI";
+import { passwordIsValid } from "../../utils/password";
 
 function ResetPassword() {
   const [newPassword, setNewPassword] = useState("");
@@ -9,18 +11,21 @@ function ResetPassword() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange((event: any) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setReady(true);
     });
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  const handleReset = async (e: any) => {
-    e.preventDefault();
+  const handleReset = async () => {
     setError("");
+    if (!passwordIsValid(newPassword)) {
+      setError("Choose a password that meets every requirement below.");
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) setError(error.message);
-    else navigate("/login");
+    else navigate("/settings", { replace: true });
   };
 
   return (
@@ -48,6 +53,7 @@ function ResetPassword() {
             disabled={!ready}
             className="bg-surface text-font-primary border-surface-soft focus:border-accent-cold w-full rounded-xl border-2 p-2 font-sans text-lg transition-all duration-200 outline-none disabled:opacity-40"
           />
+          <PasswordRequirements password={newPassword} />
 
           {error && (
             <p className="text-center font-sans text-sm text-red-400">

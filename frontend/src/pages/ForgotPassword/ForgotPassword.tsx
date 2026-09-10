@@ -8,8 +8,7 @@ function ForgotPassword() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError("");
     setMessage("");
     const { error } = await supabase.auth.resetPasswordForEmail(email, {

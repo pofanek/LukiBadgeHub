@@ -19,6 +19,7 @@ import {
   Homepage,
   ForgotPassword,
   ResetPassword,
+  Goodbye,
 } from "./pages";
 import { MainLayout, EmptyLayout } from "./layouts/";
 const router = createBrowserRouter([
@@ -40,6 +41,7 @@ const router = createBrowserRouter([
       { path: "/notifications", element: <Notifications /> },
       { path: "/forgot-password", element: <ForgotPassword /> },
       { path: "/reset-password", element: <ResetPassword /> },
+      { path: "/goodbye", element: <Goodbye /> },
     ],
   },
   {

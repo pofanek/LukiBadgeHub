@@ -37,15 +37,15 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
           <Title longNavbar={false} />
         </nav>
       ) : (
-        <nav className="border-border bg-surface-overlay sticky top-0 z-40 flex h-16 min-w-0 items-center justify-between border border-x-0 border-t-0 px-3 py-1 sm:px-7 shadow-black">
-          <div className="flex-1 pr-0 md:grow md:pr-2">
+        <nav className="border-border bg-surface-overlay sticky top-0 z-40 flex h-16 min-w-0 items-center justify-between border border-x-0 border-t-0 px-2 py-1 sm:px-7 shadow-black">
+          <div className="min-w-0 flex-1 pr-0 md:grow md:pr-2">
             <Title value={searchbarOpen} />
           </div>
           <div className="flex h-full items-center pr-0 md:pr-4">
             <Searchbar className="hidden" />
           </div>
           <div className="flex h-full flex-1 items-center justify-end gap-0 sm:gap-1">
-            <SearchbarButton value={searchbarOpen} setter={setSearchbarOpen} />
+            <div className="hidden min-[380px]:block"><SearchbarButton value={searchbarOpen} setter={setSearchbarOpen} /></div>
             <NavbarButtonRightPanel
               label={"Home"}
               tabName="/"
@@ -57,14 +57,14 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
               label={"Games"}
               tabName="/games"
               activeTab={activeTab}
-              className="hidden sm:block"
+              className="hidden md:block"
               pathTo="/games"
             />
             <NavbarButtonRightPanel
               label={"Rankings"}
               tabName="/rankings"
               activeTab={activeTab}
-              className="hidden sm:block"
+              className="hidden md:block"
               pathTo="/rankings"
             />
             <Login

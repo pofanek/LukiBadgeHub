@@ -18,7 +18,7 @@ const PasswordInput = ({ value, setter, id }: PasswordInputProps) => {
     >
       <LuLock size={24} className="shrink-0 text-gray-500" />
       <input
-        minLength={8}
+        minLength={12}
         required={true}
         id={id}
         ref={inputRef}

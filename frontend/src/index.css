@@ -3,6 +3,11 @@ html,
 body {
   overflow-x: hidden;
 }
+
+textarea[placeholder="Tell people a little about yourself."] {
+  resize: none;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
 }

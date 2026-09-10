@@ -24,7 +24,7 @@ const HamburgerMenu = ({
     <>
       <div
         aria-label="Main navigation menu"
-        className={`bg-surface-raised border-border fixed top-0 right-0 left-0 z-10 max-h-screen overflow-y-auto border-b px-7 pt-7 pb-9 shadow-black backdrop-blur-md transition-transform duration-400 ease-in-out ${
+        className={`bg-surface-raised border-border fixed top-0 right-0 left-0 z-50 max-h-screen overflow-y-auto border-b px-4 pt-4 pb-6 shadow-black backdrop-blur-md transition-transform duration-400 ease-in-out sm:px-7 sm:pt-7 sm:pb-9 ${
           value ? "translate-y-0" : "-translate-y-[110%]"
         }`}
       >
