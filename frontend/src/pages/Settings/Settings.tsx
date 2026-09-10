@@ -199,7 +199,7 @@ function Settings() {
     window.localStorage.setItem("luki-pending-account-deletion", "1");
     const { error: emailVerificationError } = await supabase.auth.signInWithOtp({
       email: user.email || "",
-      options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}/auth/callback?delete-email-verification=1` },
     });
     setDeletionBusy(false);
     if (emailVerificationError) {

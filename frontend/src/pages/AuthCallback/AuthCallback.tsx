@@ -7,7 +7,7 @@ const AuthCallback = () => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const errorDescription = params.get("error_description") || new URLSearchParams(window.location.hash.slice()).get("error_description");
-  const pendingAccountDeletion = window.localStorage.getItem("luki-pending-account-deletion") === "1";
+  const pendingAccountDeletion = params.get("delete-email-verification") === "1" || window.localStorage.getItem("luki-pending-account-deletion") === "1";
 
   useEffect(() => {
     if (errorDescription) return;

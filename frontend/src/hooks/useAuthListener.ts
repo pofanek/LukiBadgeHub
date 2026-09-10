@@ -11,7 +11,8 @@ export function useAuthListener() {
       (event) => {
         if (event === "PASSWORD_RECOVERY") return;
 
-        if (event === "SIGNED_IN" && location.pathname === "/auth/callback") {
+        const isDeletionVerification = new URLSearchParams(location.search).get("delete-email-verification") === "1" || window.localStorage.getItem("luki-pending-account-deletion") === "1";
+        if (event === "SIGNED_IN" && location.pathname === "/auth/callback" && !isDeletionVerification) {
           navigate("/", { replace: true });
         }
 
