@@ -9,8 +9,8 @@ const Searchbar = ({ className = "", inputClasses }: SearchbarProps) => {
       className={`from-brand-primary to-brand-secondary focus-within:ring-hover/70 hover:ring-hover/70 rounded-2xl bg-linear-to-r duration-200 focus-within:ring-2 hover:ring-2 md:flex ${className}`}
     >
       <input
-        className={`min-w-20 cursor-text rounded-4xl rounded-r-none p-1.5 pr-3 pl-3 font-sans text-white transition-all duration-200 outline-none md:w-[calc(100vw-768px)] lg:w-64 ${inputClasses}`}
-        placeholder="Search"
+        className={`min-w-0 flex-1 cursor-text rounded-4xl rounded-r-none p-1.5 pr-3 pl-3 font-sans text-white transition-all duration-200 outline-none ${inputClasses}`}
+        placeholder="Search for games, users"
       />
       <button
         type="submit"

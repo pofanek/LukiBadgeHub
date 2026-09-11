@@ -2,16 +2,19 @@ type NavbarButtonProps = {
   children: string | React.ReactNode;
   className?: string;
   onClick?: () => void;
+  ariaLabel?: string;
 };
 
 const NavbarButton = ({
   children,
   className = "",
   onClick,
+  ariaLabel,
 }: NavbarButtonProps) => {
   return (
     <button
       onClick={onClick}
+      aria-label={ariaLabel}
       className={`cursor-pointer rounded-xl px-3 py-1.5 font-sans transition-all duration-200 ease-out hover:-translate-y-0.5 ${className}`}
     >
       {children}

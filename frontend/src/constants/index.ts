@@ -1,5 +1,6 @@
 export const APP_NAME = "Luki Badge Hub";
 export const APP_SHORT_NAME = "L. B. H.";
+export { catalogueGames, type CatalogueGame } from "./games";
 
 // const exampleString = `name = ${values[0]} email = ${values[1]} selectedOption = ${values[2]}  message = ${values[3]}`;
 export const TOPIC_COLORS: Record<string, number> = {

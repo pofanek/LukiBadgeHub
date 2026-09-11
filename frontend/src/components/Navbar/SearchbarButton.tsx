@@ -10,7 +10,8 @@ const SearchbarButton = ({ value, setter }: SearchbarButtonProps) => {
   return (
     <NavbarButton
       onClick={() => setter(!value)}
-      className="from-brand-primary to-brand-secondary w-16 cursor-pointer bg-linear-to-r p-0.5 md:hidden"
+      ariaLabel={value ? "Close search" : "Open search"}
+      className="from-brand-primary to-brand-secondary w-16 cursor-pointer bg-linear-to-r p-0.5 min-[764px]:hidden"
     >
       <CiSearch className="m-auto" size={32} color="#e6f1ff" />
     </NavbarButton>

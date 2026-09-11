@@ -35,7 +35,9 @@ const Login = () => {
       setLoading(false);
     } else {
       setLoading(false);
-      navigate("/");
+      const returnPath = window.sessionStorage.getItem("luki-post-login-path");
+      window.sessionStorage.removeItem("luki-post-login-path");
+      navigate(returnPath || "/");
     }
   };
   const handleResendEmail = async () => {

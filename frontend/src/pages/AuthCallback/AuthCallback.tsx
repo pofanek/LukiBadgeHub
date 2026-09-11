@@ -12,7 +12,8 @@ const AuthCallback = () => {
 
   useEffect(() => {
     if (errorDescription) return;
-    const destination = pendingAccountDeletion ? "/settings?delete-email-verification=1" : "/";
+    const storedReturnPath = window.sessionStorage.getItem("luki-post-login-path");
+    const destination = pendingAccountDeletion ? "/settings?delete-email-verification=1" : storedReturnPath || "/";
     if (pendingAccountDeletion) window.localStorage.removeItem("luki-pending-account-deletion");
     const completeAuthentication = async () => {
       const code = params.get("code");
@@ -21,22 +22,34 @@ const AuthCallback = () => {
 
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (!error) navigate(destination, { replace: true });
+        if (!error) {
+          window.sessionStorage.removeItem("luki-post-login-path");
+          navigate(destination, { replace: true });
+        }
         return;
       }
 
       if (accessToken && refreshToken) {
         const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-        if (!error) navigate(destination, { replace: true });
+        if (!error) {
+          window.sessionStorage.removeItem("luki-post-login-path");
+          navigate(destination, { replace: true });
+        }
         return;
       }
 
       const { data } = await supabase.auth.getSession();
-      if (data.session) navigate(destination, { replace: true });
+      if (data.session) {
+        window.sessionStorage.removeItem("luki-post-login-path");
+        navigate(destination, { replace: true });
+      }
     };
     void completeAuthentication();
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") navigate(destination, { replace: true });
+      if (event === "SIGNED_IN") {
+        window.sessionStorage.removeItem("luki-post-login-path");
+        navigate(destination, { replace: true });
+      }
     });
     return () => listener.subscription.unsubscribe();
   }, [errorDescription, navigate, params, pendingAccountDeletion]);

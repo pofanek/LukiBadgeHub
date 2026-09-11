@@ -20,11 +20,11 @@ export type MenuItem = {
 export const MENU_SECTIONS: MenuItem[][] = [
   [
     { label: "Games", pathTo: "/games", icon: IoGameControllerOutline },
-    { label: "Rankings", pathTo: "/rankings", icon: FiAward },
+    { label: "Leaderboards", pathTo: "/rankings", icon: FiAward },
+    { label: "Notifications", pathTo: "/notifications", icon: FiBell },
   ],
   [
     { label: "Profile", pathTo: "/profile", icon: FiUser },
-    { label: "Notifications", pathTo: "/notifications", icon: FiBell },
     { label: "Settings", pathTo: "/settings", icon: FiSettings },
     { label: "Logout", pathTo: "/logout", icon: FiLogOut },
   ],

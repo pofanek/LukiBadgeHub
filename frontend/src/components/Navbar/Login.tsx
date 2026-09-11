@@ -24,7 +24,7 @@ const Login = ({
         <button
           type="button"
           aria-label="Open profile menu"
-          className={`ml-2 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-cold ${
+          className={`ml-2 flex h-12.5 w-12.5 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-cold ${
             profileMenuOpen
               ? "ring-accent-cold ring-offset-primary rounded-full ring-2 ring-offset-1"
               : ""
@@ -36,7 +36,7 @@ const Login = ({
           <NavbarImage
             image={profile?.avatar_url || user.user_metadata.avatar_url || userchomik}
             alt={`${profile?.username || user.email || "User"}'s avatar`}
-            className="hover:cursor-pointer active:cursor-pointer"
+            className="block h-full w-full hover:cursor-pointer active:cursor-pointer"
           />
         </button>
       ) : (

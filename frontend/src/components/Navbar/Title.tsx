@@ -15,7 +15,7 @@ const Title = ({
   return (
     <Link
       to="/"
-      className={`flex h-full items-center duration-300 hover:scale-105 hover:cursor-pointer ${longNavbar ? "m:w-67 ml-2 w-42 gap-2 sm:ml-0 md:gap-6" : "w-67 justify-center gap-6"} `}
+      className={`flex h-full shrink-0 items-center duration-300 hover:scale-105 hover:cursor-pointer ${longNavbar ? "ml-2 w-42 gap-2 sm:ml-0 lg:w-auto lg:gap-4" : "w-67 justify-center gap-6"} `}
     >
       <NavbarImage
         className={`${value ? "shadow-none" : "shadow-black"}`}
@@ -27,7 +27,7 @@ const Title = ({
           alwaysExpandText
             ? "block"
             : longNavbar
-              ? "hidden sm:block"
+              ? "hidden lg:block"
               : "hidden sm:block"
         }`}
       >
@@ -35,7 +35,7 @@ const Title = ({
       </p>
       <p
         className={`text-font-primary font-serif text-4xl whitespace-nowrap ${
-          alwaysExpandText ? "hidden" : "sm:hidden"
+          alwaysExpandText ? "hidden" : "lg:hidden"
         }`}
       >
         {Constants.APP_SHORT_NAME}
