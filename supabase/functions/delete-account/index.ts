@@ -36,17 +36,20 @@ async function listFiles(
   return paths;
 }
 
-function emailOtpTimestamp(authorization: string): number | null {
+function emailVerificationTimestamp(authorization: string): number | null {
   try {
     const token = authorization.replace(/^Bearer\s+/i, "");
     const encodedPayload = token.split(".")[1];
     if (!encodedPayload) return null;
     const payload = JSON.parse(atob(encodedPayload.replace(/-/g, "+").replace(/_/g, "/"))) as {
-      amr?: { method?: string; timestamp?: string }[];
+      amr?: { method?: string; timestamp?: number | string }[];
     };
     const timestamps = (payload.amr ?? [])
-      .filter((method) => method.method === "otp")
-      .map((method) => Date.parse(method.timestamp ?? ""))
+      .filter((method) => method.method === "magiclink" || method.method === "otp")
+      .map((method) => {
+        if (typeof method.timestamp === "number") return method.timestamp * 1000;
+        return Date.parse(method.timestamp ?? "");
+      })
       .filter(Number.isFinite);
     return timestamps.length ? Math.max(...timestamps) : null;
   } catch {
@@ -135,7 +138,7 @@ Deno.serve(async (request) => {
     }
 
     if (action === "verify-email") {
-      const verifiedAt = emailOtpTimestamp(authorization);
+      const verifiedAt = emailVerificationTimestamp(authorization);
       const requestedAt = new Date(challenge.email_verification_requested_at).getTime();
       if (!verifiedAt || verifiedAt < requestedAt || Date.now() - verifiedAt > deletionVerificationWindowMs) {
         return Response.json({ error: "Open the latest deletion verification email before continuing." }, { status: 403, headers: corsHeaders });
