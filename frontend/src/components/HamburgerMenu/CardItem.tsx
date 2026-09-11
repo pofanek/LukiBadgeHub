@@ -11,6 +11,7 @@ type CardItemProps = {
   open?: boolean;
   icon?: IconType;
   onClick?: () => void | Promise<void>;
+  onNavigate?: () => void;
 };
 
 const CardItem = ({
@@ -22,6 +23,7 @@ const CardItem = ({
   icon: Icon,
   children,
   onClick,
+  onNavigate,
 }: CardItemProps) => {
   const delayMs = open ? 80 + index * 40 : (TOTAL_ITEMS - index) * 20;
 
@@ -41,12 +43,12 @@ const CardItem = ({
       {children}
     </button>
   ) : isLink ? (
-    <a href={pathTo} target="_blank" rel="noreferrer" {...props}>
+    <a href={pathTo} target="_blank" rel="noreferrer" onClick={onNavigate} {...props}>
       {Icon && <Icon size={22} />}
       {children}
     </a>
   ) : (
-    <Link to={pathTo} {...props}>
+    <Link to={pathTo} onClick={onNavigate} {...props}>
       {Icon && <Icon size={22} />}
       {children}
     </Link>

@@ -4,6 +4,7 @@ export { default as ErrorPage } from "./ErrorPage/ErrorPage";
 export { default as Homepage } from "./Homepage/Homepage";
 export { default as About } from "./About/About";
 export { default as Games } from "./Games/Games";
+export { default as GameDetail } from "./GameDetail";
 export { default as Contact } from "./Contact/Contact";
 export { default as Rankings } from "./Rankings/Rankings";
 export { default as Settings } from "./Settings/Settings";

@@ -67,6 +67,7 @@ const HamburgerMenu = ({
                                 }
                               : undefined
                           }
+                          onNavigate={isLogout ? undefined : () => setter(false)}
                         >
                           {label}
                         </CardItem>

@@ -23,7 +23,7 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
   const [profileMenuOpen, setProfileMenu] = useState(false);
   const { user } = useAuthUser();
   const { profile } = useUserProfile(user?.id);
-  const profilePath = user ? `/profile/${user.id}` : "/login";
+  const profilePath = user && profile ? `/profile/${encodeURIComponent(profile.username)}` : "/profile";
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -37,63 +37,66 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
           <Title longNavbar={false} />
         </nav>
       ) : (
-        <nav className="border-border bg-surface-overlay sticky top-0 z-40 flex h-16 min-w-0 items-center justify-between border border-x-0 border-t-0 px-2 py-1 sm:px-7 shadow-black">
-          <div className="min-w-0 flex-1 pr-0 md:grow md:pr-2">
-            <Title value={searchbarOpen} />
+        <nav className="border-border bg-surface-overlay sticky top-0 z-40 h-16 border border-x-0 border-t-0 py-1 shadow-black">
+          <div className="mx-auto grid h-full w-full max-w-6xl min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center px-2 sm:px-7 md:grid-cols-[minmax(12rem,1fr)_20rem_minmax(12rem,1fr)]">
+            <div className="min-w-0">
+              <Title value={searchbarOpen} />
+            </div>
+            <div className="hidden h-full items-center justify-center md:flex">
+              <Searchbar className="flex w-full" inputClasses="w-full" />
+            </div>
+            <div className="flex h-full items-center justify-end gap-0 sm:gap-1">
+              <div className="hidden min-[380px]:block md:hidden"><SearchbarButton value={searchbarOpen} setter={setSearchbarOpen} /></div>
+              <NavbarButtonRightPanel
+                label={"Home"}
+                tabName="/"
+                activeTab={activeTab}
+                className="hidden lg:block"
+                pathTo="/"
+              />
+              <NavbarButtonRightPanel
+                label={"Games"}
+                tabName="/games"
+                activeTab={activeTab}
+                className="hidden md:block"
+                pathTo="/games"
+              />
+              <NavbarButtonRightPanel
+                label={"Rankings"}
+                tabName="/rankings"
+                activeTab={activeTab}
+                className="hidden md:block"
+                pathTo="/rankings"
+              />
+              <div className="relative">
+                <Login
+                  user={user}
+                  profile={profile}
+                  profileMenuOpen={profileMenuOpen}
+                  setProfileMenu={setProfileMenu}
+                  activeTab={activeTab}
+                />
+                <ProfileCard
+                  user={user}
+                  profile={profile}
+                  profilePath={profilePath}
+                  onLogout={handleLogout}
+                  setProfileMenu={setProfileMenu}
+                  profileMenuOpen={profileMenuOpen}
+                  className={`${profileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                />
+              </div>
+              <MenuButton value={menuOpen} setter={setMenuOpen} />
+            </div>
+            <SearchbarFixed value={searchbarOpen} setter={setSearchbarOpen} />
+            <HamburgerMenu
+              value={menuOpen}
+              setter={setMenuOpen}
+              isLoggedIn={Boolean(user)}
+              profilePath={profilePath}
+              onLogout={handleLogout}
+            />
           </div>
-          <div className="flex h-full items-center pr-0 md:pr-4">
-            <Searchbar className="hidden" />
-          </div>
-          <div className="flex h-full flex-1 items-center justify-end gap-0 sm:gap-1">
-            <div className="hidden min-[380px]:block"><SearchbarButton value={searchbarOpen} setter={setSearchbarOpen} /></div>
-            <NavbarButtonRightPanel
-              label={"Home"}
-              tabName="/"
-              activeTab={activeTab}
-              className="hidden lg:block"
-              pathTo="/"
-            />
-            <NavbarButtonRightPanel
-              label={"Games"}
-              tabName="/games"
-              activeTab={activeTab}
-              className="hidden md:block"
-              pathTo="/games"
-            />
-            <NavbarButtonRightPanel
-              label={"Rankings"}
-              tabName="/rankings"
-              activeTab={activeTab}
-              className="hidden md:block"
-              pathTo="/rankings"
-            />
-            <Login
-              user={user}
-              profile={profile}
-              profileMenuOpen={profileMenuOpen}
-              setProfileMenu={setProfileMenu}
-              activeTab={activeTab}
-            />
-            <MenuButton value={menuOpen} setter={setMenuOpen} />
-          </div>
-          {/* all fixed pos */}
-          <SearchbarFixed value={searchbarOpen} setter={setSearchbarOpen} />
-          <ProfileCard
-            user={user}
-            profile={profile}
-            profilePath={profilePath}
-            onLogout={handleLogout}
-            setProfileMenu={setProfileMenu}
-            profileMenuOpen={profileMenuOpen}
-            className={`${profileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
-          />
-          <HamburgerMenu
-            value={menuOpen}
-            setter={setMenuOpen}
-            isLoggedIn={Boolean(user)}
-            profilePath={profilePath}
-            onLogout={handleLogout}
-          />
         </nav>
       )}
     </>

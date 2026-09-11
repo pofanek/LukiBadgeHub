@@ -33,7 +33,7 @@ const ProfileCard = ({
   return (
     <>
       <ul
-        className={`${className} bg-surface-raised border-border fixed top-20 right-3.5 z-9 flex max-h-[calc(100vh-100px)] w-45 flex-col overflow-y-auto rounded-2xl border p-2 shadow-black transition-opacity duration-200 ease-in-out sm:right-7 sm:w-52`}
+        className={`${className} bg-surface-raised border-border absolute top-[calc(100%+0.75rem)] right-0 z-9 flex max-h-[calc(100vh-100px)] w-45 flex-col overflow-y-auto rounded-2xl border p-2 shadow-black transition-opacity duration-200 ease-in-out sm:w-52`}
       >
         {/* User info header */}
         <ProfileUserInfo user={user} profile={profile} />

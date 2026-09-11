@@ -10,6 +10,7 @@ import { saveUserProfile, useUserProfile } from "../../hooks/useUserProfile";
 import { publishSocialLinks, type SocialPlatform, useSocialLinks } from "../../hooks/useSocialLinks";
 import { passwordIsValid } from "../../utils/password";
 import { supabase } from "../../utils/supabase";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { CountrySelect, ImageCropDialog } from "./components";
 
 type SettingsTab = "profile" | "account" | "notifications";
@@ -30,6 +31,53 @@ function Input({ className = "", ...props }: React.InputHTMLAttributes<HTMLInput
 }
 function Notice({ message, error = false }: { message: string; error?: boolean }) {
   return <p className={`mt-3 text-sm ${error ? "text-destructive" : "text-font-secondary"}`} role={error ? "alert" : "status"}>{message}</p>;
+}
+
+function settingsError(reason: unknown, fallback: string, usernameChangedAt?: string | null) {
+  const message = reason instanceof Error
+    ? reason.message
+    : typeof reason === "object" && reason && "message" in reason && typeof reason.message === "string"
+      ? reason.message
+      : "";
+  const code = typeof reason === "object" && reason && "code" in reason && typeof reason.code === "string" ? reason.code : "";
+  const details = typeof reason === "object" && reason && "details" in reason && typeof reason.details === "string" ? reason.details : "";
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("username can only be changed once per month")) {
+    const changedAt = usernameChangedAt ? new Date(usernameChangedAt) : null;
+    if (changedAt && !Number.isNaN(changedAt.getTime())) {
+      const nextChange = new Date(changedAt);
+      nextChange.setMonth(nextChange.getMonth() + 1);
+      const remainingDays = Math.max(1, Math.ceil((nextChange.getTime() - Date.now()) / 86_400_000));
+      return `Username change is on cooldown. Try again in ${remainingDays}d.`;
+    }
+    return "Username change is on cooldown. Try again next month.";
+  }
+  if (normalized.includes("username is reserved") || (code === "23505" && details.toLowerCase().includes("username")) || (normalized.includes("duplicate key") && normalized.includes("username"))) return "That username is already in use. Please choose another one.";
+  if (normalized.includes("username cannot be empty")) return "Username cannot be empty.";
+  if (code === "invalid_credentials" || normalized.includes("invalid login credentials") || normalized.includes("current password is incorrect")) return "Your current password is incorrect.";
+  if (normalized.includes("enter your current password")) return "Enter your current password to continue.";
+  if (code === "over_email_send_rate_limit" || normalized.includes("email rate limit")) return "Too many emails were requested. Please wait a moment and try again.";
+  if (code === "email_exists" || normalized.includes("already registered") || normalized.includes("email already")) return "That email address is already in use.";
+  if (code === "email_not_confirmed") return "Confirm your email address before making that change.";
+  if (normalized.includes("invalid email")) return "Enter a valid email address.";
+  if (normalized.includes("type delete to confirm")) return "Type DELETE exactly to confirm account deletion.";
+  if (normalized.includes("deletion verification expired")) return "Your deletion verification expired. Enter your password and start again.";
+  if (normalized.includes("latest deletion verification email")) return "Open the latest deletion verification email, then try again.";
+  if (normalized.includes("verify your email before deleting")) return "Verify your email from the deletion link before deleting your account.";
+  if (normalized.includes("account deletion is not configured")) return "Account deletion is temporarily unavailable. Please contact support.";
+  if (normalized.includes("jwt") || normalized.includes("session") || normalized.includes("not authenticated")) return "Your session has expired. Please sign in again.";
+  if (normalized.includes("row-level security") || normalized.includes("permission denied") || normalized.includes("not authorized")) return "You do not have permission to make that change.";
+  if (normalized.includes("network") || normalized.includes("failed to fetch")) return "Could not connect. Check your internet connection and try again.";
+  return fallback;
+}
+
+async function edgeFunctionSettingsError(reason: unknown, fallback: string) {
+  if (reason instanceof FunctionsHttpError) {
+    const payload = await reason.context.json().catch(() => null) as { error?: unknown } | null;
+    if (typeof payload?.error === "string") return settingsError(new Error(payload.error), fallback);
+  }
+  return settingsError(reason, fallback);
 }
 
 function FeedbackToast({ message, error, onDismiss }: { message: string; error: boolean; onDismiss: () => void }) {
@@ -103,11 +151,11 @@ function Settings() {
     deletionCallbackHandled.current = true;
     window.history.replaceState({}, "", "/settings");
     setDeletionBusy(true);
-    supabase.functions.invoke("delete-account", { body: { action: "verify-email" } }).then(({ error: verificationError }) => {
+    supabase.functions.invoke("delete-account", { body: { action: "verify-email" } }).then(async ({ error: verificationError }) => {
       setDeletionBusy(false);
       setActiveTab("account");
       if (verificationError) {
-        setError(verificationError.message);
+        setError(await edgeFunctionSettingsError(verificationError, "Email verification could not be completed."));
         return;
       }
       setNotice("Email verified. Review the final confirmation to permanently delete your account.");
@@ -122,11 +170,11 @@ function Settings() {
   const saveDetails = async () => {
     clearFeedback();
     const username = profileForm.username.trim();
-    if (!username) return setError("Display name cannot be empty.");
+    if (!username) return setError("Username cannot be empty.");
     if (profileForm.bio.length > 300) return setError("Bio must be 300 characters or fewer.");
     setSaving(true);
     try { await saveUserProfile(user.id, { username, bio: profileForm.bio.trim() || null, country_code: profileForm.country_code }); setNotice("Profile details saved."); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "Profile details could not be saved."); }
+    catch (reason) { setError(settingsError(reason, "Profile details could not be saved.", profile?.username_changed_at)); }
     finally { setSaving(false); }
   };
   const chooseImage = (kind: CropTarget["kind"], file?: File) => {
@@ -140,7 +188,7 @@ function Settings() {
     if (!cropTarget || !profile) return;
     const path = `${user.id}/${cropTarget.kind}/${crypto.randomUUID()}.webp`;
     const { error: uploadError } = await supabase.storage.from("profile-media").upload(path, file, { contentType: "image/webp", cacheControl: "31536000" });
-    if (uploadError) throw uploadError;
+    if (uploadError) throw new Error(settingsError(uploadError, "The image could not be uploaded."));
     const field = cropTarget.kind === "avatar" ? "avatar_path" : "banner_path";
     const previousPath = profile[field];
     try {
@@ -149,7 +197,7 @@ function Settings() {
       setCropTarget(null); setNotice(`${cropTarget.kind === "avatar" ? "Avatar" : "Banner"} updated.`);
     } catch (reason) {
       await supabase.storage.from("profile-media").remove([path]);
-      throw reason;
+      throw new Error(settingsError(reason, "The image could not be saved."));
     }
   };
   const validUrl = (value: string) => { try { const url = new URL(value); return url.protocol === "http:" || url.protocol === "https:"; } catch { return false; } };
@@ -161,7 +209,7 @@ function Settings() {
     const { error: socialError } = value
       ? await supabase.from("user_social_links").upsert({ profile_id: user.id, platform, url: value }, { onConflict: "profile_id,platform" })
       : await supabase.from("user_social_links").delete().eq("profile_id", user.id).eq("platform", platform);
-    if (socialError) return setError(socialError.message);
+    if (socialError) return setError(settingsError(socialError, "The social link could not be saved."));
     if (value) nextLinks.push({ profile_id: user.id, platform, url: value });
     publishSocialLinks(user.id, nextLinks);
     setNotice(value ? `${socialFields.find((field) => field.platform === platform)?.label} link saved.` : "Social link removed.");
@@ -170,14 +218,14 @@ function Settings() {
     clearFeedback();
     if (!email || email === user.email) return setError("Enter a new email address.");
     const { data, error: emailError } = await supabase.auth.updateUser({ email }, { emailRedirectTo: `${window.location.origin}/auth/callback` });
-    if (emailError) return setError(emailError.message);
+    if (emailError) return setError(settingsError(emailError, "The email address could not be changed."));
     setPendingEmail(data.user?.new_email || email); setNotice(`Confirmation sent to ${email}. Your sign-in email stays unchanged until you confirm it.`);
   };
   const hasPassword = passwordStatus === true;
   const setPassword = async () => {
     clearFeedback();
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(user.email || "", { redirectTo: `${window.location.origin}/reset-password` });
-    if (resetError) return setError(resetError.message);
+    if (resetError) return setError(settingsError(resetError, "The password setup email could not be sent."));
     setNotice("Password setup link sent. After saving a password there, you can use Change password here.");
   };
   const changePassword = async () => {
@@ -186,7 +234,7 @@ function Settings() {
     const { error: reauthError } = await supabase.auth.signInWithPassword({ email: user.email || "", password: currentPassword });
     if (reauthError) return setError("Your current password is incorrect.");
     const { error: passwordError } = await supabase.auth.updateUser({ password: newPassword });
-    if (passwordError) return setError(passwordError.message);
+    if (passwordError) return setError(settingsError(passwordError, "The password could not be changed."));
     setCurrentPassword(""); setNewPassword(""); setNotice("Password changed.");
   };
   const beginAccountDeletion = async () => {
@@ -195,7 +243,7 @@ function Settings() {
     if (!deletePassword) return setError("Enter your current password to continue.");
     setDeletionBusy(true);
     const { error: verificationError } = await supabase.functions.invoke("delete-account", { body: { action: "begin", currentPassword: deletePassword } });
-    if (verificationError) { setDeletionBusy(false); return setError(verificationError.message); }
+    if (verificationError) { setDeletionBusy(false); return setError(await edgeFunctionSettingsError(verificationError, "Account deletion could not be started.")); }
     window.localStorage.setItem("luki-pending-account-deletion", "1");
     const { error: emailVerificationError } = await supabase.auth.signInWithOtp({
       email: user.email || "",
@@ -204,7 +252,7 @@ function Settings() {
     setDeletionBusy(false);
     if (emailVerificationError) {
       window.localStorage.removeItem("luki-pending-account-deletion");
-      return setError(emailVerificationError.message);
+      return setError(settingsError(emailVerificationError, "The verification email could not be sent."));
     }
     setShowDeleteDialog(false);
     setDeletionEmailSent(true);
@@ -215,7 +263,7 @@ function Settings() {
     clearFeedback();
     setDeletionBusy(true);
     const { error: deletionError } = await supabase.functions.invoke("delete-account", { body: { action: "delete", confirmation: "DELETE" } });
-    if (deletionError) { setDeletionBusy(false); return setError(deletionError.message); }
+    if (deletionError) { setDeletionBusy(false); return setError(await edgeFunctionSettingsError(deletionError, "The account could not be deleted.")); }
     await supabase.auth.signOut({ scope: "local" });
     navigate("/goodbye", { replace: true });
   };
@@ -225,7 +273,7 @@ function Settings() {
     <nav aria-label="Settings sections" className="border-border mb-5 overflow-x-auto border-b sm:mb-6"><div className="flex min-w-max gap-1 sm:gap-4">{tabs.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => setActiveTab(id)} className={`relative flex items-center gap-2 px-3 py-3.5 text-sm font-medium whitespace-nowrap sm:px-4 sm:text-base ${activeTab === id ? "text-font-primary" : "text-font-muted hover:text-font-secondary"}`}><Icon className="h-4 w-4" />{label}<span className={`bg-accent-cold absolute right-3 bottom-0 left-3 h-0.5 ${activeTab === id ? "scale-x-100" : "scale-x-0"}`} /></button>)}</div></nav>
     {activeTab === "profile" && <div className="space-y-4">
       <Section title="Profile appearance" description="Crop, zoom, and save the images people see on your profile."><div className="border-border overflow-hidden rounded-xl border"><div className="h-32 bg-surface-overlay bg-cover bg-center sm:h-40" style={profile?.banner_url ? { backgroundImage: `url(${profile.banner_url})` } : undefined}><div className="flex h-full items-end justify-end bg-surface-overlay/45 p-3"><button type="button" onClick={() => bannerInput.current?.click()} className="border-border bg-surface/90 text-font-primary rounded-lg border px-3 py-2 text-sm"><FiImage className="mr-2 inline" />Change banner</button></div></div><div className="bg-surface-soft/50 flex flex-col gap-4 p-4 sm:flex-row sm:items-center"><img src={profile?.avatar_url || userchomik} alt="Your profile avatar" className="border-border bg-surface-raised h-20 w-20 rounded-2xl border object-cover shadow-black" /><div className="min-w-0 flex-1"><p className="text-font-primary font-medium">Profile photo</p><p className="text-font-muted mt-1 text-sm">JPG, PNG, or WebP up to 5 MB. Large images are downscaled to fit 2000px.</p></div><button type="button" onClick={() => avatarInput.current?.click()} className="border-border bg-brand-secondary text-font-primary rounded-lg border px-3 py-2 text-sm font-medium"><FiUpload className="mr-2 inline" />Change avatar</button></div></div><input ref={avatarInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => { chooseImage("avatar", event.target.files?.[0]); event.target.value = ""; }} /><input ref={bannerInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => { chooseImage("banner", event.target.files?.[0]); event.target.value = ""; }} /></Section>
-      <Section title="Profile details" description="These details appear on your public profile."><div className="grid gap-4 sm:grid-cols-2"><label className="text-font-secondary text-sm">Display name<Input value={profileForm.username} onChange={(event) => setProfileForm({ ...profileForm, username: event.target.value })} className="mt-2" /></label><div className="text-font-secondary text-sm">Country<CountrySelect value={profileForm.country_code} onChange={(country_code) => setProfileForm({ ...profileForm, country_code })} /></div></div><label className="text-font-secondary mt-4 block text-sm">Bio<textarea value={profileForm.bio} maxLength={300} onChange={(event) => setProfileForm({ ...profileForm, bio: event.target.value })} className="border-border bg-surface-soft text-font-primary placeholder:text-font-muted focus:border-accent-cold mt-2 min-h-28 w-full rounded-lg border px-3 py-2.5 text-sm outline-none" placeholder="Tell people a little about yourself." /></label><div className="mt-4 flex items-center justify-between gap-3"><span className="text-font-muted text-xs">{profileForm.bio.length}/300</span><button type="button" onClick={saveDetails} disabled={saving} className="bg-brand-secondary text-font-primary hover:bg-brand-primary rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50"><FiSave className="mr-2 inline" />Save profile</button></div></Section>
+      <Section title="Profile details" description="These details appear on your public profile."><div className="grid gap-4 sm:grid-cols-2"><label className="text-font-secondary text-sm">Username<Input value={profileForm.username} onChange={(event) => setProfileForm({ ...profileForm, username: event.target.value })} className="mt-2" /><span className="text-font-muted mt-1 block text-xs">Your profile URL uses this name. <strong className="text-font-secondary font-semibold">You can change it once per month.</strong></span></label><div className="text-font-secondary text-sm">Country<CountrySelect value={profileForm.country_code} onChange={(country_code) => setProfileForm({ ...profileForm, country_code })} /></div></div><label className="text-font-secondary mt-4 block text-sm">Bio<textarea value={profileForm.bio} maxLength={300} onChange={(event) => setProfileForm({ ...profileForm, bio: event.target.value })} className="border-border bg-surface-soft text-font-primary placeholder:text-font-muted focus:border-accent-cold mt-2 min-h-28 w-full rounded-lg border px-3 py-2.5 text-sm outline-none" placeholder="Tell people a little about yourself." /></label><div className="mt-4 flex items-center justify-between gap-3"><span className="text-font-muted text-xs">{profileForm.bio.length}/300</span><button type="button" onClick={saveDetails} disabled={saving} className="bg-brand-secondary text-font-primary hover:bg-brand-primary rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50"><FiSave className="mr-2 inline" />Save profile</button></div></Section>
       <Section title="Social links" description="Use the same services shown on your public profile."><div className="grid gap-3 sm:grid-cols-2">{socialFields.map(({ platform, label, placeholder, icon: Icon }) => <div key={platform} className="border-border bg-surface-soft/60 focus-within:border-accent-cold flex items-center gap-3 rounded-lg border px-3 py-2.5"><Icon className="text-font-secondary h-5 w-5 shrink-0" /><label className="sr-only" htmlFor={`${platform}-link`}>{label} link</label><input id={`${platform}-link`} value={socialValues[platform]} onChange={(event) => setSocialValues({ ...socialValues, [platform]: event.target.value })} className="text-font-primary placeholder:text-font-muted min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder={placeholder} /><button type="button" onClick={() => saveSocial(platform)} className="border-border text-font-secondary hover:text-font-primary rounded-md border px-2 py-1 text-xs font-medium" aria-label={`Save ${label} link`}>Save</button></div>)}</div></Section>
     </div>}
     {activeTab === "account" && <div className="space-y-4"><Section title="Email address" description="A confirmation link is sent to the new address before your sign-in email changes."><div className="flex flex-col gap-3 sm:flex-row sm:items-end"><label className="text-font-secondary min-w-0 flex-1 text-sm">Email address<div className="relative mt-2"><FiMail className="text-font-muted pointer-events-none absolute top-1/2 left-3 -translate-y-1/2" /><Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="pl-10" /></div></label><button type="button" onClick={changeEmail} className="bg-brand-secondary text-font-primary rounded-lg px-3 py-2.5 text-sm font-medium">Change email</button></div>{pendingEmail && <Notice message={`Waiting for confirmation from ${pendingEmail}.`} />}</Section>

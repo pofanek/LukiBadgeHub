@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { FocusContent, LoadingIndicator } from "../../components";
 import { useAuthUser } from "../../hooks/useAuthUser";
-import { useUserProfile } from "../../hooks/useUserProfile";
+import { useUserProfile, useUserProfileByUsername } from "../../hooks/useUserProfile";
 import {
   GamesPanel,
   MutualsPanel,
@@ -16,12 +16,14 @@ export type ProfileTab = "games" | "mutuals" | "stats" | "recents";
 
 function Profile() {
   const [activeTab, setActiveTab] = useState<ProfileTab>("games");
-  const { id } = useParams();
+  const { username } = useParams();
   const { user, isLoading: isAuthLoading } = useAuthUser();
-  const profileId = id || user?.id;
-  const { profile, isLoading: isProfileLoading } = useUserProfile(profileId);
+  const { profile: ownProfile, isLoading: isOwnProfileLoading } = useUserProfile(user?.id);
+  const { profile: usernameProfile, isLoading: isUsernameProfileLoading } = useUserProfileByUsername(username);
+  const profile = username ? usernameProfile : ownProfile;
+  const isProfileLoading = username ? isUsernameProfileLoading : isOwnProfileLoading;
 
-  if (!id && !isAuthLoading && !user) {
+  if (!username && !isAuthLoading && !user) {
     return <Navigate to="/login" replace />;
   }
 
@@ -39,6 +41,14 @@ function Profile() {
         <p className="text-font-secondary">This profile could not be found.</p>
       </FocusContent>
     );
+  }
+
+  if (!username) {
+    return <Navigate to={`/profile/${encodeURIComponent(profile.username)}`} replace />;
+  }
+
+  if (profile.username !== username) {
+    return <Navigate to={`/profile/${encodeURIComponent(profile.username)}`} replace />;
   }
 
   return (
