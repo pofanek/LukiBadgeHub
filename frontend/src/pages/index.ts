@@ -16,3 +16,4 @@ export { default as AuthCallback } from "./AuthCallback/AuthCallback";
 export { default as ForgotPassword } from "./ForgotPassword/ForgotPassword";
 export { default as ResetPassword } from "./ResetPassword/ResetPassword";
 export { default as Goodbye } from "./Goodbye/Goodbye";
+export { default as AdminGames } from "./AdminGames/AdminGames";

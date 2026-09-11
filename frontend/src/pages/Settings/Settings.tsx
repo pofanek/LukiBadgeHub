@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { FiAlertCircle, FiBell, FiCamera, FiCheckCircle, FiImage, FiLock, FiMail, FiSave, FiTrash2, FiUpload, FiX } from "react-icons/fi";
-import { FaInstagram, FaSteam, FaYoutube } from "react-icons/fa";
+import { FaDiscord, FaInstagram, FaSteam, FaYoutube } from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc";
 import { SiBluesky } from "react-icons/si";
+import type { IconType } from "react-icons";
+import type { UserIdentity } from "@supabase/supabase-js";
 import { userchomik } from "../../assets";
 import { PasswordRequirements, FocusContent, LoadingIndicator } from "../../components";
 import { useAuthUser } from "../../hooks/useAuthUser";
@@ -22,6 +25,14 @@ const socialFields: { platform: SocialPlatform; label: string; placeholder: stri
   { platform: "instagram", label: "Instagram", placeholder: "Your Instagram profile URL", icon: FaInstagram },
   { platform: "bluesky", label: "Bluesky", placeholder: "Your Bluesky profile URL", icon: SiBluesky },
 ];
+const oauthProviders = [
+  { provider: "google", label: "Google", icon: FcGoogle },
+  { provider: "discord", label: "Discord", icon: FaDiscord },
+] as const satisfies readonly { provider: "google" | "discord"; label: string; icon: IconType }[];
+
+function providerLabel(provider: string) {
+  return oauthProviders.find((item) => item.provider === provider)?.label || provider;
+}
 
 function Section({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return <section className="border-border bg-surface/75 rounded-xl border p-4 sm:p-6"><div className="max-w-xl"><h2 className="text-font-primary font-serif text-2xl">{title}</h2><p className="text-font-muted mt-1 text-sm leading-relaxed">{description}</p></div><div className="mt-5">{children}</div></section>;
@@ -60,6 +71,7 @@ function settingsError(reason: unknown, fallback: string, usernameChangedAt?: st
   if (code === "over_email_send_rate_limit" || normalized.includes("email rate limit")) return "Too many emails were requested. Please wait a moment and try again.";
   if (code === "email_exists" || normalized.includes("already registered") || normalized.includes("email already")) return "That email address is already in use.";
   if (code === "email_not_confirmed") return "Confirm your email address before making that change.";
+  if (code === "manual_linking_disabled" || normalized.includes("manual linking is disabled")) return "OAuth account linking is disabled in Supabase. Enable Allow manual linking in Auth settings.";
   if (normalized.includes("invalid email")) return "Enter a valid email address.";
   if (normalized.includes("type delete to confirm")) return "Type DELETE exactly to confirm account deletion.";
   if (normalized.includes("deletion verification expired")) return "Your deletion verification expired. Enter your password and start again.";
@@ -108,6 +120,9 @@ function Settings() {
   const [deletionEmailSent, setDeletionEmailSent] = useState(false);
   const [deletionBusy, setDeletionBusy] = useState(false);
   const [passwordStatus, setPasswordStatus] = useState<boolean | null>(null);
+  const [identities, setIdentities] = useState<UserIdentity[]>([]);
+  const [identitiesLoading, setIdentitiesLoading] = useState(true);
+  const [identityBusy, setIdentityBusy] = useState<string | null>(null);
   const deletionCallbackHandled = useRef(false);
   const avatarInput = useRef<HTMLInputElement>(null);
   const bannerInput = useRef<HTMLInputElement>(null);
@@ -145,6 +160,28 @@ function Settings() {
     });
     return () => { isCurrent = false; };
   }, [userId]);
+  useEffect(() => {
+    let isCurrent = true;
+    if (!userId) return () => { isCurrent = false; };
+    setIdentitiesLoading(true);
+    supabase.auth.getUserIdentities().then(({ data }) => {
+      if (isCurrent) {
+        setIdentities(data?.identities || []);
+        setIdentitiesLoading(false);
+      }
+    }).catch(() => {
+      if (isCurrent) setIdentitiesLoading(false);
+    });
+    return () => { isCurrent = false; };
+  }, [userId]);
+  useEffect(() => {
+    const provider = new URLSearchParams(window.location.search).get("identity-linked");
+    if (!user || !provider || !oauthProviders.some((item) => item.provider === provider)) return;
+    window.history.replaceState({}, "", "/settings");
+    setActiveTab("account");
+    setNotice(`${providerLabel(provider)} sign-in connected.`);
+    supabase.auth.getUserIdentities().then(({ data }) => setIdentities(data?.identities || [])).catch(() => undefined);
+  }, [user]);
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     if (!user || query.get("delete-email-verification") !== "1" || deletionCallbackHandled.current) return;
@@ -267,6 +304,33 @@ function Settings() {
     await supabase.auth.signOut({ scope: "local" });
     navigate("/goodbye", { replace: true });
   };
+  const linkIdentity = async (provider: "google" | "discord") => {
+    clearFeedback();
+    setIdentityBusy(provider);
+    window.sessionStorage.setItem("luki-post-login-path", `/settings?identity-linked=${provider}`);
+    const { error: linkError } = await supabase.auth.linkIdentity({
+      provider,
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (linkError) {
+      window.sessionStorage.removeItem("luki-post-login-path");
+      setIdentityBusy(null);
+      setError(settingsError(linkError, `${providerLabel(provider)} could not be connected.`));
+    }
+  };
+  const unlinkIdentity = async (identity: UserIdentity) => {
+    clearFeedback();
+    setIdentityBusy(identity.provider);
+    const { error: unlinkError } = await supabase.auth.unlinkIdentity(identity);
+    if (unlinkError) {
+      setIdentityBusy(null);
+      return setError(settingsError(unlinkError, `${providerLabel(identity.provider)} could not be removed.`));
+    }
+    const { data } = await supabase.auth.getUserIdentities();
+    setIdentities(data?.identities || []);
+    setIdentityBusy(null);
+    setNotice(`${providerLabel(identity.provider)} sign-in removed.`);
+  };
 
   return <section className="flex-1"><div className="min-h-full w-full py-7 sm:py-10 lg:py-12"><div className="mx-auto w-full max-w-5xl px-3 sm:px-7">
     <header className="mb-6 sm:mb-8"><h1 className="text-font-primary font-serif text-4xl sm:text-5xl">Settings</h1><p className="text-font-secondary mt-2 max-w-xl leading-relaxed">Manage how your profile appears and how you sign in to Luki Badge Hub.</p></header>
@@ -277,6 +341,7 @@ function Settings() {
       <Section title="Social links" description="Use the same services shown on your public profile."><div className="grid gap-3 sm:grid-cols-2">{socialFields.map(({ platform, label, placeholder, icon: Icon }) => <div key={platform} className="border-border bg-surface-soft/60 focus-within:border-accent-cold flex items-center gap-3 rounded-lg border px-3 py-2.5"><Icon className="text-font-secondary h-5 w-5 shrink-0" /><label className="sr-only" htmlFor={`${platform}-link`}>{label} link</label><input id={`${platform}-link`} value={socialValues[platform]} onChange={(event) => setSocialValues({ ...socialValues, [platform]: event.target.value })} className="text-font-primary placeholder:text-font-muted min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder={placeholder} /><button type="button" onClick={() => saveSocial(platform)} className="border-border text-font-secondary hover:text-font-primary rounded-md border px-2 py-1 text-xs font-medium" aria-label={`Save ${label} link`}>Save</button></div>)}</div></Section>
     </div>}
     {activeTab === "account" && <div className="space-y-4"><Section title="Email address" description="A confirmation link is sent to the new address before your sign-in email changes."><div className="flex flex-col gap-3 sm:flex-row sm:items-end"><label className="text-font-secondary min-w-0 flex-1 text-sm">Email address<div className="relative mt-2"><FiMail className="text-font-muted pointer-events-none absolute top-1/2 left-3 -translate-y-1/2" /><Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="pl-10" /></div></label><button type="button" onClick={changeEmail} className="bg-brand-secondary text-font-primary rounded-lg px-3 py-2.5 text-sm font-medium">Change email</button></div>{pendingEmail && <Notice message={`Waiting for confirmation from ${pendingEmail}.`} />}</Section>
+      <Section title="Sign-in methods" description="Connect Google or Discord so you have another way to access this account."><div className="space-y-3">{oauthProviders.map(({ provider, label, icon: Icon }) => { const identity = identities.find((item) => item.provider === provider); const canUnlink = identities.length > 1; return <div key={provider} className="border-border bg-surface-soft/60 flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center"><div className="flex min-w-0 flex-1 items-center gap-3"><Icon className="h-6 w-6 shrink-0" /><div><p className="text-font-primary text-sm font-medium">{label}</p><p className="text-font-muted mt-0.5 text-xs">{identitiesLoading ? "Checking connection..." : identity ? "Connected" : "Not connected"}</p></div></div>{identity ? <button type="button" onClick={() => unlinkIdentity(identity)} disabled={!canUnlink || identityBusy !== null} title={!canUnlink ? "Connect another sign-in method before removing this one." : undefined} className="border-border text-font-secondary hover:text-font-primary rounded-lg border px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50">{identityBusy === provider ? "Removing..." : "Remove"}</button> : <button type="button" onClick={() => linkIdentity(provider)} disabled={identitiesLoading || identityBusy !== null} className="bg-brand-secondary text-font-primary hover:bg-brand-primary rounded-lg px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50">{identityBusy === provider ? "Connecting..." : `Connect ${label}`}</button>}</div>; })}</div><p className="text-font-muted mt-3 text-xs leading-relaxed">You can only remove a sign-in method when another method remains connected.</p></Section>
       <Section title={hasPassword ? "Password" : "Set password"} description={hasPassword ? "Enter your current password before choosing a new one." : "We’ll send a recovery link to your account email so you can add password sign-in without removing OAuth."}>{hasPassword ? <><label className="text-font-secondary block text-sm">Current password<Input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} className="mt-2" /></label><label className="text-font-secondary mt-4 block text-sm">New password<Input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="mt-2" /></label><PasswordRequirements password={newPassword} /><button type="button" onClick={changePassword} className="bg-brand-secondary text-font-primary mt-4 rounded-lg px-3 py-2.5 text-sm font-medium">Change password</button></> : <button type="button" onClick={setPassword} className="bg-brand-secondary text-font-primary rounded-lg px-3 py-2.5 text-sm font-medium">Send password setup link</button>}</Section>
       <section className="border-destructive/40 bg-destructive-background/20 rounded-xl border p-4 sm:p-6"><h2 className="text-font-primary font-serif text-2xl">Delete account</h2><p className="text-font-secondary mt-1 max-w-xl text-sm leading-relaxed">This permanently removes your profile, social links, media, and future badge progress. It cannot be undone. To protect your account, you must enter your password, verify the deletion from your email, and make a final confirmation.</p>{!hasPassword && <Notice message="Set a password from the section above before deleting an OAuth-only account." error />}{deletionEmailSent && <Notice message="Verification email sent. Open its link within 15 minutes to unlock the final confirmation." />}<button type="button" onClick={() => { clearFeedback(); setShowDeleteDialog(true); }} disabled={!hasPassword || deletionBusy} className="border-destructive/50 text-destructive hover:bg-destructive-background mt-4 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50"><FiTrash2 className="mr-2 inline" />Delete account</button></section></div>}
     {activeTab === "notifications" && <section className="border-border bg-surface/75 flex min-h-72 flex-col items-center justify-center rounded-xl border px-5 text-center"><div className="border-border bg-surface-soft flex h-12 w-12 items-center justify-center rounded-xl border"><FiBell className="text-font-secondary h-6 w-6" /></div><h2 className="text-font-primary mt-4 font-serif text-2xl">Notifications are on the way</h2><p className="text-font-muted mt-2 max-w-sm text-sm leading-relaxed">Soon you’ll be able to choose which updates reach you.</p></section>}

@@ -3,14 +3,26 @@ import { FiMinus, FiPlus, FiX } from "react-icons/fi";
 
 type ImageCropDialogProps = {
   file: File;
-  kind: "avatar" | "banner";
+  kind: "avatar" | "banner" | "gameCover" | "gameBanner";
   onCancel: () => void;
   onConfirm: (file: File) => Promise<void>;
 };
 
 const targets = {
-  avatar: { width: 512, height: 512, label: "avatar" },
-  banner: { width: 1500, height: 500, label: "banner" },
+  avatar: { width: 512, height: 512, label: "avatar", fileName: "avatar" },
+  banner: { width: 1500, height: 500, label: "banner", fileName: "banner" },
+  gameCover: {
+    width: 750,
+    height: 1000,
+    label: "cover image",
+    fileName: "game-cover",
+  },
+  gameBanner: {
+    width: 1500,
+    height: 500,
+    label: "banner image",
+    fileName: "game-banner",
+  },
 };
 
 function loadImage(source: string) {
@@ -94,7 +106,9 @@ function ImageCropDialog({ file, kind, onCancel, onConfirm }: ImageCropDialogPro
     canvas.toBlob(async (blob) => {
       if (!blob) { setError("The cropped image could not be created."); setSaving(false); return; }
       try {
-        await onConfirm(new File([blob], `${target.label}.webp`, { type: "image/webp" }));
+        await onConfirm(
+          new File([blob], `${target.fileName}.webp`, { type: "image/webp" }),
+        );
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : "Image upload failed.");
         setSaving(false);
@@ -103,8 +117,8 @@ function ImageCropDialog({ file, kind, onCancel, onConfirm }: ImageCropDialogPro
   };
 
   return (
-    <div className="bg-surface-overlay/80 fixed inset-0 z-50 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-label={`Crop ${target.label}`}>
-      <div className="border-border bg-surface-raised w-full max-w-2xl rounded-xl border p-4 shadow-black sm:p-6">
+    <div className="bg-surface-overlay/80 fixed inset-0 z-50 flex justify-center overflow-y-auto p-3 sm:items-center" role="dialog" aria-modal="true" aria-label={`Crop ${target.label}`}>
+      <div className="border-border bg-surface-raised my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto rounded-xl border p-4 shadow-black sm:p-6">
         <div className="flex items-start justify-between gap-4"><div><h2 className="text-font-primary font-serif text-2xl">Crop {kind}</h2><p className="text-font-muted mt-1 text-sm">Drag the image to position it, then zoom to frame it.</p></div><button type="button" onClick={onCancel} className="text-font-secondary hover:text-font-primary p-1" aria-label="Close crop editor"><FiX className="h-5 w-5" /></button></div>
         <div ref={previewRef} onPointerDown={beginDrag} onPointerMove={drag} onPointerUp={endDrag} onPointerCancel={endDrag} className="border-border bg-surface-overlay relative mx-auto mt-5 touch-none cursor-grab overflow-hidden border active:cursor-grabbing" style={{ aspectRatio: `${target.width}/${target.height}` }}>
           {metrics && <img src={source} alt="Crop preview" className="pointer-events-none absolute max-w-none select-none" style={{ width: `${(metrics.width / target.width) * 100}%`, height: `${(metrics.height / target.height) * 100}%`, left: `${(metrics.x / target.width) * 100}%`, top: `${(metrics.y / target.height) * 100}%` }} />}

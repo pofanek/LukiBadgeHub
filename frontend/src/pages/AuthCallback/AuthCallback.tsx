@@ -9,11 +9,15 @@ const AuthCallback = () => {
   const hashParams = new URLSearchParams(window.location.hash.slice(1));
   const errorDescription = params.get("error_description") || hashParams.get("error_description");
   const pendingAccountDeletion = params.get("delete-email-verification") === "1" || window.localStorage.getItem("luki-pending-account-deletion") === "1";
+  const pendingIdentityLink = window.sessionStorage.getItem("luki-post-login-path");
 
   useEffect(() => {
-    if (errorDescription) return;
+    if (errorDescription) {
+      window.sessionStorage.removeItem("luki-post-login-path");
+      return;
+    }
     const storedReturnPath = window.sessionStorage.getItem("luki-post-login-path");
-    const destination = pendingAccountDeletion ? "/settings?delete-email-verification=1" : storedReturnPath || "/";
+    const destination = pendingAccountDeletion ? "/settings?delete-email-verification=1" : pendingIdentityLink || storedReturnPath || "/";
     if (pendingAccountDeletion) window.localStorage.removeItem("luki-pending-account-deletion");
     const completeAuthentication = async () => {
       const code = params.get("code");
@@ -52,7 +56,7 @@ const AuthCallback = () => {
       }
     });
     return () => listener.subscription.unsubscribe();
-  }, [errorDescription, navigate, params, pendingAccountDeletion]);
+  }, [errorDescription, navigate, params, pendingAccountDeletion, pendingIdentityLink]);
 
   return (
     <FocusContent>

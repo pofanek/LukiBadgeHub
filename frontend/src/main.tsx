@@ -21,6 +21,7 @@ import {
   ForgotPassword,
   ResetPassword,
   Goodbye,
+  AdminGames,
 } from "./pages";
 import { MainLayout, EmptyLayout } from "./layouts/";
 const router = createBrowserRouter([
@@ -33,6 +34,8 @@ const router = createBrowserRouter([
       { path: "/contact", element: <Contact /> },
       { path: "/games", element: <Games /> },
       { path: "/games/:id", element: <GameDetail /> },
+      { path: "/admin", element: <AdminGames /> },
+      { path: "/admin/games/:id", element: <AdminGames /> },
       { path: "/settings", element: <Settings /> },
       { path: "/rankings", element: <Rankings /> },
       { path: "/profile", element: <Profile /> },

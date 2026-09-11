@@ -14,7 +14,9 @@ import {
 } from "react-icons/fi";
 import { FaSteam, FaStar, FaTrophy } from "react-icons/fa";
 import { hollow, hollowthumb, userchomik } from "../../assets";
+import type { CatalogueGame } from "../../constants";
 import { useAuthUser } from "../../hooks/useAuthUser";
+import { useGame } from "../../hooks/useGames";
 import { supabase } from "../../utils/supabase";
 
 const ACHIEVEMENTS_PER_PAGE = 9;
@@ -262,7 +264,7 @@ const demoGame: GameDetailData = {
       difficultyId: "supreme",
       exp: 500,
       developerNote:
-        "To get this achievement, you’re supposed to use a double pogo on an enemy’s bullet.",
+        "To get this badge, you’re supposed to use a double pogo on an enemy’s bullet.",
     },
     {
       id: "perfect-path",
@@ -477,7 +479,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
             <div className="flex flex-wrap gap-3">
               <Stat
                 icon={FaTrophy}
-                label="Achievements"
+                label="Badges"
                 value={`${obtained} / ${achievementTotal}`}
               />
               <Stat
@@ -488,7 +490,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
             </div>
             <section className="mt-6">
               <h2 className="text-font-primary font-serif text-xl">
-                Achievements by difficulty
+                Badges by difficulty
               </h2>
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {game.difficulties.map((difficulty) => (
@@ -509,7 +511,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
                 active={activeTab === "achievements"}
                 onClick={() => setActiveTab("achievements")}
               >
-                Achievements
+                Badges
               </Tab>
               <Tab
                 active={activeTab === "comments"}
@@ -546,7 +548,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
                 <div className="min-w-0">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <h2 className="text-font-primary font-serif text-xl">
-                      Achievements ({visibleAchievements.length})
+                      Badges ({visibleAchievements.length})
                     </h2>
                     <div className="border-border bg-surface-soft flex rounded-lg border p-1">
                       <ViewButton
@@ -597,7 +599,9 @@ export function GameDetailTemplate({ game }: TemplateProps) {
           <aside className="space-y-3 xl:sticky xl:top-20 xl:h-fit">
             <GameInfo game={game} />
             <Progress current={progressExp} total={totalExp} />
-            <RecentPlayers players={game.recentPlayers} />
+            {game.recentPlayers.length > 0 && (
+              <RecentPlayers players={game.recentPlayers} />
+            )}
           </aside>
         </div>
       </div>
@@ -852,7 +856,7 @@ function Filters({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           className="text-font-primary placeholder:text-font-muted min-w-0 flex-1 bg-transparent py-2 text-sm outline-none"
-          placeholder="Search achievements..."
+          placeholder="Search badges..."
         />
       </label>
       <FilterGroup title="Difficulty">
@@ -1023,7 +1027,7 @@ function Pagination({
   return (
     <nav
       className="mt-5 flex items-center justify-center gap-2"
-      aria-label="Achievement pages"
+      aria-label="Badge pages"
     >
       <button
         type="button"
@@ -1286,7 +1290,7 @@ function AchievementDetailsModal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close achievement details"
+            aria-label="Close badge details"
             className="text-font-muted hover:text-font-primary rounded p-1"
           >
             <FiX className="h-5 w-5" />
@@ -1446,9 +1450,59 @@ function RecentPlayers({ players }: { players: RecentPlayer[] }) {
   );
 }
 
+function toGameDetailData(game: CatalogueGame): GameDetailData {
+  const releaseDate = game.releaseDate
+    ? new Intl.DateTimeFormat(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }).format(new Date(`${game.releaseDate}T00:00:00`))
+    : "Not set";
+
+  return {
+    id: game.id,
+    title: game.title,
+    developer: game.developer || "Not set",
+    publisher: game.publisher || "Not set",
+    releaseDate,
+    genres: game.genres,
+    description: game.description || "No description has been added yet.",
+    bannerUrl: game.bannerUrl,
+    coverUrl: game.cover,
+    steamUrl: game.steamUrl || undefined,
+    achievements: [],
+    difficulties: demoGame.difficulties.map((difficulty) => ({
+      ...difficulty,
+      total: 0,
+      obtained: 0,
+      expPerAchievement: 0,
+    })),
+    recentPlayers: [],
+  };
+}
+
 export default function GameDetail() {
   const { id } = useParams();
+  const gameId = Number(id);
+  const { game, isLoading, error } = useGame(
+    Number.isInteger(gameId) && gameId > 0 ? gameId : undefined,
+  );
+
+  if (isLoading)
+    return (
+      <section className="bg-primary w-full self-stretch py-20 text-center">
+        <p className="text-font-secondary">Loading game...</p>
+      </section>
+    );
+
+  if (!game)
+    return (
+      <section className="bg-primary w-full self-stretch py-20 text-center">
+        <p className="text-font-secondary">{error || "This game could not be found."}</p>
+      </section>
+    );
+
   return (
-    <GameDetailTemplate game={{ ...demoGame, id: Number(id) || demoGame.id }} />
+    <GameDetailTemplate game={toGameDetailData(game)} />
   );
 }

@@ -2,9 +2,13 @@ import { FooterText, FooterLink } from "./";
 import { SiKofi } from "react-icons/si";
 import { FaDiscord } from "react-icons/fa";
 
-const Footer = () => {
+type FooterProps = {
+  className?: string;
+};
+
+const Footer = ({ className = "" }: FooterProps) => {
   return (
-    <footer className="flex h-32 w-full flex-col items-center sm:h-auto sm:flex-row sm:items-center sm:px-0 sm:py-2">
+    <footer className={`flex h-32 w-full flex-col items-center sm:h-auto sm:flex-row sm:items-center sm:px-0 sm:py-2 ${className}`}>
       <div className="flex h-[33%] w-full min-w-69 items-center justify-center gap-6 sm:order-2 sm:h-auto">
         <FooterText pathTo="/about">About</FooterText>
         <FooterText pathTo="/terms">Terms & Privacy</FooterText>

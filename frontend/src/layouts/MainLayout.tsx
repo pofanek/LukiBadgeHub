@@ -6,13 +6,16 @@ function MainLayout() {
   useAuthListener();
   const location = useLocation();
   const titleOnly = SHORT_NAVBAR_PAGES.includes(location.pathname);
+  const hasOpaqueFooter =
+    /^\/profile\/[^/]+$/.test(location.pathname) ||
+    /^\/games\/[^/]+$/.test(location.pathname);
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar activeTab={location.pathname} titleOnly={titleOnly} />
       <main className="flex flex-1">
         <Outlet />
       </main>
-      <Footer />
+      <Footer className={hasOpaqueFooter ? "bg-primary" : undefined} />
     </div>
   );
 }

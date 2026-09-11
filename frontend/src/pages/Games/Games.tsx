@@ -9,11 +9,12 @@ import {
   FiX,
 } from "react-icons/fi";
 import { LoadingIndicator } from "../../components";
-import { catalogueGames, type CatalogueGame } from "../../constants";
+import type { CatalogueGame } from "../../constants";
 import { useAuthUser } from "../../hooks/useAuthUser";
+import { useGames } from "../../hooks/useGames";
 import { supabase } from "../../utils/supabase";
 
-type SortOption = "name" | "exp" | "release" | "popularity";
+type SortOption = "name" | "release";
 
 const DIFFICULTY_COLORS: Record<string, string> = {
   Easy: "bg-[#46c85a]",
@@ -26,13 +27,12 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 
 const SORT_LABELS: Record<SortOption, string> = {
   name: "Name",
-  exp: "Total EXP",
   release: "Release date",
-  popularity: "Popularity",
 };
 
 function Games() {
   const { user, isLoading: isAuthLoading } = useAuthUser();
+  const { games, isLoading: isGamesLoading, error: gamesError } = useGames();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [libraryIds, setLibraryIds] = useState<number[]>([]);
@@ -43,11 +43,11 @@ function Games() {
   const query = searchParams.get("q") || "";
   const genre = searchParams.get("genre") || "all";
   const scope = searchParams.get("scope") === "library" ? "library" : "all";
-  const sort = (searchParams.get("sort") || "popularity") as SortOption;
-  const selectedSort = Object.hasOwn(SORT_LABELS, sort) ? sort : "popularity";
+  const sort = (searchParams.get("sort") || "release") as SortOption;
+  const selectedSort = Object.hasOwn(SORT_LABELS, sort) ? sort : "release";
   const genres = useMemo(
-    () => [...new Set(catalogueGames.flatMap((game) => game.genres))].sort(),
-    [],
+    () => [...new Set(games.flatMap((game) => game.genres))].sort(),
+    [games],
   );
   const activeLibraryIds = useMemo(
     () => (user ? libraryIds : []),
@@ -83,7 +83,7 @@ function Games() {
 
   const visibleGames = useMemo(
     () =>
-      catalogueGames
+      games
         .filter((game) =>
           game.title.toLowerCase().includes(query.toLowerCase()),
         )
@@ -92,12 +92,11 @@ function Games() {
         .sort((left, right) => {
           if (selectedSort === "name")
             return left.title.localeCompare(right.title);
-          if (selectedSort === "exp") return right.totalExp - left.totalExp;
           if (selectedSort === "release")
             return right.releaseYear - left.releaseYear;
-          return right.popularity - left.popularity;
+          return left.title.localeCompare(right.title);
         }),
-    [activeLibraryIds, genre, query, scope, selectedSort],
+    [activeLibraryIds, games, genre, query, scope, selectedSort],
   );
 
   const updateFilters = (updates: Record<string, string | null>) => {
@@ -106,7 +105,7 @@ function Games() {
       if (
         !value ||
         value === "all" ||
-        (key === "sort" && value === "popularity")
+        (key === "sort" && value === "release")
       )
         next.delete(key);
       else next.set(key, value);
@@ -152,7 +151,7 @@ function Games() {
   };
 
   return (
-    <section className="bg-primary w-full self-stretch py-8 sm:py-10 lg:py-12">
+    <section className="w-full self-stretch py-8 sm:py-10 lg:py-12">
       <div className="mx-auto w-full max-w-7xl px-3 sm:px-7">
         <header className="border-border border-b pb-6 sm:flex sm:items-end sm:justify-between sm:gap-8">
           <div>
@@ -221,12 +220,12 @@ function Games() {
           </div>
         </div>
 
-        {user && libraryError && (
+        {(libraryError || gamesError) && (
           <p role="alert" className="text-destructive mt-4 text-sm">
-            {libraryError}
+            {libraryError || gamesError}
           </p>
         )}
-        {isAuthLoading || (user && isLibraryLoading) ? (
+        {isAuthLoading || isGamesLoading || (user && isLibraryLoading) ? (
           <div className="py-20">
             <LoadingIndicator label="Loading games..." />
           </div>
@@ -363,54 +362,58 @@ function GameCard({
   onToggleLibrary: (gameId: number) => void;
 }) {
   return (
-    <article className="group border-border bg-surface overflow-hidden rounded-xl border shadow-black">
+    <article className="group border-border bg-surface rounded-xl border shadow-black">
       <Link
         to={`/games/${game.id}`}
-        className="focus-visible:outline-accent-cold relative block aspect-[3/4] overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="focus-visible:outline-accent-cold relative block aspect-[3/4] overflow-visible focus-visible:outline-2 focus-visible:outline-offset-2"
       >
-        <img
-          src={game.cover}
-          alt=""
-          className="h-full w-full object-cover opacity-80 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-100"
-          style={{ objectPosition: game.coverPosition }}
-        />
-        <div className="from-surface-overlay via-surface-overlay/30 absolute inset-x-0 bottom-0 bg-gradient-to-t to-transparent p-3 pt-12">
-          <div
-            className="flex items-center gap-1.5"
-            aria-label={game.difficulties
-              .map(
-                ({ label, achievementCount }) =>
-                  `${achievementCount} ${label} achievements`,
-              )
-              .join(", ")}
-          >
-            {game.difficulties.map(({ label, achievementCount }, index) => (
-              <span
-                key={label}
-                className="group/difficulty relative flex h-3 w-3 items-center justify-center"
-              >
-                <span
-                  className={`h-2 w-2 rounded-full ${DIFFICULTY_COLORS[label]}`}
-                />
-                <span
-                  role="tooltip"
-                  className={`bg-surface-overlay text-font-primary pointer-events-none absolute bottom-full z-10 mb-2 w-max max-w-44 rounded-md border border-border px-2 py-1 text-center text-[11px] opacity-0 shadow-black transition-opacity group-hover/difficulty:opacity-100 ${index === 0 ? "left-0" : "left-1/2 -translate-x-1/2"}`}
-                >
-                  {achievementCount} {label} achievements
-                </span>
-              </span>
-            ))}
+        <div className="absolute inset-0 overflow-hidden rounded-t-xl">
+          <img
+            src={game.cover}
+            alt=""
+            className="h-full w-full object-cover opacity-80 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-100"
+            style={{ objectPosition: game.coverPosition }}
+          />
+          <div className="from-surface-overlay via-surface-overlay/30 absolute inset-x-0 bottom-0 bg-gradient-to-t to-transparent p-3 pt-12">
+            <h2 className={`text-font-primary truncate font-serif text-lg ${game.achievementCount ? "mt-5" : ""}`}>
+              {game.title}
+            </h2>
+            {game.achievementCount > 0 && (
+              <p className="text-font-secondary mt-0.5 text-xs">
+                {game.achievementCount} badges · {game.totalExp.toLocaleString()}{" "}
+                EXP
+              </p>
+            )}
           </div>
-          <h2 className="text-font-primary mt-2 truncate font-serif text-lg">
-            {game.title}
-          </h2>
-          <p className="text-font-secondary mt-0.5 text-xs">
-            {game.achievementCount} badges · {game.totalExp.toLocaleString()}{" "}
-            EXP
-          </p>
         </div>
+        {game.achievementCount > 0 && <div
+          className="absolute inset-x-3 bottom-15 flex items-center gap-1.5"
+          aria-label={game.difficulties
+            .map(
+              ({ label, achievementCount }) =>
+                `${achievementCount} ${label} badges`,
+            )
+            .join(", ")}
+        >
+          {game.difficulties.map(({ label, achievementCount }) => (
+            <span
+              key={label}
+              className="group/difficulty relative flex h-3 w-3 items-center justify-center"
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${DIFFICULTY_COLORS[label]}`}
+              />
+              <span
+                role="tooltip"
+                className="bg-surface-overlay text-font-primary pointer-events-none invisible absolute bottom-full left-1/2 z-30 mb-2 w-max max-w-44 -translate-x-1/2 rounded-md border border-border px-2 py-1 text-center text-[11px] opacity-0 shadow-black group-hover/difficulty:visible group-hover/difficulty:opacity-100"
+              >
+                {achievementCount} {label} badges
+              </span>
+            </span>
+          ))}
+        </div>}
       </Link>
-      <div className="bg-surface-raised p-2">
+      <div className="bg-surface-raised rounded-b-xl p-2">
         <button
           type="button"
           onClick={() => onToggleLibrary(game.id)}

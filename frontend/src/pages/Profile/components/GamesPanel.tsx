@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiChevronDown } from "react-icons/fi";
 import { LoadingIndicator } from "../../../components";
-import { catalogueGames, type CatalogueGame } from "../../../constants";
+import type { CatalogueGame } from "../../../constants";
+import { useGames } from "../../../hooks/useGames";
 import { supabase } from "../../../utils/supabase";
 
 type Difficulty = { label: string; earned: number; total: number };
@@ -61,6 +62,7 @@ function GamesPanel({
   profileId: string;
   isOwnProfile: boolean;
 }) {
+  const { games: catalogueGames, isLoading: isGamesLoading } = useGames();
   const [libraryIds, setLibraryIds] = useState<number[] | null>(null);
   const [expandedGame, setExpandedGame] = useState<number | null>(null);
 
@@ -96,10 +98,10 @@ function GamesPanel({
             total: achievementCount,
           })),
         })),
-    [libraryIds],
+    [catalogueGames, libraryIds],
   );
 
-  if (libraryIds === null)
+  if (libraryIds === null || isGamesLoading)
     return (
       <div className="py-12">
         <LoadingIndicator label="Loading games..." />
@@ -162,7 +164,7 @@ function GamesPanel({
                     <p className="text-font-secondary text-sm">{experience}</p>
                     <div className="mt-3 flex items-center gap-3">
                       <span className="text-font-muted shrink-0 text-xs">
-                        Achievement progress
+                        Badge progress
                       </span>
                       <div className="bg-surface-raised h-2 flex-1 overflow-hidden rounded-full">
                         <div

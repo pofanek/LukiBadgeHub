@@ -12,6 +12,29 @@ export type CatalogueGame = {
   cover: string;
   coverPosition?: string;
   bannerUrl: string;
+  developer?: string;
+  publisher?: string;
+  releaseDate?: string | null;
+  description?: string;
+  steamUrl?: string | null;
+  isPublished?: boolean;
+};
+
+export type GameRow = {
+  id: number;
+  name: string;
+  description: string;
+  developer: string;
+  publisher: string;
+  release_date: string | null;
+  genres: string[];
+  steam_url: string | null;
+  cover_path: string | null;
+  cover_position: string;
+  banner_path: string | null;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type CatalogueDifficulty = {

@@ -9,6 +9,7 @@ export type UserProfile = {
   avatar_path: string | null;
   banner_path: string | null;
   username_changed_at: string | null;
+  role: "User" | "Moderator" | "Admin";
   avatar_url: string | null;
   banner_url: string | null;
 };
@@ -36,7 +37,7 @@ export async function saveUserProfile(userId: string, changes: Partial<ProfileCh
     .from("user_profiles")
     .update(changes)
     .eq("id", userId)
-    .select("id, username, bio, country_code, avatar_path, banner_path, username_changed_at")
+    .select("id, username, bio, country_code, avatar_path, banner_path, username_changed_at, role")
     .single();
   if (error) throw error;
   const profile = hydrateProfile(data);
@@ -56,7 +57,7 @@ export function useUserProfile(userId?: string) {
       if (profile.id === userId) setResult({ userId, profile });
     };
     window.addEventListener(profileEvent, onProfileUpdate);
-    supabase.from("user_profiles").select("id, username, bio, country_code, avatar_path, banner_path, username_changed_at").eq("id", userId).maybeSingle().then(({ data, error }) => {
+    supabase.from("user_profiles").select("id, username, bio, country_code, avatar_path, banner_path, username_changed_at, role").eq("id", userId).maybeSingle().then(({ data, error }) => {
       if (isCurrent) setResult({ userId, profile: error || !data ? null : hydrateProfile(data) });
     });
 
@@ -77,7 +78,7 @@ export function useUserProfileByUsername(username?: string) {
     if (!username) return () => { isCurrent = false; };
 
     const loadProfile = async () => {
-      const profileQuery = "id, username, bio, country_code, avatar_path, banner_path, username_changed_at";
+      const profileQuery = "id, username, bio, country_code, avatar_path, banner_path, username_changed_at, role";
       const { data: currentProfile, error: currentError } = await supabase
         .from("user_profiles")
         .select(profileQuery)
