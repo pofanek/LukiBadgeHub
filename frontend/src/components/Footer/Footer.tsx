@@ -29,7 +29,7 @@ const Footer = ({ className = "" }: FooterProps) => {
             className="flex items-center justify-center gap-1"
           >
             <SiKofi size={24} color="#818181" />
-            <FooterLink>Support Us!</FooterLink>
+            <FooterLink>Support Me!</FooterLink>
           </a>
         </div>
       </div>

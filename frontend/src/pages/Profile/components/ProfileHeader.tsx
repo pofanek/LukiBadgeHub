@@ -1,11 +1,15 @@
-import { FaInstagram, FaSteam, FaYoutube } from "react-icons/fa";
+import { FaInstagram, FaSteam, FaThumbtack, FaYoutube } from "react-icons/fa";
 import { FiEdit3, FiUserPlus } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { SiBluesky } from "react-icons/si";
 import { userchomik } from "../../../assets";
+import { BADGE_DIFFICULTY_DETAILS } from "../../../constants";
 import { getCountry } from "../../../constants/countries";
+import { usePinnedBadge } from "../../../hooks/usePinnedBadge";
+import { usePlayerLevel } from "../../../hooks/usePlayerLevel";
 import type { UserProfile } from "../../../hooks/useUserProfile";
 import { useSocialLinks } from "../../../hooks/useSocialLinks";
+import { supabase } from "../../../utils/supabase";
 
 const socialLinks = [
   { label: "Steam", icon: FaSteam },
@@ -21,11 +25,19 @@ type ProfileHeaderProps = {
 
 function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
   const links = useSocialLinks(profile.id);
+  const {
+    level,
+    isLoading: isLevelLoading,
+    hasError: hasLevelError,
+  } = usePlayerLevel(profile.id);
+  const { pinnedBadge, isLoading: isPinnedBadgeLoading } = usePinnedBadge(
+    profile.id,
+  );
   const socialLinksByPlatform = new Map(links.map((link) => [link.platform, link.url]));
   const country = getCountry(profile.country_code);
   return (
     <header className="relative isolate mx-auto w-full max-w-4xl [clip-path:inset(0_-100vw_0_-100vw)]">
-      <div className="relative min-h-[35rem] sm:min-h-[33rem] lg:h-[23rem] lg:min-h-0">
+      <div className="relative md:min-h-[33rem] lg:h-[23rem] lg:min-h-0">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute top-0 left-1/2 -z-10 h-full w-screen -translate-x-1/2 bg-cover bg-center [mask-image:linear-gradient(to_bottom,#000_0%,#000_26%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,#000_0%,#000_26%,transparent_100%)]"
@@ -36,7 +48,7 @@ function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
           className="pointer-events-none absolute top-0 left-1/2 -z-10 h-full w-screen -translate-x-1/2 bg-linear-to-b from-surface-soft/70 via-surface-overlay/80 via-[48%] to-primary"
         />
 
-        <div className="absolute inset-x-0 top-0 bottom-6 grid grid-cols-[7rem_minmax(0,1fr)] gap-5 gap-x-4 max-sm:gap-y-2 p-4 sm:top-auto sm:bottom-10 sm:gap-x-6 sm:p-6 lg:grid-cols-[7rem_minmax(0,1fr)_auto] lg:gap-7 lg:p-7">
+        <div className="relative grid grid-cols-[7rem_minmax(0,1fr)] gap-5 gap-x-4 max-md:gap-y-2 p-4 md:absolute md:inset-x-0 md:top-auto md:bottom-10 md:gap-x-6 md:p-6 lg:grid-cols-[7rem_minmax(0,1fr)_auto] lg:gap-7 lg:p-7">
           <div className="w-28">
             <img
               src={profile.avatar_url || userchomik}
@@ -64,15 +76,10 @@ function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
             </div>
           </div>
 
-          <div className="min-w-0 self-start sm:pt-1">
+          <div className="min-w-0 self-start sm:pt-1 md:pr-72">
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-font-primary break-words font-serif text-3xl leading-none sm:text-4xl">{profile.username}</h1>
-              {isOwnProfile ? (
-                <Link to="/settings" className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors">
-                  <FiEdit3 />
-                  Edit
-                </Link>
-              ) : (
+              {!isOwnProfile && (
                 <button className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors">
                   <FiUserPlus />
                   Follow
@@ -92,12 +99,68 @@ function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
             {profile.bio || "No bio provided."}
           </p>
 
-          <div className="self-start  lg:col-start-auto lg:justify-self-end lg:pt-1">
-            <p className="text-font-primary font-serif text-2xl">Level 24</p>
-            <div className="border-border bg-surface-soft mt-3 flex min-w-48 max-w-48 items-center gap-3 rounded-xl border p-3">
-              <span aria-label="Difficulty icon placeholder" className="bg-accent-cold h-10 w-10 shrink-0 rounded-sm" />
-              <p className="text-font-primary text-sm font-medium">Focused Collector</p>
-            </div>
+          <div className="col-span-2 col-start-auto w-full self-start md:absolute md:top-6 md:right-6 md:bottom-auto md:w-72">
+            <Link
+              to={`/profile/${encodeURIComponent(profile.username)}?tab=stats`}
+              className="text-font-primary hover:text-hover flex w-fit items-center gap-2 font-serif text-3xl transition-colors"
+              aria-label="View profile statistics"
+            >
+              <span>Level</span>
+              <span className="border-accent-cold text-font-primary grid h-10 w-10 place-items-center rounded-full border text-lg">
+                {isLevelLoading || hasLevelError ? "—" : level}
+              </span>
+            </Link>
+
+            {isOwnProfile && !isPinnedBadgeLoading && !pinnedBadge && (
+              <Link
+                to="/settings"
+                className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary mt-3 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+              >
+                <FiEdit3 />
+                Edit pinned badge
+              </Link>
+            )}
+
+            {!isPinnedBadgeLoading && pinnedBadge && (
+              <div className="border-border bg-surface/60 mt-4 rounded-xl border p-3">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={
+                      pinnedBadge.badge.icon_path
+                        ? supabase.storage
+                            .from("game-media")
+                            .getPublicUrl(pinnedBadge.badge.icon_path).data
+                            .publicUrl
+                        : BADGE_DIFFICULTY_DETAILS[pinnedBadge.badge.difficulty]
+                            .icon
+                    }
+                    alt=""
+                    className="bg-surface-raised h-11 w-11 shrink-0 rounded-full object-cover"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-font-muted flex items-center gap-1.5 text-xs">
+                      <FaThumbtack className="h-3 w-3" />
+                      Pinned badge
+                    </p>
+                    <p className="text-font-primary mt-1 truncate text-sm font-medium">
+                      {pinnedBadge.badge.name}
+                    </p>
+                    <p className="text-font-secondary mt-0.5 truncate text-xs">
+                      {pinnedBadge.game.title}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {isOwnProfile && pinnedBadge && (
+              <Link
+                to="/settings"
+                className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary mt-3 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+              >
+                <FiEdit3 />
+                Edit pinned badge
+              </Link>
+            )}
           </div>
         </div>
       </div>

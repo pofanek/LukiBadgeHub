@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { FiAlertCircle, FiBell, FiCamera, FiCheckCircle, FiImage, FiLock, FiMail, FiSave, FiTrash2, FiUpload, FiX } from "react-icons/fi";
+import { FiAlertCircle, FiBell, FiCamera, FiCheck, FiCheckCircle, FiChevronDown, FiImage, FiLock, FiMail, FiSave, FiTrash2, FiUpload, FiX } from "react-icons/fi";
 import { FaDiscord, FaInstagram, FaSteam, FaYoutube } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { SiBluesky } from "react-icons/si";
@@ -9,6 +9,8 @@ import type { UserIdentity } from "@supabase/supabase-js";
 import { userchomik } from "../../assets";
 import { PasswordRequirements, FocusContent, LoadingIndicator } from "../../components";
 import { useAuthUser } from "../../hooks/useAuthUser";
+import { useGames } from "../../hooks/useGames";
+import { usePinnedBadge } from "../../hooks/usePinnedBadge";
 import { saveUserProfile, useUserProfile } from "../../hooks/useUserProfile";
 import { publishSocialLinks, type SocialPlatform, useSocialLinks } from "../../hooks/useSocialLinks";
 import { passwordIsValid } from "../../utils/password";
@@ -39,6 +41,11 @@ function Section({ title, description, children }: { title: string; description:
 }
 function Input({ className = "", ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={`border-border bg-surface-soft text-font-primary placeholder:text-font-muted focus:border-accent-cold w-full rounded-lg border px-3 py-2.5 text-sm outline-none ${className}`} />;
+}
+function PinnedBadgeSelect({ value, options, onChange, disabled }: { value: string; options: { value: string; label: string }[]; onChange: (value: string) => void; disabled: boolean }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selected = options.find((option) => option.value === value) || options[0];
+  return <div className="relative mt-2"><button type="button" onClick={() => setIsOpen((open) => !open)} disabled={disabled} aria-haspopup="listbox" aria-expanded={isOpen} className={`border-border bg-surface-soft text-font-primary focus:border-accent-cold flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 ${isOpen ? "border-accent-cold" : ""}`}><span className="truncate">{selected.label}</span><FiChevronDown className={`text-font-muted ml-3 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} /></button>{isOpen && <div role="listbox" className="border-border bg-surface absolute z-20 mt-1.5 w-full overflow-hidden rounded-xl border p-1.5 shadow-black">{options.map((option) => <button key={option.value || "none"} type="button" role="option" aria-selected={option.value === value} onClick={() => { onChange(option.value); setIsOpen(false); }} className={`flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-sm ${option.value === value ? "bg-brand-tertiary text-font-primary" : "text-font-secondary hover:bg-surface-soft hover:text-font-primary"}`}><span className="min-w-0 truncate">{option.label}</span>{option.value === value && <FiCheck className="h-4 w-4 shrink-0" />}</button>)}</div>}</div>;
 }
 function Notice({ message, error = false }: { message: string; error?: boolean }) {
   return <p className={`mt-3 text-sm ${error ? "text-destructive" : "text-font-secondary"}`} role={error ? "alert" : "status"}>{message}</p>;
@@ -131,6 +138,28 @@ function Settings() {
   const userId = user?.id;
   const { profile, isLoading: isProfileLoading } = useUserProfile(user?.id);
   const links = useSocialLinks(user?.id);
+  const { games, isLoading: isGamesLoading } = useGames();
+  const { pinnedBadgeId, setPinnedBadge, isSaving: isPinSaving } =
+    usePinnedBadge(user?.id);
+  const [ownedBadgeIds, setOwnedBadgeIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from("user_badges")
+      .select("badge_id")
+      .eq("user_id", userId)
+      .then(({ data }) => setOwnedBadgeIds((data || []).map((badge) => badge.badge_id)));
+  }, [userId]);
+
+  const ownedBadges = useMemo(() => {
+    const badgeIds = new Set(ownedBadgeIds);
+    return games.flatMap((game) =>
+      game.badges
+        .filter((badge) => badgeIds.has(badge.id))
+        .map((badge) => ({ badge, game })),
+    );
+  }, [games, ownedBadgeIds]);
 
   useEffect(() => {
     if (!notice && !error) return;
@@ -204,6 +233,15 @@ function Settings() {
   if (isAuthLoading || isProfileLoading || !user) return <FocusContent><LoadingIndicator label="Loading settings..." /></FocusContent>;
 
   const clearFeedback = () => { setNotice(""); setError(""); };
+  const updatePinnedBadge = async (value: string) => {
+    clearFeedback();
+    try {
+      await setPinnedBadge(value ? Number(value) : null);
+      setNotice(value ? "Pinned badge updated." : "Pinned badge removed.");
+    } catch (reason) {
+      setError(settingsError(reason, "Pinned badge could not be updated."));
+    }
+  };
   const saveDetails = async () => {
     clearFeedback();
     const username = profileForm.username.trim();
@@ -337,7 +375,8 @@ function Settings() {
     <nav aria-label="Settings sections" className="border-border mb-5 overflow-x-auto border-b sm:mb-6"><div className="flex min-w-max gap-1 sm:gap-4">{tabs.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => setActiveTab(id)} className={`relative flex items-center gap-2 px-3 py-3.5 text-sm font-medium whitespace-nowrap sm:px-4 sm:text-base ${activeTab === id ? "text-font-primary" : "text-font-muted hover:text-font-secondary"}`}><Icon className="h-4 w-4" />{label}<span className={`bg-accent-cold absolute right-3 bottom-0 left-3 h-0.5 ${activeTab === id ? "scale-x-100" : "scale-x-0"}`} /></button>)}</div></nav>
     {activeTab === "profile" && <div className="space-y-4">
       <Section title="Profile appearance" description="Crop, zoom, and save the images people see on your profile."><div className="border-border overflow-hidden rounded-xl border"><div className="h-32 bg-surface-overlay bg-cover bg-center sm:h-40" style={profile?.banner_url ? { backgroundImage: `url(${profile.banner_url})` } : undefined}><div className="flex h-full items-end justify-end bg-surface-overlay/45 p-3"><button type="button" onClick={() => bannerInput.current?.click()} className="border-border bg-surface/90 text-font-primary rounded-lg border px-3 py-2 text-sm"><FiImage className="mr-2 inline" />Change banner</button></div></div><div className="bg-surface-soft/50 flex flex-col gap-4 p-4 sm:flex-row sm:items-center"><img src={profile?.avatar_url || userchomik} alt="Your profile avatar" className="border-border bg-surface-raised h-20 w-20 rounded-2xl border object-cover shadow-black" /><div className="min-w-0 flex-1"><p className="text-font-primary font-medium">Profile photo</p><p className="text-font-muted mt-1 text-sm">JPG, PNG, or WebP up to 5 MB. Large images are downscaled to fit 2000px.</p></div><button type="button" onClick={() => avatarInput.current?.click()} className="border-border bg-brand-secondary text-font-primary rounded-lg border px-3 py-2 text-sm font-medium"><FiUpload className="mr-2 inline" />Change avatar</button></div></div><input ref={avatarInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => { chooseImage("avatar", event.target.files?.[0]); event.target.value = ""; }} /><input ref={bannerInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => { chooseImage("banner", event.target.files?.[0]); event.target.value = ""; }} /></Section>
-      <Section title="Profile details" description="These details appear on your public profile."><div className="grid gap-4 sm:grid-cols-2"><label className="text-font-secondary text-sm">Username<Input value={profileForm.username} onChange={(event) => setProfileForm({ ...profileForm, username: event.target.value })} className="mt-2" /><span className="text-font-muted mt-1 block text-xs">Your profile URL uses this name. <strong className="text-font-secondary font-semibold">You can change it once per month.</strong></span></label><div className="text-font-secondary text-sm">Country<CountrySelect value={profileForm.country_code} onChange={(country_code) => setProfileForm({ ...profileForm, country_code })} /></div></div><label className="text-font-secondary mt-4 block text-sm">Bio<textarea value={profileForm.bio} maxLength={300} onChange={(event) => setProfileForm({ ...profileForm, bio: event.target.value })} className="border-border bg-surface-soft text-font-primary placeholder:text-font-muted focus:border-accent-cold mt-2 min-h-28 w-full rounded-lg border px-3 py-2.5 text-sm outline-none" placeholder="Tell people a little about yourself." /></label><div className="mt-4 flex items-center justify-between gap-3"><span className="text-font-muted text-xs">{profileForm.bio.length}/300</span><button type="button" onClick={saveDetails} disabled={saving} className="bg-brand-secondary text-font-primary hover:bg-brand-primary rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50"><FiSave className="mr-2 inline" />Save profile</button></div></Section>
+      <Section title="Profile details" description="These details appear on your public profile."><div className="grid gap-4 sm:grid-cols-2"><label className="text-font-secondary text-sm">Username<Input value={profileForm.username} onChange={(event) => setProfileForm({ ...profileForm, username: event.target.value })} className="mt-2" /><span className="text-font-muted mt-1 block text-xs">Your profile URL uses this name. <strong className="text-font-secondary font-semibold">You can change it once per month.</strong></span></label><div className="text-font-secondary text-sm">Country<CountrySelect value={profileForm.country_code} onChange={(country_code) => setProfileForm({ ...profileForm, country_code })} /></div></div><label className="text-font-secondary mt-4 block text-sm">Bio<textarea value={profileForm.bio} maxLength={300} onChange={(event) => setProfileForm({ ...profileForm, bio: event.target.value })} className="border-border bg-surface-soft text-font-primary placeholder:text-font-muted focus:border-accent-cold mt-2 min-h-28 w-full resize-none rounded-lg border px-3 py-2.5 text-sm outline-none" placeholder="Tell people a little about yourself." /></label><div className="mt-4 flex items-center justify-between gap-3"><span className="text-font-muted text-xs">{profileForm.bio.length}/300</span><button type="button" onClick={saveDetails} disabled={saving} className="bg-brand-secondary text-font-primary hover:bg-brand-primary rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50"><FiSave className="mr-2 inline" />Save profile</button></div></Section>
+      <Section title="Pinned badge" description="Choose one badge you have earned to feature on your profile."><div className="text-font-secondary text-sm">Badge<PinnedBadgeSelect value={String(pinnedBadgeId || "")} onChange={(value) => void updatePinnedBadge(value)} disabled={isGamesLoading || isPinSaving} options={[{ value: "", label: "No pinned badge" }, ...ownedBadges.map(({ badge, game }) => ({ value: String(badge.id), label: `${badge.name} — ${game.title}` }))]} /></div>{!isGamesLoading && !ownedBadges.length && <p className="text-font-muted mt-2 text-xs">Earn a badge to pin it here.</p>}</Section>
       <Section title="Social links" description="Use the same services shown on your public profile."><div className="grid gap-3 sm:grid-cols-2">{socialFields.map(({ platform, label, placeholder, icon: Icon }) => <div key={platform} className="border-border bg-surface-soft/60 focus-within:border-accent-cold flex items-center gap-3 rounded-lg border px-3 py-2.5"><Icon className="text-font-secondary h-5 w-5 shrink-0" /><label className="sr-only" htmlFor={`${platform}-link`}>{label} link</label><input id={`${platform}-link`} value={socialValues[platform]} onChange={(event) => setSocialValues({ ...socialValues, [platform]: event.target.value })} className="text-font-primary placeholder:text-font-muted min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder={placeholder} /><button type="button" onClick={() => saveSocial(platform)} className="border-border text-font-secondary hover:text-font-primary rounded-md border px-2 py-1 text-xs font-medium" aria-label={`Save ${label} link`}>Save</button></div>)}</div></Section>
     </div>}
     {activeTab === "account" && <div className="space-y-4"><Section title="Email address" description="A confirmation link is sent to the new address before your sign-in email changes."><div className="flex flex-col gap-3 sm:flex-row sm:items-end"><label className="text-font-secondary min-w-0 flex-1 text-sm">Email address<div className="relative mt-2"><FiMail className="text-font-muted pointer-events-none absolute top-1/2 left-3 -translate-y-1/2" /><Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="pl-10" /></div></label><button type="button" onClick={changeEmail} className="bg-brand-secondary text-font-primary rounded-lg px-3 py-2.5 text-sm font-medium">Change email</button></div>{pendingEmail && <Notice message={`Waiting for confirmation from ${pendingEmail}.`} />}</Section>

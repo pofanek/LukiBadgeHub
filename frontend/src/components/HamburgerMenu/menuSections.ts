@@ -21,10 +21,10 @@ export const MENU_SECTIONS: MenuItem[][] = [
   [
     { label: "Games", pathTo: "/games", icon: IoGameControllerOutline },
     { label: "Leaderboards", pathTo: "/rankings", icon: FiAward },
-    { label: "Notifications", pathTo: "/notifications", icon: FiBell },
   ],
   [
     { label: "Profile", pathTo: "/profile", icon: FiUser },
+    { label: "Notifications", pathTo: "/notifications", icon: FiBell },
     { label: "Settings", pathTo: "/settings", icon: FiSettings },
     { label: "Logout", pathTo: "/logout", icon: FiLogOut },
   ],
@@ -36,7 +36,7 @@ export const MENU_SECTIONS: MenuItem[][] = [
       icon: RiDiscordLine,
     },
     {
-      label: "Support Us!",
+      label: "Support Me!",
       pathTo: "https://ko-fi.com/",
       isLink: true,
       icon: FiCoffee,

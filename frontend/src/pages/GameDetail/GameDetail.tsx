@@ -14,7 +14,7 @@ import {
   FiSend,
   FiX,
 } from "react-icons/fi";
-import { FaSteam, FaStar, FaTrophy } from "react-icons/fa";
+import { FaSteam, FaStar, FaThumbtack, FaTrophy } from "react-icons/fa";
 import { hollow, hollowthumb, userchomik } from "../../assets";
 import {
   BADGE_DIFFICULTIES,
@@ -28,6 +28,7 @@ import {
 } from "../../constants";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { useGame } from "../../hooks/useGames";
+import { usePinnedBadge } from "../../hooks/usePinnedBadge";
 import { supabase } from "../../utils/supabase";
 
 const ACHIEVEMENTS_PER_PAGE = 9;
@@ -361,6 +362,8 @@ function FeedbackToast({
 
 export function GameDetailTemplate({ game }: TemplateProps) {
   const { user } = useAuthUser();
+  const { pinnedBadgeId, setPinnedBadge, isSaving: isPinSaving } =
+    usePinnedBadge(user?.id);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [badgeClaims, setBadgeClaims] = useState<
@@ -801,19 +804,26 @@ export function GameDetailTemplate({ game }: TemplateProps) {
                   <div
                     className={
                       view === "grid"
-                        ? "grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+                        ? "grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2 xl:grid-cols-3"
                         : "space-y-3"
                     }
                   >
                     {pageAchievements.map((achievement) => (
-                      <AchievementCard
+                    <AchievementCard
                         key={achievement.id}
                         achievement={achievement}
                         difficulty={
                           difficultyById.get(achievement.difficultyId)!
                         }
                         list={view === "list"}
-                        onClaimChange={toggleBadgeClaim}
+                      onClaimChange={toggleBadgeClaim}
+                      pinnedBadgeId={pinnedBadgeId}
+                      isPinSaving={isPinSaving}
+                      onPinChange={(badgeId, pinned) =>
+                        void setPinnedBadge(pinned ? badgeId : null).catch(() =>
+                          setClaimError("Pinned badge could not be updated. Please try again."),
+                        )
+                      }
                       />
                     ))}
                   </div>
@@ -831,6 +841,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
           <aside className="space-y-3 xl:sticky xl:top-20 xl:h-fit">
             <GameInfo game={progressGame} />
             <Progress current={progressExp} total={totalExp} />
+            <BadgeProgress current={obtained} total={achievementTotal} />
             {progressGame.recentPlayers.length > 0 && (
               <RecentPlayers players={progressGame.recentPlayers} />
             )}
@@ -1320,11 +1331,17 @@ function AchievementCard({
   difficulty,
   list,
   onClaimChange,
+  pinnedBadgeId,
+  isPinSaving,
+  onPinChange,
 }: {
   achievement: GameAchievement;
   difficulty: Difficulty;
   list: boolean;
   onClaimChange: (badgeId: string, claimed: boolean) => void;
+  pinnedBadgeId: number | null;
+  isPinSaving: boolean;
+  onPinChange: (badgeId: number, pinned: boolean) => void;
 }) {
   const [showNote, setShowNote] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -1346,7 +1363,7 @@ function AchievementCard({
           openDetails();
         }
       }}
-      className={`border-border bg-surface/75 relative rounded-xl border p-3 transition duration-200 ${list ? "hover:bg-surface-soft/75 flex cursor-pointer items-center gap-3 max-sm:flex-wrap" : "hover:border-accent-cold/70 hover:bg-surface-soft flex min-h-52 cursor-pointer flex-col hover:z-10 hover:scale-[1.025] max-sm:h-auto max-sm:min-h-44"}`}
+      className={`border-border bg-surface/75 relative min-w-0 rounded-xl border p-3 transition duration-200 ${list ? "hover:bg-surface-soft/75 flex cursor-pointer items-center gap-3 max-sm:flex-wrap" : "hover:border-accent-cold/70 hover:bg-surface-soft flex min-h-52 cursor-pointer flex-col hover:z-10 hover:scale-[1.025] max-sm:h-auto max-sm:min-h-44"}`}
     >
       <div
         className={`flex gap-3 ${list ? "min-w-0 flex-1 max-sm:basis-full" : ""}`}
@@ -1467,6 +1484,9 @@ function AchievementCard({
           claimed={claimed}
           canSelfClaim={canSelfClaim}
           onClaimChange={(isClaimed) => onClaimChange(achievement.id, isClaimed)}
+          isPinned={pinnedBadgeId === Number(achievement.id)}
+          isPinSaving={isPinSaving}
+          onPinChange={(pinned) => onPinChange(Number(achievement.id), pinned)}
           onClose={() => setShowDetails(false)}
         />
       )}
@@ -1494,6 +1514,9 @@ function AchievementDetailsModal({
   claimed,
   canSelfClaim,
   onClaimChange,
+  isPinned,
+  isPinSaving,
+  onPinChange,
   onClose,
 }: {
   achievement: GameAchievement;
@@ -1501,6 +1524,9 @@ function AchievementDetailsModal({
   claimed: boolean;
   canSelfClaim: boolean;
   onClaimChange: (claimed: boolean) => void;
+  isPinned: boolean;
+  isPinSaving: boolean;
+  onPinChange: (pinned: boolean) => void;
   onClose: () => void;
 }) {
   return createPortal(
@@ -1544,6 +1570,17 @@ function AchievementDetailsModal({
         <p className="text-font-secondary mt-5 text-base leading-relaxed break-words">
           {achievement.description}
         </p>
+        {claimed && (
+          <button
+            type="button"
+            disabled={isPinSaving}
+            onClick={() => onPinChange(!isPinned)}
+            className="border-border text-font-secondary hover:bg-effect-glass hover:text-font-primary mt-4 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50"
+          >
+            <FaThumbtack className="h-3.5 w-3.5" />
+            {isPinned ? "Unpin from profile" : "Pin to profile"}
+          </button>
+        )}
         <div className="border-border mt-5 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
           {canSelfClaim ? (
             <label className="text-font-secondary hover:text-font-primary inline-flex cursor-pointer items-center gap-2 text-sm">
@@ -1639,6 +1676,24 @@ function Progress({ current, total }: { current: number; total: number }) {
       <h2 className="text-font-primary font-serif text-lg">EXP Progress</h2>
       <p className="text-font-secondary mt-2 text-sm">
         {current.toLocaleString()} / {total.toLocaleString()} EXP ({percentage}
+        %)
+      </p>
+      <div className="bg-surface-raised mt-2 h-2.5 overflow-hidden rounded-full">
+        <div
+          className="bg-accent-cold h-full rounded-full"
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+    </section>
+  );
+}
+function BadgeProgress({ current, total }: { current: number; total: number }) {
+  const percentage = total ? Math.round((current / total) * 100) : 0;
+  return (
+    <section className="border-border bg-surface/75 rounded-xl border p-3">
+      <h2 className="text-font-primary font-serif text-lg">Badge Progress</h2>
+      <p className="text-font-secondary mt-2 text-sm">
+        {current.toLocaleString()} / {total.toLocaleString()} BADGES ({percentage}
         %)
       </p>
       <div className="bg-surface-raised mt-2 h-2.5 overflow-hidden rounded-full">

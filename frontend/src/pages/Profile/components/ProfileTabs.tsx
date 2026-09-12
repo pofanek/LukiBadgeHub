@@ -14,8 +14,8 @@ const tabs: { id: ProfileTab; label: string }[] = [
 
 function ProfileTabs({ activeTab, onChange }: ProfileTabsProps) {
   return (
-    <nav aria-label="Profile sections" className="overflow-x-auto">
-      <div className="flex min-w-max px-2 sm:min-w-0 sm:px-4">
+    <nav aria-label="Profile sections">
+      <div className="grid grid-cols-4 px-1 sm:px-4">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -23,7 +23,7 @@ function ProfileTabs({ activeTab, onChange }: ProfileTabsProps) {
               key={tab.id}
               type="button"
               onClick={() => onChange(tab.id)}
-              className={`relative flex-1 px-5 py-4 text-sm font-medium whitespace-nowrap transition-colors sm:text-base ${
+              className={`relative min-w-0 px-1 py-4 text-sm font-medium whitespace-nowrap transition-colors sm:px-5 sm:text-base ${
                 isActive
                   ? "text-font-primary"
                   : "text-font-muted hover:text-font-secondary"
@@ -31,7 +31,7 @@ function ProfileTabs({ activeTab, onChange }: ProfileTabsProps) {
             >
               {tab.label}
               <span
-                className={`bg-accent-cold absolute right-5 bottom-0 left-5 h-0.5 origin-center transition-transform ${
+                className={`bg-accent-cold absolute right-2 bottom-0 left-2 h-0.5 origin-center transition-transform sm:right-5 sm:left-5 ${
                   isActive ? "scale-x-100" : "scale-x-0"
                 }`}
               />

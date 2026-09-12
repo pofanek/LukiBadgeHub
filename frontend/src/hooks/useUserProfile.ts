@@ -8,6 +8,7 @@ export type UserProfile = {
   country_code: string;
   avatar_path: string | null;
   banner_path: string | null;
+  pinned_badge_id: number | null;
   username_changed_at: string | null;
   role: "User" | "Moderator" | "Admin";
   avatar_url: string | null;
@@ -15,7 +16,7 @@ export type UserProfile = {
 };
 
 type ProfileRow = Omit<UserProfile, "avatar_url" | "banner_url">;
-export type ProfileChanges = Pick<UserProfile, "username" | "bio" | "country_code" | "avatar_path" | "banner_path">;
+export type ProfileChanges = Pick<UserProfile, "username" | "bio" | "country_code" | "avatar_path" | "banner_path" | "pinned_badge_id">;
 const profileEvent = "luki-profile-updated";
 
 function mediaUrl(path: string | null) {
@@ -37,7 +38,7 @@ export async function saveUserProfile(userId: string, changes: Partial<ProfileCh
     .from("user_profiles")
     .update(changes)
     .eq("id", userId)
-    .select("id, username, bio, country_code, avatar_path, banner_path, username_changed_at, role")
+    .select("id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, username_changed_at, role")
     .single();
   if (error) throw error;
   const profile = hydrateProfile(data);
@@ -57,7 +58,7 @@ export function useUserProfile(userId?: string) {
       if (profile.id === userId) setResult({ userId, profile });
     };
     window.addEventListener(profileEvent, onProfileUpdate);
-    supabase.from("user_profiles").select("id, username, bio, country_code, avatar_path, banner_path, username_changed_at, role").eq("id", userId).maybeSingle().then(({ data, error }) => {
+    supabase.from("user_profiles").select("id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, username_changed_at, role").eq("id", userId).maybeSingle().then(({ data, error }) => {
       if (isCurrent) setResult({ userId, profile: error || !data ? null : hydrateProfile(data) });
     });
 
@@ -78,7 +79,7 @@ export function useUserProfileByUsername(username?: string) {
     if (!username) return () => { isCurrent = false; };
 
     const loadProfile = async () => {
-      const profileQuery = "id, username, bio, country_code, avatar_path, banner_path, username_changed_at, role";
+      const profileQuery = "id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, username_changed_at, role";
       const { data: currentProfile, error: currentError } = await supabase
         .from("user_profiles")
         .select(profileQuery)

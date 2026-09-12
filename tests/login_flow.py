@@ -148,7 +148,7 @@ def test_mobile_menu_routes_and_logs_out(page: Page, email: str, password: str) 
     if not profile_href or not profile_href.startswith("/profile/"):
         raise AssertionError(f"Expected menu profile link to be user-specific, got {profile_href!r}")
 
-    for label in ("Discord", "Support Us!"):
+    for label in ("Discord", "Support Me!"):
         href = menu.get_by_role("link", name=label).get_attribute("href")
         if not href or not href.startswith("https://"):
             raise AssertionError(f"Expected {label} to be an external link, got {href!r}")

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Navigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Navigate, useParams, useSearchParams } from "react-router-dom";
 import { FocusContent, LoadingIndicator } from "../../components";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import {
@@ -20,6 +20,7 @@ export type ProfileTab = "games" | "mutuals" | "stats" | "recents";
 function Profile() {
   const [activeTab, setActiveTab] = useState<ProfileTab>("games");
   const { username } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, isLoading: isAuthLoading } = useAuthUser();
   const { profile: ownProfile, isLoading: isOwnProfileLoading } =
     useUserProfile(user?.id);
@@ -29,6 +30,18 @@ function Profile() {
   const isProfileLoading = username
     ? isUsernameProfileLoading
     : isOwnProfileLoading;
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "games" || tab === "mutuals" || tab === "stats" || tab === "recents") {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  const changeTab = (tab: ProfileTab) => {
+    setActiveTab(tab);
+    setSearchParams({}, { replace: true });
+  };
 
   if (!username && !isAuthLoading && !user) {
     return <Navigate to="/login" replace />;
@@ -77,7 +90,7 @@ function Profile() {
             isOwnProfile={user?.id === profile.id}
           />
           <div>
-            <ProfileTabs activeTab={activeTab} onChange={setActiveTab} />
+            <ProfileTabs activeTab={activeTab} onChange={changeTab} />
             <div className="min-h-110 p-3 sm:p-5 lg:p-7">
               {activeTab === "games" && (
                 <GamesPanel
@@ -87,7 +100,12 @@ function Profile() {
               )}
               {activeTab === "mutuals" && <MutualsPanel />}
               {activeTab === "stats" && <StatsPanel profileId={profile.id} />}
-              {activeTab === "recents" && <RecentsPanel profileId={profile.id} />}
+              {activeTab === "recents" && (
+                <RecentsPanel
+                  profileId={profile.id}
+                  isOwnProfile={user?.id === profile.id}
+                />
+              )}
             </div>
           </div>
         </div>

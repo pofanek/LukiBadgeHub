@@ -1,9 +1,11 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { Footer, Navbar } from "../components";
 import { useAuthListener } from "../hooks/useAuthListener";
+import { usePageTitle } from "../hooks/usePageTitle";
 import { SHORT_NAVBAR_PAGES } from "../constants";
 function MainLayout() {
   useAuthListener();
+  usePageTitle();
   const location = useLocation();
   const titleOnly = SHORT_NAVBAR_PAGES.includes(location.pathname);
   const hasOpaqueFooter =

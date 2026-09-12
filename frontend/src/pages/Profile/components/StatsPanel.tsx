@@ -9,6 +9,7 @@ import {
   type CatalogueGame,
 } from "../../../constants";
 import { useGames } from "../../../hooks/useGames";
+import { getLevelProgress } from "../../../utils/leveling";
 import { supabase } from "../../../utils/supabase";
 
 type StatsData = {
@@ -106,17 +107,17 @@ function StatsPanel({ profileId }: { profileId: string }) {
 
   const overview = [
     {
-      label: "Badges earned",
+      label: "Total Badges earned",
       value: stats.earnedBadges.length.toLocaleString(),
       Icon: FiAward,
     },
     {
-      label: "EXP earned",
+      label: "Total EXP earned",
       value: stats.earnedExp.toLocaleString(),
       Icon: FiTrendingUp,
     },
     {
-      label: "Games played",
+      label: "Total Games played",
       value: stats.playedGames.toLocaleString(),
       Icon: FiBookOpen,
     },
@@ -125,9 +126,40 @@ function StatsPanel({ profileId }: { profileId: string }) {
     ...stats.difficulties.map(({ earned }) => earned),
     1,
   );
+  const levelProgress = getLevelProgress(stats.earnedExp);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
+      <section className="border-border bg-surface/75 rounded-xl border p-5 sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-font-primary font-serif text-2xl">
+              Level {levelProgress.level}
+            </h2>
+            <p className="text-font-secondary mt-1 text-sm">
+              {levelProgress.experienceRemaining.toLocaleString()} EXP to Level{" "}
+              {levelProgress.level + 1}
+            </p>
+          </div>
+          <p className="text-font-muted text-sm">
+            {levelProgress.experienceIntoLevel.toLocaleString()} /{" "}
+            {levelProgress.experienceToNextLevel.toLocaleString()} EXP
+          </p>
+        </div>
+        <div
+          aria-label={`${levelProgress.experienceIntoLevel.toLocaleString()} of ${levelProgress.experienceToNextLevel.toLocaleString()} EXP toward Level ${levelProgress.level + 1}`}
+          aria-valuemax={levelProgress.experienceToNextLevel}
+          aria-valuemin={0}
+          aria-valuenow={levelProgress.experienceIntoLevel}
+          className="bg-surface-overlay mt-4 h-2.5 overflow-hidden rounded-full"
+          role="progressbar"
+        >
+          <div
+            className="bg-accent-cold h-full rounded-full"
+            style={{ width: `${levelProgress.progressPercentage}%` }}
+          />
+        </div>
+      </section>
       <section className="border-border bg-surface/75 overflow-hidden rounded-xl border">
         <dl className="divide-border grid divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           {overview.map(({ label, value, Icon }) => (
