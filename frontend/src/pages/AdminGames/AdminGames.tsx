@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FiAlertCircle,
   FiArrowLeft,
+  FiCheck,
   FiCheckCircle,
+  FiChevronDown,
   FiImage,
   FiPlus,
   FiSave,
@@ -10,7 +12,18 @@ import {
   FiX,
 } from "react-icons/fi";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
-import type { GameRow } from "../../constants";
+import {
+  BADGE_DIFFICULTIES,
+  BADGE_DIFFICULTY_DETAILS,
+  BADGE_TIERS,
+  getBadgeDifficultyLabel,
+  getBadgeExperience,
+  getBadgeTierLabel,
+  type BadgeDifficultyId,
+  type BadgeRow,
+  type BadgeTier,
+  type GameRow,
+} from "../../constants";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { GAME_FIELDS } from "../../hooks/useGames";
 import { useUserProfile } from "../../hooks/useUserProfile";
@@ -32,6 +45,14 @@ type CropTarget = {
   file: File;
 };
 
+type BadgeForm = {
+  name: string;
+  description: string;
+  additionalNote: string;
+  difficulty: BadgeDifficultyId;
+  tier: BadgeTier;
+};
+
 const imageTypes = ["image/jpeg", "image/png", "image/webp"];
 
 const emptyForm: GameForm = {
@@ -42,6 +63,14 @@ const emptyForm: GameForm = {
   genres: "",
   description: "",
   steamUrl: "",
+};
+
+const emptyBadgeForm: BadgeForm = {
+  name: "",
+  description: "",
+  additionalNote: "",
+  difficulty: "easy",
+  tier: "low",
 };
 
 function formFromGame(game: GameRow): GameForm {
@@ -61,6 +90,21 @@ function gameMediaUrl(path: string | null) {
   return supabase.storage.from("game-media").getPublicUrl(path).data.publicUrl;
 }
 
+function badgeIconUrl(badge: BadgeRow) {
+  if (badge.icon_path) return gameMediaUrl(badge.icon_path);
+  return BADGE_DIFFICULTY_DETAILS[badge.difficulty].icon;
+}
+
+function formFromBadge(badge: BadgeRow): BadgeForm {
+  return {
+    name: badge.name,
+    description: badge.description,
+    additionalNote: badge.additional_note || "",
+    difficulty: badge.difficulty,
+    tier: badge.tier,
+  };
+}
+
 function Field({
   label,
   children,
@@ -76,6 +120,58 @@ function Field({
       {hint && <span className="text-font-muted ml-2 text-xs">{hint}</span>}
       <div className="mt-1.5">{children}</div>
     </label>
+  );
+}
+
+function ChoiceSelect<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: readonly { value: T; label: string }[];
+  onChange: (value: T) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selected = options.find((option) => option.value === value)!;
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className={`border-border bg-surface-soft text-font-primary focus:border-accent-cold flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm outline-none ${isOpen ? "border-accent-cold" : ""}`}
+      >
+        <span>{selected.label}</span>
+        <FiChevronDown
+          className={`text-font-muted h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+      {isOpen && (
+        <div
+          role="listbox"
+          className="border-border bg-surface absolute z-20 mt-1.5 w-full overflow-hidden rounded-xl border p-1.5 shadow-black"
+        >
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="option"
+              aria-selected={option.value === value}
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+              className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm ${option.value === value ? "bg-brand-tertiary text-font-primary" : "text-font-secondary hover:bg-surface-soft hover:text-font-primary"}`}
+            >
+              <span>{option.label}</span>
+              {option.value === value && <FiCheck className="h-4 w-4" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -121,13 +217,19 @@ function AdminGames() {
   const { user, isLoading: isAuthLoading } = useAuthUser();
   const { profile, isLoading: isProfileLoading } = useUserProfile(user?.id);
   const [games, setGames] = useState<GameRow[]>([]);
+  const [badges, setBadges] = useState<BadgeRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [badgeSearchTerm, setBadgeSearchTerm] = useState("");
   const [form, setForm] = useState<GameForm>(emptyForm);
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedBadgeId, setSelectedBadgeId] = useState<number | null>(null);
+  const [badgeForm, setBadgeForm] = useState<BadgeForm>(emptyBadgeForm);
+  const [isSavingBadge, setIsSavingBadge] = useState(false);
+  const [isUploadingBadgeIcon, setIsUploadingBadgeIcon] = useState(false);
   const [isUploading, setIsUploading] = useState<"cover" | "banner" | null>(
     null,
   );
@@ -137,6 +239,25 @@ function AdminGames() {
   const selectedGame = useMemo(
     () => games.find((game) => game.id === Number(id)) || null,
     [games, id],
+  );
+  const selectedBadge = useMemo(
+    () => badges.find((badge) => badge.id === selectedBadgeId) || null,
+    [badges, selectedBadgeId],
+  );
+  const badgePreview = useMemo<BadgeRow | null>(
+    () =>
+      selectedBadge
+        ? {
+            ...selectedBadge,
+            difficulty: badgeForm.difficulty,
+            tier: badgeForm.tier,
+            icon_path:
+              badgeForm.difficulty === "inhuman"
+                ? selectedBadge.icon_path
+                : null,
+          }
+        : null,
+    [badgeForm.difficulty, badgeForm.tier, selectedBadge],
   );
   const filteredGames = useMemo(() => {
     const query = searchTerm.trim().toLocaleLowerCase();
@@ -148,6 +269,28 @@ function AdminGames() {
         .includes(query),
     );
   }, [games, searchTerm]);
+  const filteredBadges = useMemo(() => {
+    const query = badgeSearchTerm.trim().toLocaleLowerCase();
+    const matchingBadges = !query
+      ? badges
+      : badges.filter((badge) =>
+          [
+            badge.name,
+            badge.description,
+            getBadgeDifficultyLabel(badge.difficulty),
+            getBadgeTierLabel(badge.tier),
+          ]
+            .join(" ")
+            .toLocaleLowerCase()
+            .includes(query),
+        );
+
+    return [...matchingBadges].sort(
+      (left, right) =>
+        BADGE_DIFFICULTIES.indexOf(left.difficulty) -
+        BADGE_DIFFICULTIES.indexOf(right.difficulty),
+    );
+  }, [badges, badgeSearchTerm]);
 
   const dismissFeedback = () => {
     setError("");
@@ -198,6 +341,40 @@ function AdminGames() {
       active = false;
     };
   }, [selectedGame]);
+
+  useEffect(() => {
+    if (!selectedGame) {
+      queueMicrotask(() => {
+        setBadges([]);
+        setSelectedBadgeId(null);
+      });
+      return;
+    }
+    let active = true;
+    supabase
+      .from("game_badges")
+      .select("*")
+      .eq("game_id", selectedGame.id)
+      .order("created_at")
+      .then(({ data, error: queryError }) => {
+        if (!active) return;
+        if (queryError) {
+          setError("Badges could not be loaded.");
+          return;
+        }
+        setBadges((data || []) as BadgeRow[]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedGame]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      if (selectedBadge) setBadgeForm(formFromBadge(selectedBadge));
+      else setBadgeForm(emptyBadgeForm);
+    });
+  }, [selectedBadge]);
 
   const createGame = async () => {
     setError("");
@@ -319,6 +496,110 @@ function AdminGames() {
     if (!cropTarget) return;
     await uploadImage(cropTarget.target, file);
     setCropTarget(null);
+  };
+
+  const createBadge = async () => {
+    if (!selectedGame) return;
+    setError("");
+    setNotice("");
+    const { data, error: insertError } = await supabase
+      .from("game_badges")
+      .insert({
+        game_id: selectedGame.id,
+        name: `Untitled badge ${crypto.randomUUID().slice(0, 8)}`,
+        description: "",
+        difficulty: "easy",
+        tier: "low",
+      })
+      .select("*")
+      .single();
+    if (insertError || !data) {
+      setError("The badge could not be created. Try again.");
+      return;
+    }
+    const badge = data as BadgeRow;
+    setBadges((current) => [...current, badge]);
+    setSelectedBadgeId(badge.id);
+    setNotice("Badge added. Complete its details and save it.");
+  };
+
+  const saveBadge = async () => {
+    if (!selectedBadge) return;
+    const name = badgeForm.name.trim();
+    if (!name) {
+      setError("Enter a badge name before saving.");
+      return;
+    }
+    setError("");
+    setNotice("");
+    setIsSavingBadge(true);
+    const { data, error: updateError } = await supabase
+      .from("game_badges")
+      .update({
+        name,
+        description: badgeForm.description.trim(),
+        additional_note: badgeForm.additionalNote.trim() || null,
+        difficulty: badgeForm.difficulty,
+        tier: badgeForm.tier,
+        icon_path:
+          badgeForm.difficulty === "inhuman" ? selectedBadge.icon_path : null,
+      })
+      .eq("id", selectedBadge.id)
+      .select("*")
+      .single();
+    setIsSavingBadge(false);
+    if (updateError || !data) {
+      setError("The badge could not be saved. Check the fields and try again.");
+      return;
+    }
+    setBadges((current) =>
+      current.map((badge) =>
+        badge.id === selectedBadge.id ? (data as BadgeRow) : badge,
+      ),
+    );
+    setNotice("Badge saved.");
+  };
+
+  const uploadBadgeIcon = async (file?: File) => {
+    if (!selectedGame || !selectedBadge || !file) return;
+    if (!imageTypes.includes(file.type)) {
+      setError("Use a JPEG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Images must be 10 MB or smaller.");
+      return;
+    }
+    setError("");
+    setNotice("");
+    setIsUploadingBadgeIcon(true);
+    const extension = file.type.split("/")[1];
+    const path = `games/${selectedGame.id}/badges/${selectedBadge.id}/${crypto.randomUUID()}.${extension}`;
+    const { error: uploadError } = await supabase.storage
+      .from("game-media")
+      .upload(path, file, { contentType: file.type });
+    if (uploadError) {
+      setIsUploadingBadgeIcon(false);
+      setError("The badge icon could not be uploaded.");
+      return;
+    }
+    const { data, error: updateError } = await supabase
+      .from("game_badges")
+      .update({ icon_path: path })
+      .eq("id", selectedBadge.id)
+      .select("*")
+      .single();
+    setIsUploadingBadgeIcon(false);
+    if (updateError || !data) {
+      setError("The icon uploaded, but could not be attached to the badge.");
+      return;
+    }
+    setBadges((current) =>
+      current.map((badge) =>
+        badge.id === selectedBadge.id ? (data as BadgeRow) : badge,
+      ),
+    );
+    setNotice("Custom Inhuman icon updated.");
   };
 
   if (isAuthLoading || isProfileLoading) {
@@ -545,6 +826,207 @@ function AdminGames() {
                   className={`${inputClass} resize-none`}
                 />
               </Field>
+              <section className="border-border border-t pt-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-font-primary font-serif text-2xl">
+                      Badges
+                    </h2>
+                    <p className="text-font-muted mt-1 text-sm">
+                      Build the badge list players see on this game’s page.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={createBadge}
+                    className="bg-brand-tertiary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium"
+                  >
+                    <FiPlus /> Add badge
+                  </button>
+                </div>
+                {badges.length === 0 ? (
+                  <p className="text-font-muted border-border mt-4 rounded-lg border border-dashed px-4 py-6 text-center text-sm">
+                    No badges have been added yet.
+                  </p>
+                ) : (
+                  <>
+                    <label className="relative mt-4 block">
+                      <span className="sr-only">Search badges</span>
+                      <FiSearch className="text-font-muted pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                      <input
+                        value={badgeSearchTerm}
+                        onChange={(event) =>
+                          setBadgeSearchTerm(event.target.value)
+                        }
+                        placeholder="Search badges"
+                        className={`${inputClass} pl-9`}
+                      />
+                    </label>
+                    {filteredBadges.length === 0 ? (
+                      <p className="text-font-muted border-border mt-3 rounded-lg border border-dashed px-4 py-6 text-center text-sm">
+                        No badges match your search.
+                      </p>
+                    ) : (
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    {filteredBadges.map((badge) => {
+                      const displayedBadge =
+                        badge.id === selectedBadgeId && badgePreview
+                          ? badgePreview
+                          : badge;
+                      return (
+                      <button
+                        key={displayedBadge.id}
+                        type="button"
+                        onClick={() => setSelectedBadgeId(displayedBadge.id)}
+                        className={`border-border bg-surface-soft hover:border-accent-cold flex min-w-0 items-center gap-3 rounded-lg border p-3 text-left ${selectedBadgeId === displayedBadge.id ? "border-accent-cold ring-accent-cold/30 ring-2" : ""}`}
+                      >
+                        <img
+                          src={badgeIconUrl(displayedBadge) || undefined}
+                          alt=""
+                          className="bg-surface-raised h-11 w-11 shrink-0 rounded-full object-cover"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="text-font-primary block truncate text-sm font-medium">
+                            {displayedBadge.name}
+                          </span>
+                          <span className="text-font-muted mt-1 block text-xs">
+                            {getBadgeTierLabel(displayedBadge.tier)} {getBadgeDifficultyLabel(displayedBadge.difficulty)} · {getBadgeExperience(displayedBadge.difficulty, displayedBadge.tier).toLocaleString()} EXP
+                          </span>
+                        </span>
+                      </button>
+                      );
+                    })}
+                      </div>
+                    )}
+                  </>
+                )}
+                {selectedBadge && (
+                  <div className="border-border bg-surface-soft/60 mt-4 space-y-4 rounded-xl border p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-font-primary font-serif text-xl">
+                        Edit badge
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedBadgeId(null)}
+                        className="text-font-muted hover:text-font-primary text-sm"
+                      >
+                        Close
+                      </button>
+                    </div>
+                    <Field label="Badge name">
+                      <input
+                        value={badgeForm.name}
+                        onChange={(event) =>
+                          setBadgeForm({ ...badgeForm, name: event.target.value })
+                        }
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Description">
+                      <textarea
+                        value={badgeForm.description}
+                        onChange={(event) =>
+                          setBadgeForm({
+                            ...badgeForm,
+                            description: event.target.value,
+                          })
+                        }
+                        rows={4}
+                        className={`${inputClass} resize-none`}
+                      />
+                    </Field>
+                    <Field label="Additional note" hint="Shown with the ? button (mostly mod links, additional info / tips for harder badges)">
+                      <textarea
+                        value={badgeForm.additionalNote}
+                        onChange={(event) =>
+                          setBadgeForm({
+                            ...badgeForm,
+                            additionalNote: event.target.value,
+                          })
+                        }
+                        rows={3}
+                        className={`${inputClass} resize-none`}
+                      />
+                    </Field>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Difficulty">
+                        <ChoiceSelect
+                          value={badgeForm.difficulty}
+                          onChange={(difficulty) =>
+                            setBadgeForm({
+                              ...badgeForm,
+                              difficulty,
+                            })
+                          }
+                          options={BADGE_DIFFICULTIES.map((difficulty) => ({
+                            value: difficulty,
+                            label: getBadgeDifficultyLabel(difficulty),
+                          }))}
+                        />
+                      </Field>
+                      <Field label="Tier">
+                        <ChoiceSelect
+                          value={badgeForm.tier}
+                          onChange={(tier) =>
+                            setBadgeForm({
+                              ...badgeForm,
+                              tier,
+                            })
+                          }
+                          options={BADGE_TIERS.map((tier) => ({
+                            value: tier,
+                            label: getBadgeTierLabel(tier),
+                          }))}
+                        />
+                      </Field>
+                    </div>
+                    <p className="text-font-secondary text-sm">
+                      This badge awards {getBadgeExperience(badgeForm.difficulty, badgeForm.tier).toLocaleString()} EXP. EXP is display-only for now.
+                    </p>
+                    {badgeForm.difficulty === "inhuman" && (
+                      <div className="border-border border-t pt-4">
+                        <p className="text-font-primary text-sm font-medium">
+                          Custom Inhuman icon
+                        </p>
+                        <p className="text-font-muted mt-1 text-xs">
+                          Leave this unchanged to use the default Inhuman icon.
+                        </p>
+                        <div className="mt-3 flex items-center gap-3">
+                          <img
+                            src={badgeIconUrl(badgePreview || selectedBadge) || undefined}
+                            alt="Badge icon preview"
+                            className="bg-surface-raised h-12 w-12 rounded-full object-cover"
+                          />
+                          <label className="bg-brand-tertiary text-font-primary hover:bg-brand-primary cursor-pointer rounded-lg px-3 py-2 text-sm font-medium">
+                            {isUploadingBadgeIcon ? "Uploading..." : "Upload icon"}
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              disabled={isUploadingBadgeIcon}
+                              onChange={(event) => {
+                                void uploadBadgeIcon(event.target.files?.[0]);
+                                event.target.value = "";
+                              }}
+                              className="sr-only"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={saveBadge}
+                        disabled={isSavingBadge}
+                        className="bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-60"
+                      >
+                        <FiSave /> {isSavingBadge ? "Saving..." : "Save badge"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
             </div>
             <aside className="space-y-4">
               {(["cover", "banner"] as const).map((target) => {

@@ -1,4 +1,5 @@
 import { hollow, hollowthumb } from "../assets";
+import type { BadgeRow } from "./badges";
 
 export type CatalogueGame = {
   id: number;
@@ -9,6 +10,7 @@ export type CatalogueGame = {
   totalExp: number;
   popularity: number;
   difficulties: CatalogueDifficulty[];
+  badges: BadgeRow[];
   cover: string;
   coverPosition?: string;
   bannerUrl: string;
@@ -59,6 +61,7 @@ export const catalogueGames: CatalogueGame[] = [
       { label: "Hard", achievementCount: 9 },
       { label: "Extreme", achievementCount: 5 },
     ],
+    badges: [],
     cover: hollowthumb,
   },
   {
@@ -76,6 +79,7 @@ export const catalogueGames: CatalogueGame[] = [
       { label: "Supreme", achievementCount: 10 },
       { label: "Inhuman", achievementCount: 7 },
     ],
+    badges: [],
     cover: hollow,
     coverPosition: "center",
   },
@@ -92,6 +96,7 @@ export const catalogueGames: CatalogueGame[] = [
       { label: "Hard", achievementCount: 14 },
       { label: "Extreme", achievementCount: 7 },
     ],
+    badges: [],
     cover: hollowthumb,
     coverPosition: "70% center",
   },
@@ -108,6 +113,7 @@ export const catalogueGames: CatalogueGame[] = [
       { label: "Medium", achievementCount: 17 },
       { label: "Hard", achievementCount: 14 },
     ],
+    badges: [],
     cover: hollow,
     coverPosition: "30% center",
   },
@@ -124,6 +130,7 @@ export const catalogueGames: CatalogueGame[] = [
       { label: "Hard", achievementCount: 15 },
       { label: "Extreme", achievementCount: 7 },
     ],
+    badges: [],
     cover: hollowthumb,
     coverPosition: "20% center",
   },
@@ -141,6 +148,7 @@ export const catalogueGames: CatalogueGame[] = [
       { label: "Hard", achievementCount: 13 },
       { label: "Extreme", achievementCount: 7 },
     ],
+    badges: [],
     cover: hollow,
     coverPosition: "75% center",
   },
@@ -157,6 +165,7 @@ export const catalogueGames: CatalogueGame[] = [
       { label: "Medium", achievementCount: 15 },
       { label: "Hard", achievementCount: 10 },
     ],
+    badges: [],
     cover: hollowthumb,
     coverPosition: "45% center",
   },
@@ -173,6 +182,7 @@ export const catalogueGames: CatalogueGame[] = [
       { label: "Medium", achievementCount: 17 },
       { label: "Hard", achievementCount: 12 },
     ],
+    badges: [],
     cover: hollow,
     coverPosition: "65% center",
   },
@@ -190,6 +200,7 @@ export const catalogueGames: CatalogueGame[] = [
       { label: "Hard", achievementCount: 9 },
       { label: "Extreme", achievementCount: 5 },
     ],
+    badges: [],
     cover: hollowthumb,
     coverPosition: "80% center",
   },

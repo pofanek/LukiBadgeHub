@@ -28,20 +28,20 @@ const difficulties = [
   [
     "Easy",
     "A relaxed start for learning a game and its badges.",
-    "bg-[#46c85a]",
+    "bg-[#78b159]",
   ],
   [
     "Medium",
     "Needs consistency and a little game knowledge.",
-    "bg-accent-cold",
+    "bg-[#fdcb58]",
   ],
-  ["Hard", "You have become good at the game.", "bg-destructive"],
-  ["Extreme", "Challenge to experienced players", "bg-[#e84f81]"],
-  ["Supreme", "Requires extreme dedication .", "bg-hover"],
+  ["Hard", "You have become good at the game.", "bg-[#f4900c]"],
+  ["Extreme", "Challenge to experienced players", "bg-[#dd2e44]"],
+  ["Supreme", "Requires extreme dedication .", "bg-[#aa8ed6]"],
   [
     "Inhuman",
     "only the best of the best can play it, it's above skill.",
-    "bg-font-muted",
+    "bg-[#31373d]",
   ],
 ] as const;
 
@@ -86,13 +86,20 @@ function ActionLink({ to, children }: { to: string; children: ReactNode }) {
 function GameCards({
   games,
   showProgress = false,
+  earnedBadgeIds,
 }: {
   games: CatalogueGame[];
   showProgress?: boolean;
+  earnedBadgeIds?: Set<number>;
 }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      {games.map((game) => (
+      {games.map((game) => {
+        const earnedBadgeCount = game.badges.filter((badge) =>
+          earnedBadgeIds?.has(badge.id),
+        ).length;
+
+        return (
         <Link
           key={game.id}
           to={`/games/${game.id}`}
@@ -106,36 +113,6 @@ function GameCards({
               className="h-full w-full object-cover opacity-80 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-100"
             />
             <div className="from-surface-overlay via-surface-overlay/30 absolute inset-x-0 bottom-0 bg-gradient-to-t to-transparent p-3 pt-12">
-              {game.achievementCount > 0 && <div
-                className="mb-2 flex items-center gap-1.5"
-                aria-label={game.difficulties
-                  .slice(0, 5)
-                  .map(
-                    ({ label, achievementCount }) =>
-                      `${achievementCount} ${label} badges`,
-                  )
-                  .join(", ")}
-              >
-                {game.difficulties
-                  .slice(0, 5)
-                  .map(({ label, achievementCount }) => (
-                    <span
-                      key={label}
-                      className="group/difficulty relative flex h-3 w-3 items-center justify-center"
-                    >
-                      <span
-                        aria-label={`${achievementCount} ${label} badges`}
-                        className={`h-2 w-2 rounded-full ${difficulties.find(([name]) => name === label)?.[2] || "bg-font-muted"}`}
-                      />
-                      <span
-                        role="tooltip"
-                        className="bg-primary text-font-primary border-border pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-max max-w-44 -translate-x-1/2 rounded-md border px-2 py-1 text-xs opacity-0 shadow-lg transition-opacity group-hover/difficulty:opacity-100"
-                      >
-                        {achievementCount} {label} badges
-                      </span>
-                    </span>
-                  ))}
-              </div>}
               <h3 className="text-font-primary truncate font-serif text-lg">
                 {game.title}
               </h3>
@@ -145,17 +122,52 @@ function GameCards({
               {showProgress && game.achievementCount > 0 && (
                 <>
                   <div className="bg-primary/75 mt-2 h-1.5 overflow-hidden rounded-full">
-                    <span className="bg-accent-cold block h-full w-0" />
+                    <span
+                      className="bg-accent-cold block h-full"
+                      style={{
+                        width: `${game.achievementCount ? (earnedBadgeCount / game.achievementCount) * 100 : 0}%`,
+                      }}
+                    />
                   </div>
                   <p className="text-font-muted mt-1 text-[11px]">
-                    0 of {game.achievementCount} badges
+                    {earnedBadgeCount} of {game.achievementCount} badges obtained
                   </p>
                 </>
               )}
             </div>
           </div>
+          {game.achievementCount > 0 && (
+            <div
+              className={`absolute inset-x-3 flex items-center gap-1.5 ${showProgress ? "bottom-24" : "bottom-15"}`}
+              aria-label={game.difficulties
+                .map(
+                  ({ label, achievementCount }) =>
+                    `${achievementCount} ${label} badges`,
+                )
+                .join(", ")}
+            >
+              {game.difficulties
+                .map(({ label, achievementCount }) => (
+                  <span
+                    key={label}
+                    className="group/difficulty relative flex h-3 w-3 items-center justify-center"
+                  >
+                    <span
+                      className={`h-2 w-2 rounded-full ${difficulties.find(([name]) => name === label)?.[2] || "bg-font-muted"}`}
+                    />
+                    <span
+                      role="tooltip"
+                      className="bg-surface-overlay text-font-primary pointer-events-none invisible absolute bottom-full left-1/2 z-30 mb-2 w-max max-w-44 -translate-x-1/2 rounded-md border border-border px-2 py-1 text-center text-[11px] opacity-0 shadow-black group-hover/difficulty:visible group-hover/difficulty:opacity-100"
+                    >
+                      {achievementCount} {label} badges
+                    </span>
+                  </span>
+                ))}
+            </div>
+          )}
         </Link>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -350,6 +362,7 @@ function Homepage() {
   const [libraryEntries, setLibraryEntries] = useState<LibraryEntry[] | null>(
     null,
   );
+  const [earnedBadgeIds, setEarnedBadgeIds] = useState<number[] | null>(null);
   const [profiles, setProfiles] = useState<CommunityProfile[]>([]);
   const [communityEntries, setCommunityEntries] = useState<CommunityEntry[]>(
     [],
@@ -393,6 +406,25 @@ function Homepage() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!user) {
+      setEarnedBadgeIds([]);
+      return;
+    }
+    let current = true;
+    setEarnedBadgeIds(null);
+    supabase
+      .from("user_badges")
+      .select("badge_id")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        if (current) setEarnedBadgeIds((data || []).map((badge) => badge.badge_id));
+      });
+    return () => {
+      current = false;
+    };
+  }, [user]);
+
   const libraryGames = useMemo(
     () =>
       (libraryEntries || [])
@@ -401,6 +433,10 @@ function Homepage() {
         )
         .filter((game): game is CatalogueGame => Boolean(game)),
     [catalogueGames, libraryEntries],
+  );
+  const earnedBadgeIdSet = useMemo(
+    () => new Set(earnedBadgeIds || []),
+    [earnedBadgeIds],
   );
   const potentialExp = useMemo(
     () => libraryGames.reduce((total, game) => total + game.totalExp, 0),
@@ -499,12 +535,16 @@ function Homepage() {
                   description="Pick up where you left off, or add a new challenge to your library."
                   action={<ActionLink to="/profile">View profile</ActionLink>}
                 />
-                {libraryEntries === null ? (
+                {libraryEntries === null || earnedBadgeIds === null ? (
                   <div className="py-10">
                     <LoadingIndicator label="Loading your games..." />
                   </div>
                 ) : libraryGames.length ? (
-                  <GameCards games={libraryGames.slice(0, 5)} showProgress />
+                  <GameCards
+                    games={libraryGames.slice(0, 5)}
+                    showProgress
+                    earnedBadgeIds={earnedBadgeIdSet}
+                  />
                 ) : (
                   <div className="border-border bg-surface/75 rounded-xl border px-5 py-10 text-center">
                     <FiMonitor className="text-accent-cold mx-auto h-7 w-7" />

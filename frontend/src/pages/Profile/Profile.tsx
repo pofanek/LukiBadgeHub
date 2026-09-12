@@ -86,8 +86,8 @@ function Profile() {
                 />
               )}
               {activeTab === "mutuals" && <MutualsPanel />}
-              {activeTab === "stats" && <StatsPanel />}
-              {activeTab === "recents" && <RecentsPanel />}
+              {activeTab === "stats" && <StatsPanel profileId={profile.id} />}
+              {activeTab === "recents" && <RecentsPanel profileId={profile.id} />}
             </div>
           </div>
         </div>

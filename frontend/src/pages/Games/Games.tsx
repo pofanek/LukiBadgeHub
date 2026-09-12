@@ -17,12 +17,12 @@ import { supabase } from "../../utils/supabase";
 type SortOption = "name" | "release";
 
 const DIFFICULTY_COLORS: Record<string, string> = {
-  Easy: "bg-[#46c85a]",
-  Medium: "bg-accent-cold",
-  Hard: "bg-destructive",
-  Extreme: "bg-[#e84f81]",
-  Supreme: "bg-hover",
-  Inhuman: "bg-font-muted",
+  Easy: "bg-[#78b159]",
+  Medium: "bg-[#fdcb58]",
+  Hard: "bg-[#f4900c]",
+  Extreme: "bg-[#dd2e44]",
+  Supreme: "bg-[#aa8ed6]",
+  Inhuman: "bg-[#31373d]",
 };
 
 const SORT_LABELS: Record<SortOption, string> = {

@@ -1,6 +1,17 @@
 export const APP_NAME = "Luki Badge Hub";
 export const APP_SHORT_NAME = "L. B. H.";
 export { catalogueGames, type CatalogueGame, type GameRow } from "./games";
+export {
+  BADGE_DIFFICULTIES,
+  BADGE_TIERS,
+  BADGE_DIFFICULTY_DETAILS,
+  getBadgeDifficultyLabel,
+  getBadgeExperience,
+  getBadgeTierLabel,
+  type BadgeDifficultyId,
+  type BadgeRow,
+  type BadgeTier,
+} from "./badges";
 
 // const exampleString = `name = ${values[0]} email = ${values[1]} selectedOption = ${values[2]}  message = ${values[3]}`;
 export const TOPIC_COLORS: Record<string, number> = {

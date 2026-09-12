@@ -1,5 +1,196 @@
-const difficulties = [["Easy", 122], ["Medium", 98], ["Hard", 73], ["Extreme", 48], ["El Diablo", 26], ["Joker Kebab", 14]];
-const rarest = [["Cell to Singularity", "Singularity", "Extreme"], ["Hades", "God of Blood", "Hard"], ["Stardew Valley", "Perfection", "Medium"], ["Hollow Knight", "Steel Soul", "El Diablo"]];
-function DifficultyChart() { const highest = 122; return <div className="border-border bg-surface/75 rounded-xl border p-5"><h2 className="text-font-primary font-serif text-xl">Badges by difficulty</h2><div className="mt-5 flex h-52 items-end gap-2 sm:gap-4">{difficulties.map(([label, count]) => <div key={label} className="flex h-full min-w-0 flex-1 flex-col justify-end"><span className="text-font-secondary mb-2 text-center text-xs">{count}</span><div className="bg-accent-cold rounded-t" style={{ height: `${(Number(count) / highest) * 100}%` }} /><span className="text-font-muted mt-2 overflow-hidden text-center text-[10px] text-ellipsis whitespace-nowrap sm:text-xs">{label}</span></div>)}</div></div>; }
-function StatsPanel() { return <div className="mx-auto max-w-5xl space-y-6"><DifficultyChart /><section><div className="mb-4"><h2 className="text-font-primary font-serif text-2xl">Rarest badges</h2><p className="text-font-muted mt-1 text-sm">The rarest badge earned in every played game.</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{rarest.map(([game, achievement, difficulty]) => <article key={achievement} className="border-border bg-surface/75 flex gap-3 rounded-xl border p-3"><div className="bg-accent-cold h-15 w-15 shrink-0 rounded-lg" /><div><p className="text-font-primary font-medium">{achievement}</p><p className="text-font-muted mt-1 text-xs">{game}</p><p className="text-font-secondary mt-3 flex items-center gap-2 text-sm"><span className="bg-accent-cold h-2.5 w-2.5 rounded-sm" />{difficulty}</p></div></article>)}</div></section></div>; }
+import { useEffect, useMemo, useState } from "react";
+import { FiAward, FiBookOpen, FiTrendingUp } from "react-icons/fi";
+import { LoadingIndicator } from "../../../components";
+import {
+  BADGE_DIFFICULTIES,
+  BADGE_DIFFICULTY_DETAILS,
+  getBadgeExperience,
+  type BadgeRow,
+  type CatalogueGame,
+} from "../../../constants";
+import { useGames } from "../../../hooks/useGames";
+import { supabase } from "../../../utils/supabase";
+
+type StatsData = {
+  claims: { badge_id: number }[];
+  libraryIds: number[];
+};
+
+function StatsPanel({ profileId }: { profileId: string }) {
+  const { games, isLoading: isGamesLoading } = useGames();
+  const [data, setData] = useState<StatsData | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let isCurrent = true;
+    setData(null);
+    setError("");
+
+    Promise.all([
+      supabase
+        .from("user_badges")
+        .select("badge_id")
+        .eq("user_id", profileId),
+      supabase
+        .from("user_game_library")
+        .select("game_id")
+        .eq("user_id", profileId),
+    ]).then(([claimsResult, libraryResult]) => {
+      if (!isCurrent) return;
+      if (claimsResult.error || libraryResult.error) {
+        setError("Profile statistics could not be loaded.");
+        setData({ claims: [], libraryIds: [] });
+        return;
+      }
+      setData({
+        claims: claimsResult.data || [],
+        libraryIds: (libraryResult.data || []).map((entry) => entry.game_id),
+      });
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [profileId]);
+
+  const stats = useMemo(() => {
+    const libraryGameIds = new Set(data?.libraryIds || []);
+    const claimedBadgeIds = new Set(
+      (data?.claims || []).map((claim) => claim.badge_id),
+    );
+    const claimedGames = games.filter((game) =>
+      game.badges.some((badge) => claimedBadgeIds.has(badge.id)),
+    );
+    const playedGames = new Map<number, CatalogueGame>();
+    games.forEach((game) => {
+      if (libraryGameIds.has(game.id)) playedGames.set(game.id, game);
+    });
+    claimedGames.forEach((game) => playedGames.set(game.id, game));
+
+    const availableBadges = [...playedGames.values()].flatMap(
+      (game) => game.badges,
+    );
+    const badgeById = new Map<number, BadgeRow>(
+      availableBadges.map((badge) => [badge.id, badge]),
+    );
+    const earnedBadges = [...claimedBadgeIds]
+      .map((id) => badgeById.get(id))
+      .filter((badge): badge is BadgeRow => Boolean(badge));
+    const earnedExp = earnedBadges.reduce(
+      (total, badge) =>
+        total + getBadgeExperience(badge.difficulty, badge.tier),
+      0,
+    );
+    return {
+      earnedBadges,
+      earnedExp,
+      playedGames: playedGames.size,
+      difficulties: BADGE_DIFFICULTIES.map((id) => {
+        const earned = earnedBadges.filter(
+          (badge) => badge.difficulty === id,
+        ).length;
+        return { id, earned };
+      }),
+    };
+  }, [data, games]);
+
+  if (data === null || isGamesLoading) {
+    return (
+      <div className="py-12">
+        <LoadingIndicator label="Loading profile statistics..." />
+      </div>
+    );
+  }
+
+  if (error) return <p className="text-destructive text-sm">{error}</p>;
+
+  const overview = [
+    {
+      label: "Badges earned",
+      value: stats.earnedBadges.length.toLocaleString(),
+      Icon: FiAward,
+    },
+    {
+      label: "EXP earned",
+      value: stats.earnedExp.toLocaleString(),
+      Icon: FiTrendingUp,
+    },
+    {
+      label: "Games played",
+      value: stats.playedGames.toLocaleString(),
+      Icon: FiBookOpen,
+    },
+  ];
+  const highestDifficultyCount = Math.max(
+    ...stats.difficulties.map(({ earned }) => earned),
+    1,
+  );
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6">
+      <section className="border-border bg-surface/75 overflow-hidden rounded-xl border">
+        <dl className="divide-border grid divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          {overview.map(({ label, value, Icon }) => (
+            <div key={label} className="flex items-center gap-4 px-5 py-4 sm:block sm:p-5">
+              <div className="bg-surface-raised/70 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg sm:mb-5">
+                <Icon className="text-accent-cold h-5 w-5" aria-hidden="true" />
+              </div>
+              <div>
+                <dd className="text-font-primary font-serif text-3xl leading-none sm:text-4xl">
+                  {value}
+                </dd>
+                <dt className="text-font-secondary mt-1.5 text-sm font-medium">
+                  {label}
+                </dt>
+              </div>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <section className="border-border bg-surface/75 rounded-xl border p-5 sm:p-6">
+        <div>
+          <h2 className="text-font-primary font-serif text-2xl">
+            Badges by difficulty
+          </h2>
+          <p className="text-font-muted mt-1 text-sm">
+            The badges this player has earned at each difficulty.
+          </p>
+        </div>
+        <div className="mt-8 grid h-64 grid-cols-6 items-end gap-1.5 sm:gap-4">
+          {stats.difficulties.map(({ id, earned }) => {
+            const difficulty = BADGE_DIFFICULTY_DETAILS[id];
+            const height = (earned / highestDifficultyCount) * 100;
+            return (
+              <div
+                key={id}
+                className="flex h-full min-w-0 flex-col justify-end text-center"
+              >
+                <span className="text-font-primary mb-2 text-xs font-medium tabular-nums">
+                  {earned}
+                </span>
+                <div
+                  className="min-h-1 rounded-t-sm opacity-90"
+                  style={{
+                    backgroundColor: difficulty.color,
+                    height: `${height}%`,
+                  }}
+                />
+                <img
+                  src={difficulty.icon}
+                  alt=""
+                  className="mx-auto mt-3 h-8 w-8 object-contain sm:h-10 sm:w-10"
+                />
+                <span className="text-font-muted mt-1.5 block w-full whitespace-nowrap text-xs sm:text-sm">
+                  {difficulty.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export default StatsPanel;

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   FiBookmark,
+  FiAlertCircle,
   FiCheck,
+  FiCheckCircle,
   FiChevronDown,
   FiExternalLink,
   FiGrid,
@@ -14,7 +16,16 @@ import {
 } from "react-icons/fi";
 import { FaSteam, FaStar, FaTrophy } from "react-icons/fa";
 import { hollow, hollowthumb, userchomik } from "../../assets";
-import type { CatalogueGame } from "../../constants";
+import {
+  BADGE_DIFFICULTIES,
+  BADGE_DIFFICULTY_DETAILS,
+  getBadgeDifficultyLabel,
+  getBadgeExperience,
+  getBadgeTierLabel,
+  type BadgeDifficultyId,
+  type BadgeTier,
+  type CatalogueGame,
+} from "../../constants";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { useGame } from "../../hooks/useGames";
 import { supabase } from "../../utils/supabase";
@@ -22,19 +33,20 @@ import { supabase } from "../../utils/supabase";
 const ACHIEVEMENTS_PER_PAGE = 9;
 
 export type Difficulty = {
-  id: string;
+  id: BadgeDifficultyId;
   label: string;
   color: string;
   total: number;
   obtained: number;
-  expPerAchievement: number;
+  totalExp: number;
 };
 
 export type GameAchievement = {
   id: string;
   name: string;
   description: string;
-  difficultyId: string;
+  difficultyId: BadgeDifficultyId;
+  tier?: BadgeTier;
   exp: number;
   iconUrl?: string;
   locked?: boolean;
@@ -85,7 +97,7 @@ const demoGame: GameDetailData = {
       color: "#46c85a",
       obtained: 14,
       total: 14,
-      expPerAchievement: 80,
+      totalExp: 1_120,
     },
     {
       id: "medium",
@@ -93,7 +105,7 @@ const demoGame: GameDetailData = {
       color: "#3d8ef0",
       obtained: 8,
       total: 8,
-      expPerAchievement: 120,
+      totalExp: 960,
     },
     {
       id: "hard",
@@ -101,7 +113,7 @@ const demoGame: GameDetailData = {
       color: "#C43A3A",
       obtained: 4,
       total: 4,
-      expPerAchievement: 200,
+      totalExp: 800,
     },
     {
       id: "extreme",
@@ -109,7 +121,7 @@ const demoGame: GameDetailData = {
       color: "#e84f81",
       obtained: 2,
       total: 2,
-      expPerAchievement: 300,
+      totalExp: 600,
     },
     {
       id: "supreme",
@@ -117,7 +129,7 @@ const demoGame: GameDetailData = {
       color: "#c5a7f4",
       obtained: 0,
       total: 0,
-      expPerAchievement: 500,
+      totalExp: 0,
     },
     {
       id: "inhuman",
@@ -125,7 +137,7 @@ const demoGame: GameDetailData = {
       color: "#657080",
       obtained: 0,
       total: 0,
-      expPerAchievement: 800,
+      totalExp: 0,
     },
   ],
   achievements: [
@@ -311,9 +323,54 @@ const demoGame: GameDetailData = {
 
 type TemplateProps = { game: GameDetailData };
 
+function FeedbackToast({
+  message,
+  error,
+  onDismiss,
+}: {
+  message: string;
+  error: boolean;
+  onDismiss: () => void;
+}) {
+  const Icon = error ? FiAlertCircle : FiCheckCircle;
+  return (
+    <div
+      className="fixed bottom-4 left-1/2 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2"
+      role={error ? "alert" : "status"}
+      aria-live="polite"
+    >
+      <div
+        className={`border-surface-raised flex items-start gap-3 rounded-xl border px-4 py-3 shadow-black ${error ? "bg-destructive-background text-font-primary" : "bg-surface text-font-primary"}`}
+      >
+        <Icon
+          className={`mt-0.5 h-5 w-5 shrink-0 ${error ? "text-destructive" : "text-accent-cold"}`}
+        />
+        <p className="min-w-0 flex-1 text-sm leading-relaxed">{message}</p>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="text-font-secondary hover:text-font-primary -mr-1 rounded p-1"
+          aria-label="Dismiss notification"
+        >
+          <FiX className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function GameDetailTemplate({ game }: TemplateProps) {
   const { user } = useAuthUser();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [badgeClaims, setBadgeClaims] = useState<
+    { user_id: string; badge_id: number; earned_at: string }[]
+  >([]);
+  const [playerProfiles, setPlayerProfiles] = useState<
+    Record<string, { username: string; avatar_path: string | null }>
+  >({});
+  const [claimError, setClaimError] = useState("");
+  const [claimNotice, setClaimNotice] = useState("");
   const [activeTab, setActiveTab] = useState<"achievements" | "comments">(
     "achievements",
   );
@@ -330,32 +387,161 @@ export function GameDetailTemplate({ game }: TemplateProps) {
   const [isInLibrary, setIsInLibrary] = useState(false);
   const [isLibraryBusy, setIsLibraryBusy] = useState(false);
   const [libraryError, setLibraryError] = useState("");
+  useEffect(() => {
+    const difficulty = searchParams.get("difficulty") as BadgeDifficultyId | null;
+    setSelectedDifficulties(
+      difficulty && BADGE_DIFFICULTIES.includes(difficulty) ? [difficulty] : [],
+    );
+  }, [searchParams]);
+  useEffect(() => {
+    if (!claimNotice && !claimError) return;
+    const timer = window.setTimeout(() => {
+      setClaimNotice("");
+      setClaimError("");
+    }, 3000);
+    return () => window.clearTimeout(timer);
+  }, [claimNotice, claimError]);
+  const badgeIds = useMemo(
+    () => game.achievements.map((achievement) => Number(achievement.id)),
+    [game.achievements],
+  );
+  useEffect(() => {
+    let active = true;
+    if (!badgeIds.length) {
+      queueMicrotask(() => {
+        if (!active) return;
+        setBadgeClaims([]);
+        setPlayerProfiles({});
+      });
+      return () => {
+        active = false;
+      };
+    }
+    supabase
+      .from("user_badges")
+      .select("user_id, badge_id, earned_at")
+      .in("badge_id", badgeIds)
+      .then(async ({ data, error: queryError }) => {
+        if (!active) return;
+        if (queryError) {
+          setClaimError("Badge progress could not be loaded.");
+          return;
+        }
+        const claims = (data || []) as {
+          user_id: string;
+          badge_id: number;
+          earned_at: string;
+        }[];
+        setBadgeClaims(claims);
+        const playerIds = [...new Set(claims.map((claim) => claim.user_id))];
+        if (!playerIds.length) {
+          setPlayerProfiles({});
+          return;
+        }
+        const { data: profiles } = await supabase
+          .from("user_profiles")
+          .select("id, username, avatar_path")
+          .in("id", playerIds);
+        if (!active) return;
+        setPlayerProfiles(
+          Object.fromEntries(
+            (profiles || []).map((profile) => [
+              profile.id,
+              { username: profile.username, avatar_path: profile.avatar_path },
+            ]),
+          ),
+        );
+      });
+    return () => {
+      active = false;
+    };
+  }, [badgeIds]);
+  const earnedBadgeIds = useMemo(
+    () =>
+      new Set(
+        badgeClaims
+          .filter((claim) => claim.user_id === user?.id)
+          .map((claim) => claim.badge_id),
+      ),
+    [badgeClaims, user?.id],
+  );
+  const progressGame = useMemo(() => {
+    const achievements = game.achievements.map((achievement) => ({
+      ...achievement,
+      locked: !earnedBadgeIds.has(Number(achievement.id)),
+    }));
+    const difficulties = BADGE_DIFFICULTIES.map((difficulty) => {
+      const badges = achievements.filter(
+        (achievement) => achievement.difficultyId === difficulty,
+      );
+      return {
+        id: difficulty,
+        label: getBadgeDifficultyLabel(difficulty),
+        color: BADGE_DIFFICULTY_DETAILS[difficulty].color,
+        total: badges.length,
+        obtained: badges.filter((badge) => !badge.locked).length,
+        totalExp: badges.reduce((total, badge) => total + badge.exp, 0),
+      };
+    });
+    const players = [...new Set(badgeClaims.map((claim) => claim.user_id))]
+      .map((playerId) => {
+        const claims = badgeClaims.filter((claim) => claim.user_id === playerId);
+        const latest = claims.reduce(
+          (current, claim) =>
+            !current || claim.earned_at > current ? claim.earned_at : current,
+          "",
+        );
+        const profile = playerProfiles[playerId];
+        return {
+          id: playerId,
+          username: profile?.username || "Unknown player",
+          playedAt: latest
+            ? new Intl.DateTimeFormat(undefined, {
+                day: "numeric",
+                month: "short",
+              }).format(new Date(latest))
+            : "",
+          avatarUrl: profile?.avatar_path
+            ? supabase.storage
+                .from("profile-media")
+                .getPublicUrl(profile.avatar_path).data.publicUrl
+            : undefined,
+          obtained: claims.length,
+          total: achievements.length,
+        };
+      })
+      .sort((left, right) => right.obtained - left.obtained || left.username.localeCompare(right.username))
+      .slice(0, 5);
+    return { ...game, achievements, difficulties, recentPlayers: players };
+  }, [badgeClaims, earnedBadgeIds, game, playerProfiles]);
   const displayedInLibrary = user ? isInLibrary : false;
-  const totalExp = game.difficulties.reduce(
-    (sum, tier) => sum + tier.total * tier.expPerAchievement,
+  const totalExp = progressGame.difficulties.reduce(
+    (sum, tier) => sum + tier.totalExp,
     0,
   );
-  const obtained = game.difficulties.reduce(
+  const obtained = progressGame.difficulties.reduce(
     (sum, tier) => sum + tier.obtained,
     0,
   );
-  const achievementTotal = game.difficulties.reduce(
+  const achievementTotal = progressGame.difficulties.reduce(
     (sum, tier) => sum + tier.total,
     0,
   );
-  const progressExp = game.difficulties.reduce(
-    (sum, tier) => sum + tier.obtained * tier.expPerAchievement,
-    0,
-  );
+  const progressExp = progressGame.achievements
+    .filter((achievement) => !achievement.locked)
+    .reduce((sum, achievement) => sum + achievement.exp, 0);
   const difficultyById = new Map(
-    game.difficulties.map((difficulty) => [difficulty.id, difficulty]),
-  );
-  const difficultyOrder = new Map(
-    game.difficulties.map((difficulty, index) => [difficulty.id, index]),
+    progressGame.difficulties.map((difficulty) => [difficulty.id, difficulty]),
   );
   const visibleAchievements = useMemo(
-    () =>
-      game.achievements
+    () => {
+      const difficultyOrder = new Map(
+        progressGame.difficulties.map((difficulty, index) => [
+          difficulty.id,
+          index,
+        ]),
+      );
+      return progressGame.achievements
         .filter((achievement) => {
           const matchesQuery =
             achievement.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -376,14 +562,15 @@ export function GameDetailTemplate({ game }: TemplateProps) {
                 difficultyOrder.get(right.difficultyId)! ||
               left.name.localeCompare(right.name)
             : left.name.localeCompare(right.name),
-        ),
+        );
+    },
     [
-      game.achievements,
+      progressGame.achievements,
+      progressGame.difficulties,
       query,
       selectedDifficulties,
       status,
       sort,
-      difficultyOrder,
     ],
   );
   const pageCount = Math.max(
@@ -460,11 +647,55 @@ export function GameDetailTemplate({ game }: TemplateProps) {
     setIsInLibrary(!isInLibrary);
   };
 
+  const toggleBadgeClaim = async (badgeId: string, claimed: boolean) => {
+    setClaimError("");
+    setClaimNotice("");
+    if (!user) {
+      window.sessionStorage.setItem(
+        "luki-post-login-path",
+        `${window.location.pathname}${window.location.search}`,
+      );
+      navigate("/login");
+      return;
+    }
+    const numericBadgeId = Number(badgeId);
+    const { error: claimMutationError } = claimed
+      ? await supabase
+          .from("user_badges")
+          .insert({ user_id: user.id, badge_id: numericBadgeId })
+      : await supabase
+          .from("user_badges")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("badge_id", numericBadgeId);
+    if (claimMutationError) {
+      setClaimError("Badge progress could not be updated. Please try again.");
+      return;
+    }
+    setBadgeClaims((current) =>
+      claimed
+        ? [
+            ...current,
+            {
+              user_id: user.id,
+              badge_id: numericBadgeId,
+              earned_at: new Date().toISOString(),
+            },
+          ]
+        : current.filter(
+            (claim) =>
+              claim.user_id !== user.id || claim.badge_id !== numericBadgeId,
+          ),
+    );
+    if (claimed) setIsInLibrary(true);
+    setClaimNotice(claimed ? "Badge marked as completed." : "Badge progress updated.");
+  };
+
   return (
     <section className="bg-primary w-full self-stretch pb-10">
       <div className="mx-auto w-full max-w-6xl px-3 sm:px-7">
         <GameHero
-          game={game}
+          game={progressGame}
           isInLibrary={displayedInLibrary}
           isLibraryBusy={isLibraryBusy}
           onAddToProfile={toggleProfileGame}
@@ -493,7 +724,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
                 Badges by difficulty
               </h2>
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {game.difficulties.map((difficulty) => (
+                {progressGame.difficulties.map((difficulty) => (
                   <DifficultyCard
                     key={difficulty.id}
                     difficulty={difficulty}
@@ -525,7 +756,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
             ) : (
               <div className="mt-4 grid gap-4 lg:grid-cols-[12rem_minmax(0,1fr)]">
                 <Filters
-                  game={game}
+                  game={progressGame}
                   query={query}
                   setQuery={(value) => {
                     setPage(1);
@@ -582,6 +813,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
                           difficultyById.get(achievement.difficultyId)!
                         }
                         list={view === "list"}
+                        onClaimChange={toggleBadgeClaim}
                       />
                     ))}
                   </div>
@@ -597,14 +829,24 @@ export function GameDetailTemplate({ game }: TemplateProps) {
             )}
           </div>
           <aside className="space-y-3 xl:sticky xl:top-20 xl:h-fit">
-            <GameInfo game={game} />
+            <GameInfo game={progressGame} />
             <Progress current={progressExp} total={totalExp} />
-            {game.recentPlayers.length > 0 && (
-              <RecentPlayers players={game.recentPlayers} />
+            {progressGame.recentPlayers.length > 0 && (
+              <RecentPlayers players={progressGame.recentPlayers} />
             )}
           </aside>
         </div>
       </div>
+      {(claimNotice || claimError) && (
+        <FeedbackToast
+          message={claimError || claimNotice}
+          error={Boolean(claimError)}
+          onDismiss={() => {
+            setClaimNotice("");
+            setClaimError("");
+          }}
+        />
+      )}
     </section>
   );
 }
@@ -747,14 +989,15 @@ function DifficultyCard({
       </p>
       <p className="text-font-muted mt-1 text-center text-xs">
         <FaStar className="text-accent-cold mr-1 inline" />
-        {difficulty.expPerAchievement} EXP each
+        {difficulty.totalExp.toLocaleString()} EXP in this difficulty
       </p>
       <p
         className="mt-2 text-center text-xs"
         style={{ color: difficulty.color }}
       >
-        {(difficulty.total * difficulty.expPerAchievement).toLocaleString()}{" "}
-        total EXP
+        {difficulty.total
+          ? `${difficulty.total} badge${difficulty.total === 1 ? "" : "s"}`
+          : "No badges"}
       </p>
     </button>
   );
@@ -1065,6 +1308,7 @@ function VerificationButton() {
   return (
     <button
       type="button"
+      onClick={(event) => event.stopPropagation()}
       className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary focus-visible:outline-accent-cold mt-1.5 cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95"
     >
       Verify
@@ -1075,14 +1319,16 @@ function AchievementCard({
   achievement,
   difficulty,
   list,
+  onClaimChange,
 }: {
   achievement: GameAchievement;
   difficulty: Difficulty;
   list: boolean;
+  onClaimChange: (badgeId: string, claimed: boolean) => void;
 }) {
   const [showNote, setShowNote] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const [claimed, setClaimed] = useState(false);
+  const claimed = !achievement.locked;
   const canSelfClaim = ["easy", "medium", "hard"].includes(difficulty.id);
   const openDetails = () => setShowDetails(true);
   return (
@@ -1105,12 +1351,11 @@ function AchievementCard({
       <div
         className={`flex gap-3 ${list ? "min-w-0 flex-1 max-sm:basis-full" : ""}`}
       >
-        <div
-          className="text-font-primary flex h-16 w-16 shrink-0 items-center justify-center rounded-lg text-3xl"
-          style={{ backgroundColor: difficulty.color }}
-        >
-          <FaTrophy />
-        </div>
+        <img
+          src={achievement.iconUrl || BADGE_DIFFICULTY_DETAILS[difficulty.id].icon}
+          alt=""
+          className="bg-surface-raised h-16 w-16 shrink-0 rounded-full object-cover"
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <h3
@@ -1157,7 +1402,9 @@ function AchievementCard({
             <input
               type="checkbox"
               checked={claimed}
-              onChange={(event) => setClaimed(event.target.checked)}
+              onChange={(event) =>
+                onClaimChange(achievement.id, event.target.checked)
+              }
               className="peer sr-only"
             />
             <span
@@ -1169,10 +1416,8 @@ function AchievementCard({
             <span>Completed</span>
           </label>
         ) : (
-          <div onClick={(event) => event.stopPropagation()}>
-            <p className="text-font-muted text-xs">
-              Manual verification required
-            </p>
+          <div>
+            <p className="text-font-muted text-xs">Manual verification required</p>
             <VerificationButton />
           </div>
         )}
@@ -1193,7 +1438,7 @@ function AchievementCard({
               aria-modal="true"
               aria-label="Additional note"
               onClick={(event) => event.stopPropagation()}
-              className="border-border bg-surface-raised w-full max-w-2xl rounded-xl border p-5 shadow-black sm:p-6"
+              className="border-border bg-surface-raised w-fit min-w-[18rem] max-w-[min(100%,56rem)] max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl border p-5 shadow-black sm:p-6"
             >
               <div className="flex items-start justify-between gap-4">
                 <h3 className="text-font-primary font-serif text-2xl">
@@ -1208,7 +1453,7 @@ function AchievementCard({
                   <FiX className="h-5 w-5" />
                 </button>
               </div>
-              <p className="text-font-secondary mt-4 text-base leading-relaxed">
+              <p className="text-font-secondary mt-4 break-words text-base leading-relaxed">
                 {achievement.developerNote}
               </p>
             </div>
@@ -1221,7 +1466,7 @@ function AchievementCard({
           difficulty={difficulty}
           claimed={claimed}
           canSelfClaim={canSelfClaim}
-          onClaimChange={setClaimed}
+          onClaimChange={(isClaimed) => onClaimChange(achievement.id, isClaimed)}
           onClose={() => setShowDetails(false)}
         />
       )}
@@ -1233,7 +1478,7 @@ function AchievementCard({
             className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full"
             style={{ backgroundColor: difficulty.color }}
           />
-          {difficulty.label}
+          {getBadgeTierLabel(achievement.tier || "low")} {difficulty.label}
         </span>
         <span className="text-font-muted text-xs">
           <FaStar className="text-accent-cold mr-1 inline" />
@@ -1318,15 +1563,17 @@ function AchievementDetailsModal({
             </label>
           ) : (
             <div>
-              <p className="text-font-muted text-sm">
-                Manual verification required
-              </p>
+              <p className="text-font-muted text-sm">Manual verification required</p>
               <VerificationButton />
             </div>
           )}
           <div className="flex shrink-0 items-center gap-3 self-end sm:self-auto">
             <span className="text-sm" style={{ color: difficulty.color }}>
-              {difficulty.label}
+              <i
+                className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: difficulty.color }}
+              />
+              {getBadgeTierLabel(achievement.tier || "low")} {difficulty.label}
             </span>
             <span className="text-font-secondary text-sm">
               <FaStar className="text-accent-cold mr-1 inline" />
@@ -1417,14 +1664,20 @@ function RecentPlayers({ players }: { players: RecentPlayer[] }) {
       </div>
       <div className="mt-3 space-y-3">
         {players.map((player) => (
-          <div
+          <Link
             key={player.id}
-            className="grid grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-2"
+            to={`/profile/${encodeURIComponent(player.username)}`}
+            className="hover:bg-surface-raised focus-visible:ring-accent-cold grid grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-2 rounded-md p-1 -m-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            aria-label={`View ${player.username}'s profile`}
           >
             <img
               src={player.avatarUrl || userchomik}
               alt=""
               className="bg-surface-raised h-7 w-7 rounded-full object-cover"
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = userchomik;
+              }}
             />
             <div className="min-w-0">
               <p className="text-font-secondary truncate text-xs">
@@ -1443,7 +1696,7 @@ function RecentPlayers({ players }: { players: RecentPlayer[] }) {
             <span className="text-font-secondary text-xs">
               {player.obtained}/{player.total}
             </span>
-          </div>
+          </Link>
         ))}
       </div>
     </section>
@@ -1470,12 +1723,31 @@ function toGameDetailData(game: CatalogueGame): GameDetailData {
     bannerUrl: game.bannerUrl,
     coverUrl: game.cover,
     steamUrl: game.steamUrl || undefined,
-    achievements: [],
+    achievements: game.badges.map((badge) => ({
+      id: String(badge.id),
+      name: badge.name,
+      description: badge.description,
+      difficultyId: badge.difficulty,
+      tier: badge.tier,
+      exp: getBadgeExperience(badge.difficulty, badge.tier),
+      iconUrl: badge.icon_path
+        ? supabase.storage.from("game-media").getPublicUrl(badge.icon_path).data
+            .publicUrl
+        : BADGE_DIFFICULTY_DETAILS[badge.difficulty].icon,
+      developerNote: badge.additional_note || undefined,
+    })),
     difficulties: demoGame.difficulties.map((difficulty) => ({
       ...difficulty,
-      total: 0,
+      total: game.badges.filter((badge) => badge.difficulty === difficulty.id)
+        .length,
       obtained: 0,
-      expPerAchievement: 0,
+      totalExp: game.badges
+        .filter((badge) => badge.difficulty === difficulty.id)
+        .reduce(
+          (total, badge) =>
+            total + getBadgeExperience(badge.difficulty, badge.tier),
+          0,
+        ),
     })),
     recentPlayers: [],
   };
