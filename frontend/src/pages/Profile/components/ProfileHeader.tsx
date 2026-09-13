@@ -112,7 +112,7 @@ function ProfileHeader({
                 </a>
               ))}
             </div>
-            <div className="text-font-muted mt-4 grid grid-cols-3 gap-x-1 text-center text-[8px] leading-3">
+            <div className="text-font-muted relative left-[5rem] mt-4 grid w-44 -translate-x-1/2 grid-cols-3 gap-x-3 text-center text-xs leading-4 lg:left-1/2">
               <Link
                 to={`/profile/${encodeURIComponent(profile.username)}?tab=mutuals&category=mutuals`}
                 className="hover:text-hover whitespace-nowrap transition-colors"
@@ -168,7 +168,7 @@ function ProfileHeader({
             {profile.bio || "No bio provided."}
           </p>
 
-          <div className="col-span-2 col-start-auto w-full self-start md:absolute md:top-6 md:right-6 md:bottom-auto md:w-72">
+          <div className={`col-span-2 col-start-auto w-full self-start md:absolute md:right-6 md:bottom-auto md:w-72 ${!profile.hide_pinned_badge_edit ? pinnedBadge ? "md:top-3" : "md:top-6" : pinnedBadge ? "md:top-6" : "md:top-9"}`}>
             <Link
               to={`/profile/${encodeURIComponent(profile.username)}?tab=stats`}
               className="text-font-primary hover:text-hover flex w-fit items-center gap-2 font-serif text-3xl transition-colors"
@@ -180,7 +180,7 @@ function ProfileHeader({
               </span>
             </Link>
 
-            {isOwnProfile && !isPinnedBadgeLoading && !pinnedBadge && (
+            {isOwnProfile && !profile.hide_pinned_badge_edit && !isPinnedBadgeLoading && !pinnedBadge && (
               <Link
                 to="/settings"
                 className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary mt-3 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
@@ -221,7 +221,7 @@ function ProfileHeader({
                 </div>
               </div>
             )}
-            {isOwnProfile && pinnedBadge && (
+            {isOwnProfile && !profile.hide_pinned_badge_edit && pinnedBadge && (
               <Link
                 to="/settings"
                 className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary mt-3 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"

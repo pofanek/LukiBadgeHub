@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiAward, FiBookOpen, FiTrendingUp } from "react-icons/fi";
+import { createPortal } from "react-dom";
+import { FiAward, FiBookOpen, FiTrendingUp, FiX } from "react-icons/fi";
 import { LoadingIndicator } from "../../../components";
 import {
   BADGE_DIFFICULTIES,
   BADGE_DIFFICULTY_DETAILS,
   getBadgeExperience,
+  getBadgeTierLabel,
+  type BadgeDifficultyId,
   type BadgeRow,
   type CatalogueGame,
 } from "../../../constants";
@@ -23,6 +26,7 @@ function StatsPanel({ profileId }: { profileId: string }) {
   const { games, isLoading: isGamesLoading } = useGames();
   const [data, setData] = useState<StatsData | null>(null);
   const [error, setError] = useState("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<BadgeDifficultyId | null>(null);
 
   useEffect(() => {
     let isCurrent = true;
@@ -91,6 +95,11 @@ function StatsPanel({ profileId }: { profileId: string }) {
     const earnedBadges = [...claimedBadgeIds]
       .map((id) => badgeById.get(id))
       .filter((badge): badge is BadgeRow => Boolean(badge));
+    const earnedBadgeDetails = claimedGames.flatMap((game) =>
+      game.badges
+        .filter((badge) => claimedBadgeIds.has(badge.id))
+        .map((badge) => ({ badge, game })),
+    );
     const earnedExp = earnedBadges.reduce(
       (total, badge) =>
         total + getBadgeExperience(badge.difficulty, badge.tier),
@@ -98,6 +107,7 @@ function StatsPanel({ profileId }: { profileId: string }) {
     );
     return {
       earnedBadges,
+      earnedBadgeDetails,
       earnedExp,
       playedGames: playedGames.size,
       difficulties: BADGE_DIFFICULTIES.map((id) => {
@@ -154,6 +164,22 @@ function StatsPanel({ profileId }: { profileId: string }) {
     1,
   );
   const levelProgress = getLevelProgress(stats.earnedExp);
+  const selectedDifficultyDetails = selectedDifficulty
+    ? BADGE_DIFFICULTY_DETAILS[selectedDifficulty]
+    : null;
+  const badgesByGame: Map<number, { game: CatalogueGame; badges: BadgeRow[] }> = selectedDifficulty
+    ? stats.earnedBadgeDetails
+        .filter(({ badge }) => badge.difficulty === selectedDifficulty)
+        .reduce<Map<number, { game: CatalogueGame; badges: BadgeRow[] }>>(
+          (grouped, { game, badge }) => {
+            const group = grouped.get(game.id) || { game, badges: [] };
+            group.badges.push(badge);
+            grouped.set(game.id, group);
+            return grouped;
+          },
+          new Map(),
+        )
+    : new Map();
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -222,20 +248,24 @@ function StatsPanel({ profileId }: { profileId: string }) {
             const difficulty = BADGE_DIFFICULTY_DETAILS[id];
             const height = (earned / highestDifficultyCount) * 100;
             return (
-              <div
-                key={id}
-                className="flex h-full min-w-0 flex-col justify-end text-center"
-              >
-                <span className="text-font-primary mb-2 text-xs font-medium tabular-nums">
-                  {earned}
-                </span>
-                <div
-                  className="min-h-1 rounded-t-sm opacity-90"
-                  style={{
-                    backgroundColor: difficulty.color,
-                    height: `${height}%`,
-                  }}
-                />
+              <div key={id} className="flex h-full min-w-0 flex-col text-center">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDifficulty(id)}
+                  className="hover:bg-effect-glass focus-visible:ring-accent-cold flex min-h-0 flex-1 flex-col justify-end rounded-lg px-1 outline-none transition-colors focus-visible:ring-2"
+                  aria-label={`Show ${earned} ${difficulty.label} badges`}
+                >
+                  <span className="text-font-primary mb-2 text-xs font-medium tabular-nums">
+                    {earned}
+                  </span>
+                  <div
+                    className="min-h-1 rounded-t-sm opacity-90"
+                    style={{
+                      backgroundColor: difficulty.color,
+                      height: `${height}%`,
+                    }}
+                  />
+                </button>
                 <img
                   src={difficulty.icon}
                   alt=""
@@ -249,6 +279,56 @@ function StatsPanel({ profileId }: { profileId: string }) {
           })}
         </div>
       </section>
+      {selectedDifficulty && selectedDifficultyDetails && createPortal(
+        <div
+          className="bg-surface-overlay/80 fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="presentation"
+          onClick={() => setSelectedDifficulty(null)}
+        >
+          <div
+            className="border-border bg-surface-raised max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border p-5 shadow-black sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="difficulty-badges-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-accent-cold text-sm font-medium">Earned badges</p>
+                <h2 id="difficulty-badges-title" className="text-font-primary mt-1 font-serif text-3xl">
+                  {selectedDifficultyDetails.label}
+                </h2>
+              </div>
+              <button type="button" onClick={() => setSelectedDifficulty(null)} className="text-font-muted hover:text-font-primary rounded p-1" aria-label="Close badge list">
+                <FiX className="h-5 w-5" />
+              </button>
+            </div>
+            {badgesByGame.size === 0 ? (
+              <p className="text-font-secondary mt-6 text-sm">No {selectedDifficultyDetails.label} badges earned yet.</p>
+            ) : (
+              <div className="mt-6 space-y-5">
+                {[...badgesByGame.values()].map(({ game, badges }) => (
+                  <section key={game.id}>
+                    <h3 className="text-font-primary font-serif text-xl">{game.title}</h3>
+                    <div className="mt-2 space-y-2">
+                      {badges.map((badge) => (
+                        <div key={badge.id} className="border-border bg-surface-soft flex items-center gap-3 rounded-lg border p-3">
+                          <img src={badge.icon_path ? supabase.storage.from("game-media").getPublicUrl(badge.icon_path).data.publicUrl : selectedDifficultyDetails.icon} alt="" className="bg-surface-raised h-10 w-10 shrink-0 rounded-full object-cover" />
+                          <div className="min-w-0">
+                            <p className="text-font-primary truncate text-sm font-medium">{badge.name}</p>
+                            <p className="text-font-muted mt-0.5 text-xs">{getBadgeTierLabel(badge.tier)} {selectedDifficultyDetails.label}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

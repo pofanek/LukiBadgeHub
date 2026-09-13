@@ -17,6 +17,7 @@ import { FiSettings } from "react-icons/fi";
 import { FiBell } from "react-icons/fi";
 import { FiLogOut } from "react-icons/fi";
 import { FiEdit3 } from "react-icons/fi";
+import { FiAward } from "react-icons/fi";
 
 const ProfileCard = ({
   className = "",
@@ -53,7 +54,12 @@ const ProfileCard = ({
         </ProfileItem>
         {profile?.role === "Admin" && (
           <ProfileItem pathTo="/admin" onClick={closeMenu} Icon={FiEdit3}>
-            Games CMS
+            CMS panel
+          </ProfileItem>
+        )}
+        {profile?.role === "Moderator" && (
+          <ProfileItem pathTo="/admin" onClick={closeMenu} Icon={FiAward}>
+            CMS panel
           </ProfileItem>
         )}
         <ProfileItem logoutItem={true} onClick={onLogout} Icon={FiLogOut}>

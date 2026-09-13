@@ -1,16 +1,18 @@
 begin;
 
-select plan(19);
+select plan(22);
 
 insert into auth.users (id, email)
 values
   ('11111111-1111-1111-1111-111111111111', 'member@example.com'),
-  ('22222222-2222-2222-2222-222222222222', 'admin@example.com');
+  ('22222222-2222-2222-2222-222222222222', 'admin@example.com'),
+  ('33333333-3333-3333-3333-333333333333', 'moderator@example.com');
 
 insert into public.user_profiles (id, username, country_code, role)
 values
   ('11111111-1111-1111-1111-111111111111', 'member', 'unknown', 'User'),
-  ('22222222-2222-2222-2222-222222222222', 'admin', 'unknown', 'Admin')
+  ('22222222-2222-2222-2222-222222222222', 'admin', 'unknown', 'Admin'),
+  ('33333333-3333-3333-3333-333333333333', 'moderator', 'unknown', 'Moderator')
 on conflict (id) do update set role = excluded.role;
 
 insert into public.games (name, description, is_published)
@@ -18,6 +20,11 @@ values ('CMS test draft', '', false), ('CMS test published', '', true);
 
 insert into public.game_badges (game_id, name, description, difficulty, tier)
 select id, 'CMS test published badge', '', 'medium', 'mid'
+from public.games
+where name = 'CMS test published';
+
+insert into public.game_badges (game_id, name, description, difficulty, tier)
+select id, 'CMS test published special badge', '', 'extreme', 'high'
 from public.games
 where name = 'CMS test published';
 
@@ -131,6 +138,23 @@ select lives_ok(
 select lives_ok(
   $$update public.game_badges set description = 'updated' where name = 'admin badge'$$,
   'admins can update badge definitions'
+);
+
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', true);
+select results_eq(
+  $$select name from public.games where name like 'CMS test %' order by name$$,
+  array['CMS test published'],
+  'moderators can read published games for special badge awards only'
+);
+select lives_ok(
+  $$insert into public.user_badges (user_id, badge_id) select '11111111-1111-1111-1111-111111111111', id from public.game_badges where name = 'CMS test published special badge'$$,
+  'moderators can award special badges to another user'
+);
+select throws_ok(
+  $$insert into public.user_badges (user_id, badge_id) select '11111111-1111-1111-1111-111111111111', id from public.game_badges where name = 'CMS test published badge'$$,
+  '42501',
+  null,
+  'moderators cannot award non-special badges to another user'
 );
 
 select * from finish();

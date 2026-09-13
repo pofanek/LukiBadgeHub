@@ -31,6 +31,7 @@ import { useGamesPageSize } from "../../hooks/useGamesPageSize";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { supabase } from "../../utils/supabase";
 import { ImageCropDialog } from "../Settings/components";
+import AdminAwards from "../AdminAwards/AdminAwards";
 
 type GameForm = {
   name: string;
@@ -232,12 +233,19 @@ function AdminGames() {
   );
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(true);
   const [isStartingLeaderboard, setIsStartingLeaderboard] = useState(false);
+  const [featuredGameIds, setFeaturedGameIds] = useState<number[]>([]);
+  const [featuredGameOptions, setFeaturedGameOptions] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [isFeaturedGamesLoading, setIsFeaturedGamesLoading] = useState(true);
+  const [savingFeaturedSlot, setSavingFeaturedSlot] = useState<number | null>(null);
   const [badgeSearchTerm, setBadgeSearchTerm] = useState("");
   const [form, setForm] = useState<GameForm>(emptyForm);
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedBadgeId, setSelectedBadgeId] = useState<number | null>(null);
   const [badgeForm, setBadgeForm] = useState<BadgeForm>(emptyBadgeForm);
+  const [badgeDrafts, setBadgeDrafts] = useState<Record<number, BadgeForm>>({});
   const [isSavingBadge, setIsSavingBadge] = useState(false);
   const [isUploadingBadgeIcon, setIsUploadingBadgeIcon] = useState(false);
   const [isUploading, setIsUploading] = useState<"cover" | "banner" | null>(
@@ -247,6 +255,7 @@ function AdminGames() {
   const previousPageSize = useRef(pageSize);
 
   const isAdmin = profile?.role === "Admin";
+  const canAwardSpecialBadges = isAdmin || profile?.role === "Moderator";
   const isLeaderboardOwner =
     user?.id === import.meta.env.VITE_LEADERBOARD_OWNER_ID;
   const selectedGame = useMemo(
@@ -272,6 +281,19 @@ function AdminGames() {
         : null,
     [badgeForm.difficulty, badgeForm.tier, selectedBadge],
   );
+  const badgeDraftPreview = (badge: BadgeRow): BadgeRow => {
+    const draft = badgeDrafts[badge.id];
+    if (!draft) return badge;
+    return {
+      ...badge,
+      name: draft.name,
+      description: draft.description,
+      additional_note: draft.additionalNote || null,
+      difficulty: draft.difficulty,
+      tier: draft.tier,
+      icon_path: draft.difficulty === "inhuman" ? badge.icon_path : null,
+    };
+  };
   const filteredBadges = useMemo(() => {
     const query = badgeSearchTerm.trim().toLocaleLowerCase();
     const matchingBadges = !query
@@ -335,6 +357,34 @@ function AdminGames() {
         }
         setIsLeaderboardLoading(false);
       });
+    return () => {
+      active = false;
+    };
+  }, [id, isLeaderboardOwner]);
+
+  useEffect(() => {
+    if (!isLeaderboardOwner || id) return;
+    let active = true;
+    Promise.all([
+      supabase
+        .from("homepage_featured_games")
+        .select("slot, game_id")
+        .order("slot"),
+      supabase
+        .from("games")
+        .select("id, name")
+        .eq("is_published", true)
+        .order("name"),
+    ]).then(([featuredResult, gamesResult]) => {
+      if (!active) return;
+      if (featuredResult.error || gamesResult.error) {
+        setError("Featured games could not be loaded.");
+      } else {
+        setFeaturedGameIds((featuredResult.data || []).map((item) => item.game_id));
+        setFeaturedGameOptions((gamesResult.data || []) as { id: number; name: string }[]);
+      }
+      setIsFeaturedGamesLoading(false);
+    });
     return () => {
       active = false;
     };
@@ -443,7 +493,13 @@ function AdminGames() {
           setError("Badges could not be loaded.");
           return;
         }
-        setBadges((data || []) as BadgeRow[]);
+        const loadedBadges = (data || []) as BadgeRow[];
+        setBadges(loadedBadges);
+        setBadgeDrafts(
+          Object.fromEntries(
+            loadedBadges.map((badge) => [badge.id, formFromBadge(badge)]),
+          ),
+        );
       });
     return () => {
       active = false;
@@ -452,10 +508,18 @@ function AdminGames() {
 
   useEffect(() => {
     queueMicrotask(() => {
-      if (selectedBadge) setBadgeForm(formFromBadge(selectedBadge));
+      if (selectedBadge) setBadgeForm(badgeDrafts[selectedBadge.id] || formFromBadge(selectedBadge));
       else setBadgeForm(emptyBadgeForm);
     });
-  }, [selectedBadge]);
+  }, [badgeDrafts, selectedBadge]);
+
+  const updateBadgeForm = (changes: Partial<BadgeForm>) => {
+    const next = { ...badgeForm, ...changes };
+    setBadgeForm(next);
+    if (selectedBadgeId) {
+      setBadgeDrafts((drafts) => ({ ...drafts, [selectedBadgeId]: next }));
+    }
+  };
 
   const createGame = async () => {
     setError("");
@@ -518,6 +582,27 @@ function AdminGames() {
     setNotice(
       `Leaderboard rankings reverted for ${result.cleared_players.toLocaleString()} players.`,
     );
+  };
+
+  const saveFeaturedGame = async (slot: number, gameId: number) => {
+    setError("");
+    setNotice("");
+    setSavingFeaturedSlot(slot);
+    const { error: updateError } = await supabase
+      .from("homepage_featured_games")
+      .update({ game_id: gameId })
+      .eq("slot", slot);
+    setSavingFeaturedSlot(null);
+    if (updateError) {
+      setError("The featured game could not be saved. Try again.");
+      return;
+    }
+    setFeaturedGameIds((current) =>
+      current.map((currentGameId, index) =>
+        index + 1 === slot ? gameId : currentGameId,
+      ),
+    );
+    setNotice(`Featured game slot ${slot} saved.`);
   };
 
   const saveGame = async () => {
@@ -645,45 +730,58 @@ function AdminGames() {
     }
     const badge = data as BadgeRow;
     setBadges((current) => [...current, badge]);
+    setBadgeDrafts((current) => ({
+      ...current,
+      [badge.id]: formFromBadge(badge),
+    }));
     setSelectedBadgeId(badge.id);
-    setNotice("Badge added. Complete its details and save it.");
+    setNotice("Badge added. Complete its details, then save all badges.");
   };
 
-  const saveBadge = async () => {
-    if (!selectedBadge) return;
-    const name = badgeForm.name.trim();
-    if (!name) {
-      setError("Enter a badge name before saving.");
-      return;
-    }
+  const saveBadges = async () => {
     setError("");
     setNotice("");
     setIsSavingBadge(true);
-    const { data, error: updateError } = await supabase
-      .from("game_badges")
-      .update({
-        name,
-        description: badgeForm.description.trim(),
-        additional_note: badgeForm.additionalNote.trim() || null,
-        difficulty: badgeForm.difficulty,
-        tier: badgeForm.tier,
-        icon_path:
-          badgeForm.difficulty === "inhuman" ? selectedBadge.icon_path : null,
-      })
-      .eq("id", selectedBadge.id)
-      .select("*")
-      .single();
-    setIsSavingBadge(false);
-    if (updateError || !data) {
-      setError("The badge could not be saved. Check the fields and try again.");
+    const invalidBadge = badges.find(
+      (badge) => !(badgeDrafts[badge.id] || formFromBadge(badge)).name.trim(),
+    );
+    if (invalidBadge) {
+      setIsSavingBadge(false);
+      setError("Every badge needs a name before saving.");
+      setSelectedBadgeId(invalidBadge.id);
       return;
     }
-    setBadges((current) =>
-      current.map((badge) =>
-        badge.id === selectedBadge.id ? (data as BadgeRow) : badge,
+    const results = await Promise.all(
+      badges.map((badge) => {
+        const draft = badgeDrafts[badge.id] || formFromBadge(badge);
+        return supabase
+          .from("game_badges")
+          .update({
+            name: draft.name.trim(),
+            description: draft.description.trim(),
+            additional_note: draft.additionalNote.trim() || null,
+            difficulty: draft.difficulty,
+            tier: draft.tier,
+            icon_path: draft.difficulty === "inhuman" ? badge.icon_path : null,
+          })
+          .eq("id", badge.id)
+          .select("*")
+          .single();
+      }),
+    );
+    setIsSavingBadge(false);
+    if (results.some(({ error: updateError, data }) => updateError || !data)) {
+      setError("Some badges could not be saved. Check the fields and try again.");
+      return;
+    }
+    const savedBadges = results.map(({ data }) => data as BadgeRow);
+    setBadges(savedBadges);
+    setBadgeDrafts(
+      Object.fromEntries(
+        savedBadges.map((badge) => [badge.id, formFromBadge(badge)]),
       ),
     );
-    setNotice("Badge saved.");
+    setNotice(`${savedBadges.length} badge${savedBadges.length === 1 ? "" : "s"} saved.`);
   };
 
   const uploadBadgeIcon = async (file?: File) => {
@@ -740,11 +838,11 @@ function AdminGames() {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
-  if (!isAdmin) {
+  if (!canAwardSpecialBadges) {
     return (
       <section className="flex min-h-[calc(100vh-4rem)] w-full flex-1 items-center justify-center px-4 py-10 text-center">
         <p className="text-font-primary max-w-md font-serif text-2xl leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]">
-          This page is available to Admins only.
+          This page is available to Admins and Moderators only.
         </p>
       </section>
     );
@@ -753,13 +851,17 @@ function AdminGames() {
   const inputClass =
     "border-border bg-surface-soft text-font-primary placeholder:text-font-muted focus:border-accent-cold w-full rounded-lg border px-3 py-2.5 text-sm outline-none";
 
+  if (!isAdmin) {
+    return <AdminAwards />;
+  }
+
   if (!id) {
     return (
       <section className="min-h-[calc(100vh-4rem)] w-full flex-1 py-8 sm:py-10">
         <div className="w-full px-3 sm:px-7 lg:px-10">
           <header className="border-border flex flex-wrap items-end justify-between gap-4 border-b pb-6">
-            <div>
-              <p className="text-accent-cold text-sm font-medium">Admin</p>
+            <div className="border-accent-cold/30 bg-brand-tertiary/35 rounded-xl border p-4 sm:p-5">
+              <p className="text-accent-cold text-sm font-medium">Admin CMS</p>
               <h1 className="text-font-primary mt-1 font-serif text-4xl">
                 Games CMS
               </h1>
@@ -870,8 +972,47 @@ function AdminGames() {
           <p className="text-font-muted mt-8 text-sm">
             Game deletion is intentionally available only in Supabase Dashboard.
           </p>
+          <AdminAwards embedded />
           {isLeaderboardOwner && (
-            <section className="border-border bg-surface/75 mt-6 rounded-xl border p-5 sm:p-6">
+            <section className="mt-12">
+              <div className="border-border border-b pb-6">
+                <header className="border-accent-cold/30 bg-brand-tertiary/35 w-full max-w-[634px] rounded-xl border p-4 sm:p-5">
+                  <p className="text-accent-cold text-sm font-medium">Owner CMS</p>
+                  <h2 className="text-font-primary mt-1 font-serif text-4xl">
+                    CMS Options for Owner
+                  </h2>
+                  <p className="text-font-secondary mt-2 max-w-2xl">
+                    Homepage and leaderboard settings available only to the owner account.
+                  </p>
+                </header>
+              </div>
+              <div className="border-border bg-surface/75 mt-6 rounded-xl border p-6 sm:p-7">
+              <div className="border-border mt-8 border-t pt-8">
+                <h3 className="text-font-primary font-serif text-xl">Featured games</h3>
+                <p className="text-font-secondary mt-1 text-sm">Choose the five games shown to visitors on the homepage.</p>
+              {isFeaturedGamesLoading ? (
+                <p className="text-font-muted mt-4 text-sm">Loading featured games...</p>
+              ) : (
+                <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                  {featuredGameIds.map((gameId, index) => (
+                    <Field key={index} label={`Slot ${index + 1}`}>
+                      <ChoiceSelect
+                        value={String(gameId)}
+                        onChange={(value) => void saveFeaturedGame(index + 1, Number(value))}
+                        options={featuredGameOptions.map((game) => ({
+                          value: String(game.id),
+                          label: game.name,
+                        }))}
+                      />
+                      {savingFeaturedSlot === index + 1 && (
+                        <p className="text-font-muted mt-1 text-xs">Saving...</p>
+                      )}
+                    </Field>
+                  ))}
+                </div>
+              )}
+              </div>
+              <div className="border-border mt-10 border-t pt-8">
               <div className="flex flex-wrap items-start justify-between gap-5">
                 <div className="flex min-w-0 gap-3">
                   <FiAward className="text-accent-cold mt-0.5 h-6 w-6 shrink-0" />
@@ -925,6 +1066,8 @@ function AdminGames() {
                   </div>
                 )}
               </div>
+              </div>
+              </div>
             </section>
           )}
         </div>
@@ -973,8 +1116,8 @@ function AdminGames() {
           </button>
         </header>
         {selectedGame && (
-          <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-            <div className="border-border bg-surface/75 space-y-5 rounded-xl border p-5 sm:p-6">
+          <div className="mt-10 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <div className="border-border bg-surface/75 space-y-7 rounded-xl border p-6 sm:p-7">
               <Field label="Game title">
                 <input
                   value={form.name}
@@ -1046,7 +1189,7 @@ function AdminGames() {
                   className={`${inputClass} resize-none`}
                 />
               </Field>
-              <section className="border-border border-t pt-5">
+              <section className="border-border mt-4 border-t pt-8">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="text-font-primary font-serif text-2xl">
@@ -1089,10 +1232,7 @@ function AdminGames() {
                     ) : (
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
                         {filteredBadges.map((badge) => {
-                          const displayedBadge =
-                            badge.id === selectedBadgeId && badgePreview
-                              ? badgePreview
-                              : badge;
+                          const displayedBadge = badgeDraftPreview(badge);
                           return (
                             <button
                               key={displayedBadge.id}
@@ -1149,10 +1289,7 @@ function AdminGames() {
                       <input
                         value={badgeForm.name}
                         onChange={(event) =>
-                          setBadgeForm({
-                            ...badgeForm,
-                            name: event.target.value,
-                          })
+                          updateBadgeForm({ name: event.target.value })
                         }
                         className={inputClass}
                       />
@@ -1161,10 +1298,7 @@ function AdminGames() {
                       <textarea
                         value={badgeForm.description}
                         onChange={(event) =>
-                          setBadgeForm({
-                            ...badgeForm,
-                            description: event.target.value,
-                          })
+                          updateBadgeForm({ description: event.target.value })
                         }
                         rows={4}
                         className={`${inputClass} resize-none`}
@@ -1177,10 +1311,7 @@ function AdminGames() {
                       <textarea
                         value={badgeForm.additionalNote}
                         onChange={(event) =>
-                          setBadgeForm({
-                            ...badgeForm,
-                            additionalNote: event.target.value,
-                          })
+                          updateBadgeForm({ additionalNote: event.target.value })
                         }
                         rows={3}
                         className={`${inputClass} resize-none`}
@@ -1191,10 +1322,7 @@ function AdminGames() {
                         <ChoiceSelect
                           value={badgeForm.difficulty}
                           onChange={(difficulty) =>
-                            setBadgeForm({
-                              ...badgeForm,
-                              difficulty,
-                            })
+                            updateBadgeForm({ difficulty })
                           }
                           options={BADGE_DIFFICULTIES.map((difficulty) => ({
                             value: difficulty,
@@ -1206,10 +1334,7 @@ function AdminGames() {
                         <ChoiceSelect
                           value={badgeForm.tier}
                           onChange={(tier) =>
-                            setBadgeForm({
-                              ...badgeForm,
-                              tier,
-                            })
+                            updateBadgeForm({ tier })
                           }
                           options={BADGE_TIERS.map((tier) => ({
                             value: tier,
@@ -1264,11 +1389,11 @@ function AdminGames() {
                     <div className="flex justify-end">
                       <button
                         type="button"
-                        onClick={saveBadge}
+                        onClick={saveBadges}
                         disabled={isSavingBadge}
                         className="bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-60"
                       >
-                        <FiSave /> {isSavingBadge ? "Saving..." : "Save badge"}
+                        <FiSave /> {isSavingBadge ? "Saving..." : "Save badges"}
                       </button>
                     </div>
                   </div>

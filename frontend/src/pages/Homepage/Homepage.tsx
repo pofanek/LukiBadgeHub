@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   FiArrowRight,
   FiAward,
-  FiClock,
   FiMonitor,
   FiLayers,
   FiTrendingUp,
@@ -10,14 +9,17 @@ import {
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { FocusContent, LoadingIndicator } from "../../components";
-import type { CatalogueGame } from "../../constants";
+import { getBadgeExperience, type CatalogueGame } from "../../constants";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { useGames } from "../../hooks/useGames";
 import { type LeaderboardEntry, useLeaderboard } from "../../hooks/useLeaderboard";
 import { useUserProfile } from "../../hooks/useUserProfile";
+import { getLevelProgress } from "../../utils/leveling";
 import { supabase } from "../../utils/supabase";
 
 type LibraryEntry = { game_id: number; added_at: string };
+type BadgeClaim = { badge_id: number; earned_at: string };
+type Activity = { id: string; timestamp: string; icon: "library" | "badge" | "level"; content: ReactNode };
 
 const difficulties = [
   [
@@ -346,7 +348,8 @@ function Homepage() {
   const [libraryEntries, setLibraryEntries] = useState<LibraryEntry[] | null>(
     null,
   );
-  const [earnedBadgeIds, setEarnedBadgeIds] = useState<number[] | null>(null);
+  const [earnedBadgeClaims, setEarnedBadgeClaims] = useState<BadgeClaim[] | null>(null);
+  const [featuredGameIds, setFeaturedGameIds] = useState<number[] | null>(null);
   const { entries: leaderboardEntries, position: leaderboardPosition, isLoading: isLeaderboardLoading } = useLeaderboard("experience", null, 1, user?.id);
 
   useEffect(() => {
@@ -370,18 +373,32 @@ function Homepage() {
   }, [user]);
 
   useEffect(() => {
+    let current = true;
+    supabase
+      .from("homepage_featured_games")
+      .select("slot, game_id")
+      .order("slot")
+      .then(({ data }) => {
+        if (current) setFeaturedGameIds((data || []).map((entry) => entry.game_id));
+      });
+    return () => {
+      current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!user) {
-      setEarnedBadgeIds([]);
+      setEarnedBadgeClaims([]);
       return;
     }
     let current = true;
-    setEarnedBadgeIds(null);
+    setEarnedBadgeClaims(null);
     supabase
       .from("user_badges")
-      .select("badge_id")
+      .select("badge_id, earned_at")
       .eq("user_id", user.id)
       .then(({ data }) => {
-        if (current) setEarnedBadgeIds((data || []).map((badge) => badge.badge_id));
+        if (current) setEarnedBadgeClaims((data || []) as BadgeClaim[]);
       });
     return () => {
       current = false;
@@ -398,15 +415,62 @@ function Homepage() {
     [catalogueGames, libraryEntries],
   );
   const earnedBadgeIdSet = useMemo(
-    () => new Set(earnedBadgeIds || []),
-    [earnedBadgeIds],
+    () => new Set((earnedBadgeClaims || []).map((claim) => claim.badge_id)),
+    [earnedBadgeClaims],
   );
-  const potentialExp = useMemo(
-    () => libraryGames.reduce((total, game) => total + game.totalExp, 0),
-    [libraryGames],
+  const earnedBadges = useMemo(
+    () =>
+      catalogueGames.flatMap((game) =>
+        game.badges.filter((badge) => earnedBadgeIdSet.has(badge.id)),
+      ),
+    [catalogueGames, earnedBadgeIdSet],
+  );
+  const earnedExp = useMemo(
+    () =>
+      earnedBadges.reduce(
+        (total, badge) =>
+          total + getBadgeExperience(badge.difficulty, badge.tier),
+        0,
+      ),
+    [earnedBadges],
   );
   const currentRank = leaderboardPosition?.player_rank || null;
   const username = profile?.username || user?.email?.split("@")[0] || "player";
+  const latestLibraryGame = libraryEntries?.[0]
+    ? catalogueGames.find((game) => game.id === libraryEntries[0].game_id)
+    : null;
+  const featuredGames = useMemo(
+    () =>
+      featuredGameIds?.length === 5
+        ? featuredGameIds
+            .map((id) => catalogueGames.find((game) => game.id === id))
+            .filter((game): game is CatalogueGame => Boolean(game))
+        : catalogueGames.slice(0, 5),
+    [catalogueGames, featuredGameIds],
+  );
+  const recentActivity = useMemo<Activity[]>(() => {
+    const badgeById = new Map(catalogueGames.flatMap((game) => game.badges.map((badge) => [badge.id, { badge, game }] as const)));
+    const activities: Activity[] = (libraryEntries || []).map((entry) => ({
+      id: `library-${entry.game_id}-${entry.added_at}`,
+      timestamp: entry.added_at,
+      icon: "library",
+      content: <>Added <span className="font-medium">{catalogueGames.find((game) => game.id === entry.game_id)?.title || "a game"}</span> to your library</>,
+    }));
+    let previousExp = 0;
+    [...(earnedBadgeClaims || [])].sort((left, right) => left.earned_at.localeCompare(right.earned_at)).forEach((claim) => {
+      const entry = badgeById.get(claim.badge_id);
+      if (!entry) return;
+      const nextExp = previousExp + getBadgeExperience(entry.badge.difficulty, entry.badge.tier);
+      activities.push({ id: `badge-${claim.badge_id}-${claim.earned_at}`, timestamp: claim.earned_at, icon: "badge", content: <>Unlocked <span className="font-medium">{entry.badge.name}</span> in {entry.game.title}</> });
+      const previousLevel = getLevelProgress(previousExp).level;
+      const nextLevel = getLevelProgress(nextExp).level;
+      for (let level = Math.ceil((previousLevel + 1) / 10) * 10; level <= nextLevel; level += 10) {
+        activities.push({ id: `level-${level}-${claim.earned_at}`, timestamp: claim.earned_at, icon: "level", content: <>Reached <span className="font-medium">Level {level}</span></> });
+      }
+      previousExp = nextExp;
+    });
+    return activities.sort((left, right) => right.timestamp.localeCompare(left.timestamp));
+  }, [catalogueGames, earnedBadgeClaims, libraryEntries]);
 
   if (isAuthLoading || isGamesLoading)
     return (
@@ -426,7 +490,7 @@ function Homepage() {
         }
         action={<ActionLink to="/games">Browse all games</ActionLink>}
       />
-      <GameCards games={catalogueGames.slice(0, 5)} />
+      <GameCards games={user ? catalogueGames.slice(0, 5) : featuredGames} />
     </section>
   );
 
@@ -449,8 +513,20 @@ function Homepage() {
                 </p>
                 <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {[
-                    ["EXP earned", "0", "Badges are coming soon"],
-                    ["Badges", "0", "Start your first challenge"],
+                    [
+                      "EXP earned",
+                      earnedExp.toLocaleString(),
+                      earnedBadges.length
+                        ? "Earned from completed badges"
+                        : "Complete badges to earn EXP",
+                    ],
+                    [
+                      "Badges",
+                      earnedBadges.length.toLocaleString(),
+                      earnedBadges.length
+                        ? "Completed badge challenges"
+                        : "Start your first challenge",
+                    ],
                     [
                       "Current rank",
                       currentRank ? `#${currentRank}` : "—",
@@ -459,7 +535,9 @@ function Homepage() {
                     [
                       "Games in library",
                       libraryGames.length.toString(),
-                      `${potentialExp.toLocaleString()} potential EXP`,
+                      latestLibraryGame
+                        ? `Latest addition: ${latestLibraryGame.title}`
+                        : "Add your first game",
                     ],
                   ].map(([label, value, detail]) => (
                     <div
@@ -483,7 +561,7 @@ function Homepage() {
                   description="Pick up where you left off, or add a new challenge to your library."
                   action={<ActionLink to="/profile">View profile</ActionLink>}
                 />
-                {libraryEntries === null || earnedBadgeIds === null ? (
+                {libraryEntries === null || earnedBadgeClaims === null ? (
                   <div className="py-10">
                     <LoadingIndicator label="Loading your games..." />
                   </div>
@@ -517,43 +595,35 @@ function Homepage() {
                     title="Recent activity"
                     description="The latest changes to your badge journey."
                   />
-                  {libraryEntries?.length ? (
+                  {recentActivity.length ? (
                     <ul className="divide-border divide-y">
-                      {libraryEntries
+                      {recentActivity
                         .slice(0, 4)
-                        .map(({ game_id, added_at }) => {
-                          const game = catalogueGames.find(
-                            (item) => item.id === game_id,
-                          );
-                          return game ? (
+                        .map(({ id, timestamp, icon, content }) => {
+                          const Icon = icon === "library" ? FiMonitor : icon === "badge" ? FiAward : FiTrendingUp;
+                          return (
                             <li
-                              key={`${game_id}-${added_at}`}
+                              key={id}
                               className="flex gap-3 py-3 first:pt-0 last:pb-0"
                             >
-                              <FiClock className="text-accent-cold mt-0.5 h-5 w-5 shrink-0" />
+                              <Icon className="text-accent-cold mt-0.5 h-5 w-5 shrink-0" />
                               <div>
-                                <p className="text-font-primary text-sm">
-                                  Added{" "}
-                                  <span className="font-medium">
-                                    {game.title}
-                                  </span>{" "}
-                                  to your library
-                                </p>
+                                <p className="text-font-primary text-sm">{content}</p>
                                 <p className="text-font-muted mt-1 text-xs">
                                   {new Intl.DateTimeFormat(undefined, {
                                     day: "numeric",
                                     month: "short",
                                     year: "numeric",
-                                  }).format(new Date(added_at))}
+                                  }).format(new Date(timestamp))}
                                 </p>
                               </div>
                             </li>
-                          ) : null;
+                          );
                         })}
                     </ul>
                   ) : (
                     <p className="text-font-muted text-sm">
-                      Add a game to create your first activity entry.
+                      Add a game or unlock a badge to create your first activity entry.
                     </p>
                   )}
                 </section>

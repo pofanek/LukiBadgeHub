@@ -61,6 +61,7 @@ export type RecentPlayer = {
   avatarUrl?: string;
   obtained: number;
   total: number;
+  experience: number;
 };
 
 export type GameDetailData = {
@@ -297,6 +298,7 @@ const demoGame: GameDetailData = {
       playedAt: "2d ago",
       obtained: 40,
       total: 40,
+      experience: 3680,
     },
     {
       id: "2",
@@ -304,6 +306,7 @@ const demoGame: GameDetailData = {
       playedAt: "5d ago",
       obtained: 28,
       total: 40,
+      experience: 2640,
     },
     {
       id: "3",
@@ -311,6 +314,7 @@ const demoGame: GameDetailData = {
       playedAt: "1w ago",
       obtained: 12,
       total: 40,
+      experience: 1120,
     },
     {
       id: "4",
@@ -318,6 +322,7 @@ const demoGame: GameDetailData = {
       playedAt: "1w ago",
       obtained: 8,
       total: 40,
+      experience: 760,
     },
   ],
 };
@@ -512,6 +517,12 @@ export function GameDetailTemplate({ game }: TemplateProps) {
             : undefined,
           obtained: claims.length,
           total: achievements.length,
+          experience: claims.reduce(
+            (total, claim) =>
+              total +
+              (achievements.find((achievement) => Number(achievement.id) === claim.badge_id)?.exp || 0),
+            0,
+          ),
         };
       })
       .sort((left, right) => right.obtained - left.obtained || left.username.localeCompare(right.username))
@@ -863,7 +874,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
             <Progress current={progressExp} total={totalExp} />
             <BadgeProgress current={obtained} total={achievementTotal} />
             {progressGame.recentPlayers.length > 0 && (
-              <RecentPlayers players={progressGame.recentPlayers} />
+              <RecentPlayers gameId={progressGame.id} players={progressGame.recentPlayers} />
             )}
           </aside>
         </div>
@@ -1726,18 +1737,16 @@ function BadgeProgress({ current, total }: { current: number; total: number }) {
     </section>
   );
 }
-function RecentPlayers({ players }: { players: RecentPlayer[] }) {
+function RecentPlayers({ gameId, players }: { gameId: number; players: RecentPlayer[] }) {
   return (
     <section className="border-border bg-surface/75 rounded-xl border p-3">
       <div className="flex items-center justify-between">
         <h2 className="text-font-primary font-serif text-lg">Top Players</h2>
-        <button
-          type="button"
-          className="text-accent-cold text-xs hover:underline"
-        >
+        <Link to={`/games/${gameId}/players`} className="text-accent-cold text-xs hover:underline">
           View All
-        </button>
+        </Link>
       </div>
+      <div className="text-font-muted mt-3 grid grid-cols-[1fr_auto] gap-3 border-b border-border pb-2 text-[10px] uppercase"><span>Player</span><span>Badges collected</span></div>
       <div className="mt-3 space-y-3">
         {players.map((player) => (
           <Link
@@ -1760,7 +1769,7 @@ function RecentPlayers({ players }: { players: RecentPlayer[] }) {
                 {player.username}
               </p>
               <p className="text-font-muted text-[11px]">{player.playedAt}</p>
-              <div className="bg-surface-raised mt-1 h-1.5 overflow-hidden rounded-full">
+              <div className="bg-primary/75 mt-1 h-1.5 overflow-hidden rounded-full">
                 <div
                   className="bg-accent-cold h-full rounded-full"
                   style={{
@@ -1769,9 +1778,7 @@ function RecentPlayers({ players }: { players: RecentPlayer[] }) {
                 />
               </div>
             </div>
-            <span className="text-font-secondary text-xs">
-              {player.obtained}/{player.total}
-            </span>
+            <span className="text-font-secondary text-xs">{player.obtained}/{player.total}</span>
           </Link>
         ))}
       </div>
