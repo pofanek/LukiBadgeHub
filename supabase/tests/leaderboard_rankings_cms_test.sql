@@ -70,16 +70,15 @@ select results_eq(
   'the snapshot stores each player''s current rank'
 );
 
-select set_config('request.jwt.claim.sub', '88888888-8888-8888-8888-888888888888', true);
-insert into public.user_badges (user_id, badge_id)
-select '88888888-8888-8888-8888-888888888888', id
-from public.game_badges
-where name = 'Leaderboard rankings CMS medium badge';
+select set_config('request.jwt.claim.sub', '3fd7d1a9-c1f2-4ba9-91d1-dd8f4154b8a3', true);
+update public.game_badges
+set difficulty = 'inhuman', tier = 'high'
+where name = 'Leaderboard rankings CMS easy badge';
 
 select results_eq(
   $$select best_rank from public.leaderboard_best_positions where profile_id = '88888888-8888-8888-8888-888888888888'$$,
   array[1::bigint],
-  'future badge claims preserve only an improved highest position'
+  'a badge balance change automatically improves the affected best rank'
 );
 
 select set_config('request.jwt.claim.sub', '3fd7d1a9-c1f2-4ba9-91d1-dd8f4154b8a3', true);

@@ -711,7 +711,11 @@ function AdminGames() {
     }
     const { data, error: updateError } = await supabase
       .from("game_badges")
-      .update({ icon_path: path })
+      .update({
+        difficulty: badgeForm.difficulty,
+        tier: badgeForm.tier,
+        icon_path: path,
+      })
       .eq("id", selectedBadge.id)
       .select("*")
       .single();
@@ -738,9 +742,11 @@ function AdminGames() {
   if (!user) return <Navigate to="/login" replace />;
   if (!isAdmin) {
     return (
-      <div className="bg-primary text-font-secondary min-h-96 py-20 text-center">
-        This page is available to Admins only.
-      </div>
+      <section className="flex min-h-[calc(100vh-4rem)] w-full flex-1 items-center justify-center px-4 py-10 text-center">
+        <p className="text-font-primary max-w-md font-serif text-2xl leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]">
+          This page is available to Admins only.
+        </p>
+      </section>
     );
   }
 

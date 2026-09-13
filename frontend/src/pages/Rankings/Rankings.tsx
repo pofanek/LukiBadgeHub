@@ -10,7 +10,7 @@ import { type LeaderboardBoard, useLeaderboard } from "../../hooks/useLeaderboar
 const boards: { value: LeaderboardBoard; label: string }[] = [
   { value: "experience", label: "EXP" },
   { value: "badges", label: "Badges" },
-  { value: "difficulty", label: "Difficulty badges" },
+  { value: "difficulty", label: "Badges by difficulty" },
 ];
 const difficulties = Object.keys(BADGE_DIFFICULTY_DETAILS) as BadgeDifficultyId[];
 
@@ -66,8 +66,29 @@ function Rankings() {
             <h1 className="text-font-primary font-serif text-4xl sm:text-5xl">Leaderboards</h1>
             <p className="text-font-secondary mt-2 max-w-2xl leading-relaxed">All-time progress earned from completed badge challenges.</p>
           </header>
-          <div className="border-border mt-5 flex flex-wrap items-center gap-1 border-b">
-            {boards.map(({ value, label }) => <button key={value} type="button" onClick={() => setBoard(value)} className={`relative px-4 py-3.5 text-base font-semibold sm:px-5 ${board === value ? "text-font-primary" : "text-font-muted hover:text-font-secondary"}`}>{label}{board === value && <span className="bg-accent-cold absolute right-4 bottom-0 left-4 h-0.5 sm:right-5 sm:left-5" />}</button>)}
+          <div className="border-border mt-5 flex flex-wrap items-center gap-2 border-b pb-5">
+            <button
+              type="button"
+              onClick={() => setBoard("experience")}
+              aria-pressed={board === "experience"}
+              className={`rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors ${board === "experience" ? "border-accent-cold bg-brand-tertiary text-font-primary" : "border-border bg-surface/75 text-font-secondary hover:border-accent-cold hover:text-font-primary"}`}
+            >
+              EXP leaderboard
+            </button>
+            <span className="border-border hidden h-7 border-l sm:block" aria-hidden="true" />
+            {boards
+              .filter(({ value }) => value !== "experience")
+              .map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setBoard(value)}
+                  aria-pressed={board === value}
+                  className={`rounded-lg border px-3.5 py-2.5 text-sm font-medium transition-colors ${board === value ? "border-accent-cold bg-surface-raised text-font-primary" : "border-border bg-surface/75 text-font-secondary hover:border-accent-cold hover:text-font-primary"}`}
+                >
+                  {label}
+                </button>
+              ))}
           </div>
           {board === "difficulty" && <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6" aria-label="Badge difficulty">{difficulties.map((item) => {
             const details = BADGE_DIFFICULTY_DETAILS[item];
