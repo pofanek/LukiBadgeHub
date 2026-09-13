@@ -11,7 +11,8 @@ import {
 import { LoadingIndicator } from "../../components";
 import type { CatalogueGame } from "../../constants";
 import { useAuthUser } from "../../hooks/useAuthUser";
-import { useGames } from "../../hooks/useGames";
+import { fetchGamesPage } from "../../hooks/useGames";
+import { useGamesPageSize } from "../../hooks/useGamesPageSize";
 import { supabase } from "../../utils/supabase";
 
 type SortOption = "name" | "release";
@@ -22,7 +23,7 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   Hard: "bg-[#f4900c]",
   Extreme: "bg-[#dd2e44]",
   Supreme: "bg-[#aa8ed6]",
-  Inhuman: "bg-[#31373d]",
+  Inhuman: "bg-[#9CA3AF]",
 };
 
 const SORT_LABELS: Record<SortOption, string> = {
@@ -30,29 +31,71 @@ const SORT_LABELS: Record<SortOption, string> = {
   release: "Release date",
 };
 
+const EMPTY_GAME_IDS: number[] = [];
+
 function Games() {
   const { user, isLoading: isAuthLoading } = useAuthUser();
-  const { games, isLoading: isGamesLoading, error: gamesError } = useGames();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const pageSize = useGamesPageSize();
+  const previousPageSize = useRef(pageSize);
+  const [games, setGames] = useState<CatalogueGame[]>([]);
+  const [gameCount, setGameCount] = useState(0);
+  const [genres, setGenres] = useState<string[]>([]);
+  const [isGamesLoading, setIsGamesLoading] = useState(true);
+  const [gamesError, setGamesError] = useState("");
   const [libraryIds, setLibraryIds] = useState<number[]>([]);
   const [isLibraryLoading, setIsLibraryLoading] = useState(false);
   const [pendingGameId, setPendingGameId] = useState<number | null>(null);
   const [libraryError, setLibraryError] = useState("");
+  const skipNextGamesLoading = useRef(false);
 
   const query = searchParams.get("q") || "";
   const genre = searchParams.get("genre") || "all";
   const scope = searchParams.get("scope") === "library" ? "library" : "all";
   const sort = (searchParams.get("sort") || "release") as SortOption;
   const selectedSort = Object.hasOwn(SORT_LABELS, sort) ? sort : "release";
-  const genres = useMemo(
-    () => [...new Set(games.flatMap((game) => game.genres))].sort(),
-    [games],
+  const page = Math.max(Number(searchParams.get("page")) || 1, 1);
+  const activeLibraryIds = user ? libraryIds : EMPTY_GAME_IDS;
+  const libraryFilterKey =
+    scope === "library" ? activeLibraryIds.join(",") : "";
+  const libraryFilterGameIds = useMemo(
+    () =>
+      libraryFilterKey
+        ? libraryFilterKey.split(",").map(Number)
+        : EMPTY_GAME_IDS,
+    [libraryFilterKey],
   );
-  const activeLibraryIds = useMemo(
-    () => (user ? libraryIds : []),
-    [libraryIds, user],
-  );
+  const isLibraryFilterLoading =
+    scope === "library" && Boolean(user) && isLibraryLoading;
+
+  useEffect(() => {
+    if (previousPageSize.current === pageSize) return;
+    previousPageSize.current = pageSize;
+    const next = new URLSearchParams(searchParams);
+    next.delete("page");
+    setSearchParams(next, { replace: true });
+  }, [pageSize, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    let active = true;
+    supabase
+      .from("games")
+      .select("genres")
+      .eq("is_published", true)
+      .then(({ data, error }) => {
+        if (!active || error) return;
+        setGenres(
+          [
+            ...new Set((data || []).flatMap((game) => game.genres || [])),
+          ].sort(),
+        );
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -81,35 +124,64 @@ function Games() {
     };
   }, [user]);
 
-  const visibleGames = useMemo(
-    () =>
-      games
-        .filter((game) =>
-          game.title.toLowerCase().includes(query.toLowerCase()),
-        )
-        .filter((game) => genre === "all" || game.genres.includes(genre))
-        .filter((game) => scope === "all" || activeLibraryIds.includes(game.id))
-        .sort((left, right) => {
-          if (selectedSort === "name")
-            return left.title.localeCompare(right.title);
-          if (selectedSort === "release")
-            return right.releaseYear - left.releaseYear;
-          return left.title.localeCompare(right.title);
-        }),
-    [activeLibraryIds, games, genre, query, scope, selectedSort],
-  );
+  useEffect(() => {
+    if (isLibraryFilterLoading) return;
+
+    let active = true;
+    const showLoading = !skipNextGamesLoading.current;
+    skipNextGamesLoading.current = false;
+    if (showLoading) {
+      queueMicrotask(() => {
+        if (!active) return;
+        setIsGamesLoading(true);
+        setGamesError("");
+      });
+    }
+    fetchGamesPage({
+      page: page - 1,
+      pageSize,
+      search: query,
+      genre: genre === "all" ? undefined : genre,
+      gameIds: scope === "library" ? libraryFilterGameIds : undefined,
+      sort: selectedSort,
+    })
+      .then(({ games: nextGames, count }) => {
+        if (!active) return;
+        setGames(nextGames);
+        setGameCount(count);
+      })
+      .catch(() => {
+        if (!active) return;
+        setGames([]);
+        setGameCount(0);
+        setGamesError("Games could not be loaded.");
+      })
+      .finally(() => {
+        if (active && showLoading) setIsGamesLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    genre,
+    isLibraryFilterLoading,
+    libraryFilterGameIds,
+    page,
+    pageSize,
+    query,
+    scope,
+    selectedSort,
+  ]);
 
   const updateFilters = (updates: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([key, value]) => {
-      if (
-        !value ||
-        value === "all" ||
-        (key === "sort" && value === "release")
-      )
+      if (!value || value === "all" || (key === "sort" && value === "release"))
         next.delete(key);
       else next.set(key, value);
     });
+    if (!Object.hasOwn(updates, "page")) next.delete("page");
     setSearchParams(next, { replace: true });
   };
 
@@ -143,6 +215,7 @@ function Games() {
       setLibraryError("The library could not be updated. Please try again.");
       return;
     }
+    if (scope === "library") skipNextGamesLoading.current = true;
     setLibraryIds((current) =>
       isInLibrary
         ? current.filter((id) => id !== gameId)
@@ -164,7 +237,7 @@ function Games() {
             </p>
           </div>
           <p className="text-font-muted mt-4 text-sm sm:mt-0">
-            {visibleGames.length} {visibleGames.length === 1 ? "game" : "games"}
+            {gameCount} {gameCount === 1 ? "game" : "games"}
           </p>
         </header>
 
@@ -229,18 +302,27 @@ function Games() {
           <div className="py-20">
             <LoadingIndicator label="Loading games..." />
           </div>
-        ) : visibleGames.length ? (
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
-            {visibleGames.map((game) => (
-              <GameCard
-                key={game.id}
-                game={game}
-                isInLibrary={activeLibraryIds.includes(game.id)}
-                isPending={pendingGameId === game.id}
-                onToggleLibrary={toggleLibrary}
-              />
-            ))}
-          </div>
+        ) : games.length ? (
+          <>
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+              {games.map((game) => (
+                <GameCard
+                  key={game.id}
+                  game={game}
+                  isInLibrary={activeLibraryIds.includes(game.id)}
+                  isPending={pendingGameId === game.id}
+                  onToggleLibrary={toggleLibrary}
+                />
+              ))}
+            </div>
+            <PageNavigation
+              page={page}
+              pageCount={Math.ceil(gameCount / pageSize)}
+              onPageChange={(nextPage) =>
+                updateFilters({ page: String(nextPage) })
+              }
+            />
+          </>
         ) : (
           <div className="border-border bg-surface/75 mt-6 rounded-xl border px-5 py-14 text-center">
             <FiSliders className="text-accent-cold mx-auto h-7 w-7" />
@@ -261,6 +343,45 @@ function Games() {
         )}
       </div>
     </section>
+  );
+}
+
+function PageNavigation({
+  page,
+  pageCount,
+  onPageChange,
+}: {
+  page: number;
+  pageCount: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (pageCount < 2) return null;
+
+  return (
+    <nav
+      className="mt-7 flex items-center justify-center gap-3"
+      aria-label="Games pagination"
+    >
+      <button
+        type="button"
+        disabled={page === 1}
+        onClick={() => onPageChange(page - 1)}
+        className="border-border text-font-secondary hover:text-font-primary rounded-lg border px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-45"
+      >
+        Previous
+      </button>
+      <span className="text-font-muted text-sm">
+        Page {page} of {pageCount}
+      </span>
+      <button
+        type="button"
+        disabled={page === pageCount}
+        onClick={() => onPageChange(page + 1)}
+        className="border-border text-font-secondary hover:text-font-primary rounded-lg border px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-45"
+      >
+        Next
+      </button>
+    </nav>
   );
 }
 
@@ -375,43 +496,47 @@ function GameCard({
             style={{ objectPosition: game.coverPosition }}
           />
           <div className="from-surface-overlay via-surface-overlay/30 absolute inset-x-0 bottom-0 bg-gradient-to-t to-transparent p-3 pt-12">
-            <h2 className={`text-font-primary truncate font-serif text-lg ${game.achievementCount ? "mt-5" : ""}`}>
+            <h2
+              className={`text-font-primary truncate font-serif text-lg ${game.achievementCount ? "mt-5" : ""}`}
+            >
               {game.title}
             </h2>
             {game.achievementCount > 0 && (
               <p className="text-font-secondary mt-0.5 text-xs">
-                {game.achievementCount} badges · {game.totalExp.toLocaleString()}{" "}
-                EXP
+                {game.achievementCount} badges ·{" "}
+                {game.totalExp.toLocaleString()} EXP
               </p>
             )}
           </div>
         </div>
-        {game.achievementCount > 0 && <div
-          className="absolute inset-x-3 bottom-15 flex items-center gap-1.5"
-          aria-label={game.difficulties
-            .map(
-              ({ label, achievementCount }) =>
-                `${achievementCount} ${label} badges`,
-            )
-            .join(", ")}
-        >
-          {game.difficulties.map(({ label, achievementCount }) => (
-            <span
-              key={label}
-              className="group/difficulty relative flex h-3 w-3 items-center justify-center"
-            >
+        {game.achievementCount > 0 && (
+          <div
+            className="absolute inset-x-3 bottom-15 flex items-center gap-1.5"
+            aria-label={game.difficulties
+              .map(
+                ({ label, achievementCount }) =>
+                  `${achievementCount} ${label} badges`,
+              )
+              .join(", ")}
+          >
+            {game.difficulties.map(({ label, achievementCount }) => (
               <span
-                className={`h-2 w-2 rounded-full ${DIFFICULTY_COLORS[label]}`}
-              />
-              <span
-                role="tooltip"
-                className="bg-surface-overlay text-font-primary pointer-events-none invisible absolute bottom-full left-1/2 z-30 mb-2 w-max max-w-44 -translate-x-1/2 rounded-md border border-border px-2 py-1 text-center text-[11px] opacity-0 shadow-black group-hover/difficulty:visible group-hover/difficulty:opacity-100"
+                key={label}
+                className="group/difficulty relative flex h-3 w-3 items-center justify-center"
               >
-                {achievementCount} {label} badges
+                <span
+                  className={`h-2 w-2 rounded-full ${DIFFICULTY_COLORS[label]}`}
+                />
+                <span
+                  role="tooltip"
+                  className="bg-surface-overlay text-font-primary border-border pointer-events-none invisible absolute bottom-full left-1/2 z-30 mb-2 w-max max-w-44 -translate-x-1/2 rounded-md border px-2 py-1 text-center text-[11px] opacity-0 shadow-black group-hover/difficulty:visible group-hover/difficulty:opacity-100"
+                >
+                  {achievementCount} {label} badges
+                </span>
               </span>
-            </span>
-          ))}
-        </div>}
+            ))}
+          </div>
+        )}
       </Link>
       <div className="bg-surface-raised rounded-b-xl p-2">
         <button

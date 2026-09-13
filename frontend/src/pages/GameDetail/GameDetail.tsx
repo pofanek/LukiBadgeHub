@@ -366,6 +366,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
     usePinnedBadge(user?.id);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const focusedBadgeId = searchParams.get("badge");
   const [badgeClaims, setBadgeClaims] = useState<
     { user_id: string; badge_id: number; earned_at: string }[]
   >([]);
@@ -585,6 +586,25 @@ export function GameDetailTemplate({ game }: TemplateProps) {
     (activePage - 1) * ACHIEVEMENTS_PER_PAGE,
     activePage * ACHIEVEMENTS_PER_PAGE,
   );
+  useEffect(() => {
+    if (!focusedBadgeId) return;
+    const focusedIndex = visibleAchievements.findIndex(
+      (achievement) => achievement.id === focusedBadgeId,
+    );
+    if (focusedIndex === -1) return;
+    const focusedPage = Math.floor(focusedIndex / ACHIEVEMENTS_PER_PAGE) + 1;
+    if (page !== focusedPage) setPage(focusedPage);
+  }, [focusedBadgeId, page, visibleAchievements]);
+  useEffect(() => {
+    if (!focusedBadgeId || !pageAchievements.some((achievement) => achievement.id === focusedBadgeId)) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`badge-${focusedBadgeId}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusedBadgeId, pageAchievements]);
   const toggleDifficulty = (difficultyId: string) => {
     setPage(1);
     setSelectedDifficulties((current) =>
@@ -1350,6 +1370,7 @@ function AchievementCard({
   const openDetails = () => setShowDetails(true);
   return (
     <article
+      id={`badge-${achievement.id}`}
       role="button"
       tabIndex={0}
       aria-label={`View ${achievement.name} details`}

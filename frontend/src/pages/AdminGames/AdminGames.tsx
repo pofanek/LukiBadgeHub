@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FiAlertCircle,
   FiArrowLeft,
+  FiAward,
   FiCheck,
   FiCheckCircle,
   FiChevronDown,
@@ -26,6 +27,7 @@ import {
 } from "../../constants";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { GAME_FIELDS } from "../../hooks/useGames";
+import { useGamesPageSize } from "../../hooks/useGamesPageSize";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { supabase } from "../../utils/supabase";
 import { ImageCropDialog } from "../Settings/components";
@@ -216,12 +218,20 @@ function AdminGames() {
   const navigate = useNavigate();
   const { user, isLoading: isAuthLoading } = useAuthUser();
   const { profile, isLoading: isProfileLoading } = useUserProfile(user?.id);
+  const pageSize = useGamesPageSize();
   const [games, setGames] = useState<GameRow[]>([]);
   const [badges, setBadges] = useState<BadgeRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [gamePage, setGamePage] = useState(0);
+  const [gameCount, setGameCount] = useState(0);
+  const [leaderboardStartedAt, setLeaderboardStartedAt] = useState<string | null>(
+    null,
+  );
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(true);
+  const [isStartingLeaderboard, setIsStartingLeaderboard] = useState(false);
   const [badgeSearchTerm, setBadgeSearchTerm] = useState("");
   const [form, setForm] = useState<GameForm>(emptyForm);
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
@@ -234,8 +244,11 @@ function AdminGames() {
     null,
   );
   const hydratedGameId = useRef<number | null>(null);
+  const previousPageSize = useRef(pageSize);
 
   const isAdmin = profile?.role === "Admin";
+  const isLeaderboardOwner =
+    user?.id === import.meta.env.VITE_LEADERBOARD_OWNER_ID;
   const selectedGame = useMemo(
     () => games.find((game) => game.id === Number(id)) || null,
     [games, id],
@@ -259,16 +272,6 @@ function AdminGames() {
         : null,
     [badgeForm.difficulty, badgeForm.tier, selectedBadge],
   );
-  const filteredGames = useMemo(() => {
-    const query = searchTerm.trim().toLocaleLowerCase();
-    if (!query) return games;
-    return games.filter((game) =>
-      [game.name, game.developer, game.publisher, ...game.genres]
-        .join(" ")
-        .toLocaleLowerCase()
-        .includes(query),
-    );
-  }, [games, searchTerm]);
   const filteredBadges = useMemo(() => {
     const query = badgeSearchTerm.trim().toLocaleLowerCase();
     const matchingBadges = !query
@@ -307,25 +310,103 @@ function AdminGames() {
   }, [notice, error]);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (previousPageSize.current === pageSize) return;
+    previousPageSize.current = pageSize;
+    queueMicrotask(() => setGamePage(0));
+  }, [pageSize]);
+
+  useEffect(() => {
+    if (!isLeaderboardOwner || id) return;
     let active = true;
     queueMicrotask(() => {
-      if (active) setIsLoading(true);
+      if (active) setIsLeaderboardLoading(true);
     });
     supabase
-      .from("games")
-      .select(GAME_FIELDS)
-      .order("created_at", { ascending: false })
+      .from("leaderboard_rankings_settings")
+      .select("started_at")
+      .eq("id", true)
+      .single()
       .then(({ data, error: queryError }) => {
         if (!active) return;
-        if (queryError) setError("Games could not be loaded.");
-        else setGames((data || []) as GameRow[]);
+        if (queryError || !data) {
+          setError("Leaderboard ranking settings could not be loaded.");
+        } else {
+          setLeaderboardStartedAt(data.started_at);
+        }
+        setIsLeaderboardLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [id, isLeaderboardOwner]);
+
+  useEffect(() => {
+    if (!isAdmin || id) return;
+    let active = true;
+    queueMicrotask(() => {
+      if (active) {
+        setIsLoading(true);
+        setError("");
+      }
+    });
+    const search = searchTerm.trim().replace(/[(),{}"]+/g, " ");
+    let query = supabase
+      .from("games")
+      .select(GAME_FIELDS, { count: "exact" })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true });
+    if (search) {
+      query = query.or(
+        `name.ilike.%${search}%,developer.ilike.%${search}%,publisher.ilike.%${search}%,genres.cs.{${search}}`,
+      );
+    }
+    query
+      .range(gamePage * pageSize, (gamePage + 1) * pageSize - 1)
+      .then(({ data, error: queryError, count }) => {
+        if (!active) return;
+        if (queryError) {
+          setGames([]);
+          setGameCount(0);
+          setError("Games could not be loaded.");
+        } else {
+          setGames((data || []) as GameRow[]);
+          setGameCount(count || 0);
+        }
         setIsLoading(false);
       });
     return () => {
       active = false;
     };
-  }, [isAdmin]);
+  }, [gamePage, id, isAdmin, pageSize, searchTerm]);
+
+  useEffect(() => {
+    if (!isAdmin || !id) return;
+    let active = true;
+    queueMicrotask(() => {
+      if (active) {
+        setIsLoading(true);
+        setError("");
+      }
+    });
+    supabase
+      .from("games")
+      .select(GAME_FIELDS)
+      .eq("id", Number(id))
+      .maybeSingle()
+      .then(({ data, error: queryError }) => {
+        if (!active) return;
+        if (queryError || !data) {
+          setGames([]);
+          setError("This game could not be found.");
+        } else {
+          setGames([data as GameRow]);
+        }
+        setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [id, isAdmin]);
 
   useEffect(() => {
     if (!selectedGame || hydratedGameId.current === selectedGame.id) return;
@@ -393,6 +474,52 @@ function AdminGames() {
     navigate(`/admin/games/${data.id}`);
   };
 
+  const startLeaderboardRankings = async () => {
+    setError("");
+    setNotice("");
+    setIsStartingLeaderboard(true);
+    const { data, error: startError } = await supabase.rpc(
+      "start_leaderboard_rankings",
+    );
+    setIsStartingLeaderboard(false);
+
+    const result = data?.[0] as
+      | { started_at: string; seeded_players: number }
+      | undefined;
+    if (startError || !result) {
+      setError("Leaderboard rankings could not be started. Try again.");
+      return;
+    }
+
+    setLeaderboardStartedAt(result.started_at);
+    setNotice(
+      result.seeded_players
+        ? `Leaderboard rankings started for ${result.seeded_players.toLocaleString()} players.`
+        : "Leaderboard rankings are already running.",
+    );
+  };
+
+  const resetLeaderboardRankings = async () => {
+    setError("");
+    setNotice("");
+    setIsStartingLeaderboard(true);
+    const { data, error: resetError } = await supabase.rpc(
+      "reset_leaderboard_rankings",
+    );
+    setIsStartingLeaderboard(false);
+
+    const result = data?.[0] as { cleared_players: number } | undefined;
+    if (resetError || !result) {
+      setError("Leaderboard rankings could not be reverted. Try again.");
+      return;
+    }
+
+    setLeaderboardStartedAt(null);
+    setNotice(
+      `Leaderboard rankings reverted for ${result.cleared_players.toLocaleString()} players.`,
+    );
+  };
+
   const saveGame = async () => {
     if (!selectedGame) return;
     const name = form.name.trim();
@@ -452,10 +579,7 @@ function AdminGames() {
     setCropTarget({ target, file });
   };
 
-  const uploadImage = async (
-    target: "cover" | "banner",
-    file: File,
-  ) => {
+  const uploadImage = async (target: "cover" | "banner", file: File) => {
     if (!selectedGame) throw new Error("This game is no longer available.");
 
     setError("");
@@ -482,7 +606,9 @@ function AdminGames() {
       .single();
     setIsUploading(null);
     if (updateError || !data) {
-      throw new Error("The image uploaded, but the game artwork could not be saved.");
+      throw new Error(
+        "The image uploaded, but the game artwork could not be saved.",
+      );
     }
     setGames((current) =>
       current.map((game) =>
@@ -641,7 +767,10 @@ function AdminGames() {
                 <FiSearch className="text-font-muted pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                 <input
                   value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
+                  onChange={(event) => {
+                    setSearchTerm(event.target.value);
+                    setGamePage(0);
+                  }}
                   placeholder="Search games"
                   className={`${inputClass} pl-9`}
                 />
@@ -660,12 +789,12 @@ function AdminGames() {
               Loading games...
             </p>
           ) : (
-            <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-4">
-              {filteredGames.map((game) => (
+            <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-4 lg:grid-cols-5">
+              {games.map((game) => (
                 <Link
                   key={game.id}
                   to={`/admin/games/${game.id}`}
-                  className="border-border bg-surface group relative isolate min-h-52 overflow-hidden rounded-xl border p-4 transition-colors hover:border-accent-cold"
+                  className="border-border bg-surface group hover:border-accent-cold relative isolate min-h-52 overflow-hidden rounded-xl border p-4 transition-colors"
                 >
                   {gameMediaUrl(game.cover_path) && (
                     <img
@@ -674,7 +803,7 @@ function AdminGames() {
                       className="absolute inset-0 -z-20 h-full w-full object-cover opacity-45 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-60"
                     />
                   )}
-                  <div className="from-surface-overlay via-surface-overlay/45 absolute inset-0 -z-10 bg-gradient-to-t to-surface-overlay/20" />
+                  <div className="from-surface-overlay via-surface-overlay/45 to-surface-overlay/20 absolute inset-0 -z-10 bg-gradient-to-t" />
                   <div className="flex h-full min-h-44 flex-col justify-between gap-6">
                     <span
                       className={`self-end rounded-full border px-2.5 py-1 text-xs font-medium ${game.is_published ? "border-accent-cold/40 bg-brand-tertiary text-font-primary" : "border-border bg-surface/80 text-font-secondary"}`}
@@ -686,7 +815,9 @@ function AdminGames() {
                         {game.name}
                       </h2>
                       <p className="text-font-secondary mt-1 truncate text-sm">
-                        {game.developer || game.publisher || "Game details not added"}
+                        {game.developer ||
+                          game.publisher ||
+                          "Game details not added"}
                       </p>
                       {game.genres.length > 0 && (
                         <p className="text-font-muted mt-3 truncate text-xs">
@@ -699,14 +830,97 @@ function AdminGames() {
               ))}
             </div>
           )}
-          {!isLoading && filteredGames.length === 0 && (
+          {!isLoading && games.length === 0 && (
             <p className="text-font-secondary border-border mt-6 rounded-xl border border-dashed px-4 py-10 text-center text-sm">
               No games match “{searchTerm}”.
             </p>
           )}
+          {!isLoading && gameCount > pageSize && (
+            <nav
+              className="mt-7 flex items-center justify-center gap-3"
+              aria-label="CMS games pagination"
+            >
+              <button
+                type="button"
+                disabled={gamePage === 0}
+                onClick={() => setGamePage((page) => page - 1)}
+                className="border-border text-font-secondary hover:text-font-primary rounded-lg border px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                Previous
+              </button>
+              <span className="text-font-muted text-sm">
+                Page {gamePage + 1} of {Math.ceil(gameCount / pageSize)}
+              </span>
+              <button
+                type="button"
+                disabled={gamePage + 1 >= Math.ceil(gameCount / pageSize)}
+                onClick={() => setGamePage((page) => page + 1)}
+                className="border-border text-font-secondary hover:text-font-primary rounded-lg border px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                Next
+              </button>
+            </nav>
+          )}
           <p className="text-font-muted mt-8 text-sm">
             Game deletion is intentionally available only in Supabase Dashboard.
           </p>
+          {isLeaderboardOwner && (
+            <section className="border-border bg-surface/75 mt-6 rounded-xl border p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-5">
+                <div className="flex min-w-0 gap-3">
+                  <FiAward className="text-accent-cold mt-0.5 h-6 w-6 shrink-0" />
+                  <div>
+                    <h2 className="text-font-primary font-serif text-2xl">
+                      Leaderboard rankings
+                    </h2>
+                    {isLeaderboardLoading ? (
+                      <p className="text-font-secondary mt-1 text-sm">
+                        Loading ranking status...
+                      </p>
+                    ) : leaderboardStartedAt ? (
+                      <p className="text-font-secondary mt-1 text-sm">
+                        Highest positions have been recorded since{" "}
+                        {new Intl.DateTimeFormat(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }).format(new Date(leaderboardStartedAt))}
+                        .
+                      </p>
+                    ) : (
+                      <p className="text-font-secondary mt-1 max-w-2xl text-sm leading-relaxed">
+                        Players can earn badges now. Starting rankings takes a
+                        one-time snapshot of every player with EXP; future badge
+                        claims can only improve that saved highest position.
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {!isLeaderboardLoading && (
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={startLeaderboardRankings}
+                      disabled={Boolean(leaderboardStartedAt) || isStartingLeaderboard}
+                      className="bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <FiAward />
+                      {isStartingLeaderboard
+                        ? "Saving..."
+                        : "Start leaderboard rankings"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetLeaderboardRankings}
+                      disabled={!leaderboardStartedAt || isStartingLeaderboard}
+                      className="border-border text-font-primary hover:border-accent-cold hover:text-hover inline-flex shrink-0 items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Revert leaderboard rankings
+                    </button>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
         </div>
         {(notice || error) && (
           <FeedbackToast
@@ -868,34 +1082,45 @@ function AdminGames() {
                       </p>
                     ) : (
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    {filteredBadges.map((badge) => {
-                      const displayedBadge =
-                        badge.id === selectedBadgeId && badgePreview
-                          ? badgePreview
-                          : badge;
-                      return (
-                      <button
-                        key={displayedBadge.id}
-                        type="button"
-                        onClick={() => setSelectedBadgeId(displayedBadge.id)}
-                        className={`border-border bg-surface-soft hover:border-accent-cold flex min-w-0 items-center gap-3 rounded-lg border p-3 text-left ${selectedBadgeId === displayedBadge.id ? "border-accent-cold ring-accent-cold/30 ring-2" : ""}`}
-                      >
-                        <img
-                          src={badgeIconUrl(displayedBadge) || undefined}
-                          alt=""
-                          className="bg-surface-raised h-11 w-11 shrink-0 rounded-full object-cover"
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="text-font-primary block truncate text-sm font-medium">
-                            {displayedBadge.name}
-                          </span>
-                          <span className="text-font-muted mt-1 block text-xs">
-                            {getBadgeTierLabel(displayedBadge.tier)} {getBadgeDifficultyLabel(displayedBadge.difficulty)} · {getBadgeExperience(displayedBadge.difficulty, displayedBadge.tier).toLocaleString()} EXP
-                          </span>
-                        </span>
-                      </button>
-                      );
-                    })}
+                        {filteredBadges.map((badge) => {
+                          const displayedBadge =
+                            badge.id === selectedBadgeId && badgePreview
+                              ? badgePreview
+                              : badge;
+                          return (
+                            <button
+                              key={displayedBadge.id}
+                              type="button"
+                              onClick={() =>
+                                setSelectedBadgeId(displayedBadge.id)
+                              }
+                              className={`border-border bg-surface-soft hover:border-accent-cold flex min-w-0 items-center gap-3 rounded-lg border p-3 text-left ${selectedBadgeId === displayedBadge.id ? "border-accent-cold ring-accent-cold/30 ring-2" : ""}`}
+                            >
+                              <img
+                                src={badgeIconUrl(displayedBadge) || undefined}
+                                alt=""
+                                className="bg-surface-raised h-11 w-11 shrink-0 rounded-full object-cover"
+                              />
+                              <span className="min-w-0 flex-1">
+                                <span className="text-font-primary block truncate text-sm font-medium">
+                                  {displayedBadge.name}
+                                </span>
+                                <span className="text-font-muted mt-1 block text-xs">
+                                  {getBadgeTierLabel(displayedBadge.tier)}{" "}
+                                  {getBadgeDifficultyLabel(
+                                    displayedBadge.difficulty,
+                                  )}{" "}
+                                  ·{" "}
+                                  {getBadgeExperience(
+                                    displayedBadge.difficulty,
+                                    displayedBadge.tier,
+                                  ).toLocaleString()}{" "}
+                                  EXP
+                                </span>
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </>
@@ -918,7 +1143,10 @@ function AdminGames() {
                       <input
                         value={badgeForm.name}
                         onChange={(event) =>
-                          setBadgeForm({ ...badgeForm, name: event.target.value })
+                          setBadgeForm({
+                            ...badgeForm,
+                            name: event.target.value,
+                          })
                         }
                         className={inputClass}
                       />
@@ -936,7 +1164,10 @@ function AdminGames() {
                         className={`${inputClass} resize-none`}
                       />
                     </Field>
-                    <Field label="Additional note" hint="Shown with the ? button (mostly mod links, additional info / tips for harder badges)">
+                    <Field
+                      label="Additional note"
+                      hint="Shown with the ? button (mostly mod links, additional info / tips for harder badges)"
+                    >
                       <textarea
                         value={badgeForm.additionalNote}
                         onChange={(event) =>
@@ -982,7 +1213,12 @@ function AdminGames() {
                       </Field>
                     </div>
                     <p className="text-font-secondary text-sm">
-                      This badge awards {getBadgeExperience(badgeForm.difficulty, badgeForm.tier).toLocaleString()} EXP. EXP is display-only for now.
+                      This badge awards{" "}
+                      {getBadgeExperience(
+                        badgeForm.difficulty,
+                        badgeForm.tier,
+                      ).toLocaleString()}{" "}
+                      EXP. EXP is display-only for now.
                     </p>
                     {badgeForm.difficulty === "inhuman" && (
                       <div className="border-border border-t pt-4">
@@ -994,12 +1230,17 @@ function AdminGames() {
                         </p>
                         <div className="mt-3 flex items-center gap-3">
                           <img
-                            src={badgeIconUrl(badgePreview || selectedBadge) || undefined}
+                            src={
+                              badgeIconUrl(badgePreview || selectedBadge) ||
+                              undefined
+                            }
                             alt="Badge icon preview"
                             className="bg-surface-raised h-12 w-12 rounded-full object-cover"
                           />
                           <label className="bg-brand-tertiary text-font-primary hover:bg-brand-primary cursor-pointer rounded-lg px-3 py-2 text-sm font-medium">
-                            {isUploadingBadgeIcon ? "Uploading..." : "Upload icon"}
+                            {isUploadingBadgeIcon
+                              ? "Uploading..."
+                              : "Upload icon"}
                             <input
                               type="file"
                               accept="image/jpeg,image/png,image/webp"

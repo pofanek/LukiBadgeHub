@@ -1,23 +1,38 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { FiChevronDown } from "react-icons/fi";
+import { FiCheck, FiChevronDown } from "react-icons/fi";
 import { LoadingIndicator } from "../../../components";
 import {
   BADGE_DIFFICULTY_DETAILS,
   getBadgeExperience,
+  getBadgeTierLabel,
+  type BadgeRow,
   type BadgeDifficultyId,
   type CatalogueGame,
 } from "../../../constants";
-import { useGames } from "../../../hooks/useGames";
+import { fetchGamesPage } from "../../../hooks/useGames";
 import { supabase } from "../../../utils/supabase";
 
 type Difficulty = { label: string; earned: number; total: number };
+const PROFILE_GAMES_PAGE_SIZE = 12;
+type LibrarySort = "experience" | "progress";
+type GameSortStats = { experience: number; earned: number; total: number };
+type BadgeSortRow = Pick<
+  BadgeRow,
+  "id" | "game_id" | "difficulty" | "tier"
+>;
+
+const LIBRARY_SORT_OPTIONS: { value: LibrarySort; label: string }[] = [
+  { value: "experience", label: "Earned EXP" },
+  { value: "progress", label: "Badge progress" },
+];
 type LibraryGame = {
   game: CatalogueGame;
   experience: string;
   progress: number;
   total: number;
   difficulties: Difficulty[];
+  earnedBadges: BadgeRow[];
 };
 
 function GameArt({ game }: { game: CatalogueGame }) {
@@ -36,9 +51,15 @@ function GameArt({ game }: { game: CatalogueGame }) {
 function DifficultyRows({
   gameId,
   difficulties,
+  earnedBadges,
+  expandedDifficulty,
+  onToggleDifficulty,
 }: {
   gameId: number;
   difficulties: Difficulty[];
+  earnedBadges: BadgeRow[];
+  expandedDifficulty: BadgeDifficultyId | null;
+  onToggleDifficulty: (difficulty: BadgeDifficultyId) => void;
 }) {
   return (
     <div className="space-y-2">
@@ -47,31 +68,160 @@ function DifficultyRows({
         const difficultyColor =
           BADGE_DIFFICULTY_DETAILS[label.toLowerCase() as BadgeDifficultyId]
             ?.color;
+        const difficultyId = label.toLowerCase() as BadgeDifficultyId;
+        const isExpanded = expandedDifficulty === difficultyId;
+        const claimedBadges = earnedBadges.filter(
+          (badge) => badge.difficulty === difficultyId,
+        );
+        const detailsId = `game-${gameId}-${difficultyId}-badges`;
         return (
-          <Link
-            key={label}
-            to={`/games/${gameId}?difficulty=${encodeURIComponent(label.toLowerCase())}`}
-            className="hover:bg-effect-glass focus-visible:ring-accent-cold grid grid-cols-[5.5rem_3.25rem_minmax(4rem,1fr)] items-center gap-2 rounded px-1 py-0.5 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none sm:grid-cols-[7rem_3.5rem_minmax(6rem,1fr)]"
-          >
-            <span className="text-font-primary flex min-w-0 items-center gap-1.5 truncate">
-              <i
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: difficultyColor }}
-              />
-              <span className="truncate">{label}</span>
-            </span>
-            <span className="text-font-muted text-right">
-              {earned} / {total}
-            </span>
-            <div className="bg-surface-raised h-2 overflow-hidden rounded-full">
+          <div key={label}>
+            <button
+              type="button"
+              aria-controls={detailsId}
+              aria-expanded={isExpanded}
+              onClick={() => onToggleDifficulty(difficultyId)}
+              className="hover:bg-effect-glass focus-visible:ring-accent-cold grid w-full grid-cols-[5.5rem_3.25rem_minmax(4rem,1fr)] items-center gap-2 rounded px-1 py-0.5 text-left text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none sm:grid-cols-[7rem_3.5rem_minmax(6rem,1fr)]"
+            >
+              <span className="text-font-primary flex min-w-0 items-center gap-1.5 truncate">
+                <i
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: difficultyColor }}
+                />
+                <span className="truncate">{label}</span>
+              </span>
+              <span className="text-font-muted text-right">
+                {earned} / {total}
+              </span>
+              <div className="bg-surface-raised h-2 overflow-hidden rounded-full">
+                <div
+                  className="bg-accent-cold h-full rounded-full"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+            </button>
+            {isExpanded && (
               <div
-                className="bg-accent-cold h-full rounded-full"
-                style={{ width: `${percent}%` }}
-              />
-            </div>
-          </Link>
+                id={detailsId}
+                className="mt-1.5"
+              >
+                {claimedBadges.length ? (
+                  <ul className="divide-border divide-y">
+                    {claimedBadges.map((badge) => (
+                      <li key={badge.id}>
+                        <Link
+                          to={`/games/${gameId}?difficulty=${badge.difficulty}&badge=${badge.id}`}
+                          className="hover:bg-effect-glass focus-visible:ring-accent-cold flex w-full items-center justify-between gap-3 rounded px-2 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="text-font-primary flex min-w-0 items-center gap-2 truncate">
+                              <i
+                                className="h-2 w-2 shrink-0 rounded-full"
+                                style={{ backgroundColor: BADGE_DIFFICULTY_DETAILS[badge.difficulty].color }}
+                              />
+                              <span className="truncate">{badge.name}</span>
+                            </span>
+                            <span className="text-font-muted mt-0.5 block truncate text-xs">
+                              {badge.description}
+                            </span>
+                          </span>
+                          <span className="flex shrink-0 items-center gap-1.5 text-xs">
+                            <span className="text-font-muted">
+                              {getBadgeTierLabel(badge.tier)}
+                            </span>
+                            <span className="text-font-primary font-bold">
+                              {getBadgeExperience(badge.difficulty, badge.tier).toLocaleString()} EXP
+                            </span>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-font-muted px-2 py-2 text-sm">
+                    No {label.toLowerCase()} badges earned.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         );
       })}
+    </div>
+  );
+}
+
+function LibrarySortSelect({
+  value,
+  onChange,
+}: {
+  value: LibrarySort;
+  onChange: (value: LibrarySort) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selectedOption =
+    LIBRARY_SORT_OPTIONS.find((option) => option.value === value) ||
+    LIBRARY_SORT_OPTIONS[0];
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <div ref={containerRef} className="relative w-full sm:w-52">
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className={`border-border bg-surface-soft text-font-primary focus:border-accent-cold flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm outline-none ${isOpen ? "border-accent-cold" : ""}`}
+      >
+        <span className="truncate">Sort: {selectedOption.label}</span>
+        <FiChevronDown
+          className={`text-font-muted ml-3 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+      {isOpen && (
+        <div
+          role="listbox"
+          aria-label="Sort library games"
+          className="border-border bg-surface absolute z-20 mt-1.5 w-full overflow-hidden rounded-xl border p-1.5 shadow-black"
+        >
+          {LIBRARY_SORT_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="option"
+              aria-selected={option.value === value}
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+              className={`flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-sm ${option.value === value ? "bg-brand-tertiary text-font-primary" : "text-font-secondary hover:bg-surface-soft hover:text-font-primary"}`}
+            >
+              <span className="min-w-0 truncate">{option.label}</span>
+              {option.value === value && (
+                <FiCheck className="h-4 w-4 shrink-0" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -83,89 +233,227 @@ function GamesPanel({
   profileId: string;
   isOwnProfile: boolean;
 }) {
-  const { games: catalogueGames, isLoading: isGamesLoading } = useGames();
-  const [libraryIds, setLibraryIds] = useState<number[] | null>(null);
+  const pageSize = PROFILE_GAMES_PAGE_SIZE;
+  const [gameIds, setGameIds] = useState<number[] | null>(null);
   const [earnedBadgeIds, setEarnedBadgeIds] = useState<number[] | null>(null);
+  const [gameSortStats, setGameSortStats] = useState<
+    Map<number, GameSortStats> | null
+  >(null);
+  const [sort, setSort] = useState<LibrarySort>("experience");
+  const [catalogueGames, setCatalogueGames] = useState<CatalogueGame[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextPage, setNextPage] = useState(0);
+  const [error, setError] = useState("");
   const [expandedGame, setExpandedGame] = useState<number | null>(null);
+  const [expandedDifficulty, setExpandedDifficulty] =
+    useState<BadgeDifficultyId | null>(null);
 
   useEffect(() => {
     let isCurrent = true;
-    supabase
-      .from("user_game_library")
-      .select("game_id")
-      .eq("user_id", profileId)
-      .order("added_at", { ascending: false })
-      .then(({ data }) => {
-        if (isCurrent) setLibraryIds((data || []).map((item) => item.game_id));
-      });
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [profileId]);
-
-  useEffect(() => {
-    let isCurrent = true;
-    supabase
-      .from("user_badges")
-      .select("badge_id")
-      .eq("user_id", profileId)
-      .then(({ data }) => {
-        if (isCurrent) setEarnedBadgeIds((data || []).map((item) => item.badge_id));
-      });
-    return () => {
-      isCurrent = false;
-    };
-  }, [profileId]);
-
-  const games = useMemo<LibraryGame[]>(
-    () => {
-      const gameIds = new Set(libraryIds || []);
-
-      catalogueGames.forEach((game) => {
-        if (
-          game.badges.some((badge) => earnedBadgeIds?.includes(badge.id))
-        ) {
-          gameIds.add(game.id);
+    setIsLoading(true);
+    setError("");
+    setGameSortStats(null);
+    setExpandedGame(null);
+    setExpandedDifficulty(null);
+    Promise.all([
+      supabase
+        .from("user_game_library")
+        .select("game_id")
+        .eq("user_id", profileId)
+        .order("added_at", { ascending: false }),
+      supabase.from("user_badges").select("badge_id").eq("user_id", profileId),
+    ]).then(
+      async ([
+        { data: libraryData, error: libraryError },
+        { data: earnedData, error: earnedError },
+      ]) => {
+        if (!isCurrent) return;
+        if (libraryError || earnedError) {
+          setError("Games could not be loaded.");
+          setIsLoading(false);
+          return;
         }
-      });
 
-      return [...gameIds]
-        .map((id) => catalogueGames.find((game) => game.id === id))
-        .filter((game): game is CatalogueGame => Boolean(game))
-        .map((game) => {
-          const earnedBadges = game.badges.filter((badge) =>
-            earnedBadgeIds?.includes(badge.id),
-          );
-          const earnedExp = earnedBadges.reduce(
-            (total, badge) =>
-              total + getBadgeExperience(badge.difficulty, badge.tier),
-            0,
-          );
-          return {
-            game,
-            experience: `EXP ${earnedExp.toLocaleString()} / ${game.totalExp.toLocaleString()}`,
-            progress: earnedBadges.length,
-            total: game.badges.length,
-            difficulties: game.difficulties.map(({ label, achievementCount }) => {
-              const earned = earnedBadges.filter(
-                (badge) =>
-                  label.toLowerCase() === badge.difficulty,
-              ).length;
-              return { label, earned, total: achievementCount };
-            }),
-          };
+        const earnedIds = (earnedData || []).map((item) => item.badge_id);
+        const { data: badgeData, error: badgeError } = earnedIds.length
+          ? await supabase
+              .from("game_badges")
+              .select("id, game_id, difficulty, tier")
+              .in("id", earnedIds)
+          : { data: [], error: null };
+        if (!isCurrent) return;
+        if (badgeError) {
+          setError("Games could not be loaded.");
+          setIsLoading(false);
+          return;
+        }
+
+        const orderedGameIds = (libraryData || []).map((item) => item.game_id);
+        const knownGameIds = new Set(orderedGameIds);
+        (badgeData || []).forEach(({ game_id }) => {
+          if (!knownGameIds.has(game_id)) {
+            knownGameIds.add(game_id);
+            orderedGameIds.push(game_id);
+          }
         });
+        const { data: allBadgeData, error: allBadgesError } =
+          orderedGameIds.length
+            ? await supabase
+                .from("game_badges")
+                .select("id, game_id, difficulty, tier")
+                .in("game_id", orderedGameIds)
+            : { data: [], error: null };
+        if (!isCurrent) return;
+        if (allBadgesError) {
+          setError("Games could not be loaded.");
+          setIsLoading(false);
+          return;
+        }
+        const earnedBadgeIdSet = new Set(earnedIds);
+        const sortStats = new Map<number, GameSortStats>();
+        ((allBadgeData || []) as BadgeSortRow[]).forEach((badge) => {
+          const current = sortStats.get(badge.game_id) || {
+            experience: 0,
+            earned: 0,
+            total: 0,
+          };
+          current.total += 1;
+          if (earnedBadgeIdSet.has(badge.id)) {
+            current.earned += 1;
+            current.experience += getBadgeExperience(
+              badge.difficulty,
+              badge.tier,
+            );
+          }
+          sortStats.set(badge.game_id, current);
+        });
+        setGameIds(orderedGameIds);
+        setEarnedBadgeIds(earnedIds);
+        setGameSortStats(sortStats);
+        setCatalogueGames([]);
+        setNextPage(0);
+        setHasMore(false);
+      },
+    );
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [profileId]);
+
+  const sortedGameIds = useMemo(() => {
+    if (gameIds === null || gameSortStats === null) return null;
+    return gameIds
+      .map((gameId, index) => ({ gameId, index }))
+      .sort((left, right) => {
+        const leftStats = gameSortStats.get(left.gameId) || {
+          experience: 0,
+          earned: 0,
+          total: 0,
+        };
+        const rightStats = gameSortStats.get(right.gameId) || {
+          experience: 0,
+          earned: 0,
+          total: 0,
+        };
+        const leftValue =
+          sort === "experience"
+            ? leftStats.experience
+            : leftStats.total
+              ? leftStats.earned / leftStats.total
+              : 0;
+        const rightValue =
+          sort === "experience"
+            ? rightStats.experience
+            : rightStats.total
+              ? rightStats.earned / rightStats.total
+              : 0;
+        return rightValue - leftValue || left.index - right.index;
+      })
+      .map(({ gameId }) => gameId);
+  }, [gameIds, gameSortStats, sort]);
+
+  const loadPage = useCallback(
+    async (page: number, replace = false) => {
+      if (!sortedGameIds) return;
+      const pageIds = sortedGameIds.slice(
+        page * pageSize,
+        (page + 1) * pageSize,
+      );
+      if (replace) setIsLoading(true);
+      else setIsLoadingMore(true);
+      setError("");
+      try {
+        const { games: loadedGames } = await fetchGamesPage({
+          gameIds: pageIds,
+          pageSize,
+        });
+        const gamesById = new Map(loadedGames.map((game) => [game.id, game]));
+        const orderedGames = pageIds.flatMap((gameId) => {
+          const game = gamesById.get(gameId);
+          return game ? [game] : [];
+        });
+        setCatalogueGames((current) =>
+          replace ? orderedGames : [...current, ...orderedGames],
+        );
+        setNextPage(page + 1);
+        setHasMore((page + 1) * pageSize < sortedGameIds.length);
+      } catch {
+        setError("Games could not be loaded.");
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
     },
-    [catalogueGames, earnedBadgeIds, libraryIds],
+    [pageSize, sortedGameIds],
   );
 
-  if (libraryIds === null || earnedBadgeIds === null || isGamesLoading)
+  useEffect(() => {
+    if (sortedGameIds === null) return;
+    void loadPage(0, true);
+  }, [loadPage, sortedGameIds]);
+
+  const games = useMemo<LibraryGame[]>(() => {
+    return catalogueGames.map((game) => {
+      const earnedBadges = game.badges.filter((badge) =>
+        earnedBadgeIds?.includes(badge.id),
+      );
+      const earnedExp = earnedBadges.reduce(
+        (total, badge) =>
+          total + getBadgeExperience(badge.difficulty, badge.tier),
+        0,
+      );
+      return {
+        game,
+        experience: `EXP ${earnedExp.toLocaleString()} / ${game.totalExp.toLocaleString()}`,
+        progress: earnedBadges.length,
+        total: game.badges.length,
+        earnedBadges,
+        difficulties: game.difficulties.map(({ label, achievementCount }) => {
+          const earned = earnedBadges.filter(
+            (badge) => label.toLowerCase() === badge.difficulty,
+          ).length;
+          return { label, earned, total: achievementCount };
+        }),
+      };
+    });
+  }, [catalogueGames, earnedBadgeIds]);
+
+  if (
+    gameIds === null ||
+    earnedBadgeIds === null ||
+    gameSortStats === null ||
+    isLoading
+  )
     return (
       <div className="py-12">
         <LoadingIndicator label="Loading games..." />
       </div>
     );
+  if (error) return <p className="text-destructive text-sm">{error}</p>;
+
   if (!games.length)
     return (
       <div className="border-border bg-surface/75 rounded-xl border px-5 py-12 text-center">
@@ -192,7 +480,8 @@ function GamesPanel({
 
   return (
     <div className="space-y-3">
-      {games.map(({ game, experience, progress, total, difficulties }) => {
+      <LibrarySortSelect value={sort} onChange={setSort} />
+      {games.map(({ game, experience, progress, total, difficulties, earnedBadges }) => {
         const isExpanded = expandedGame === game.id;
         return (
           <article
@@ -200,7 +489,10 @@ function GamesPanel({
             className="border-border bg-surface/75 overflow-hidden rounded-xl border"
           >
             <div
-              onClick={() => setExpandedGame(isExpanded ? null : game.id)}
+              onClick={() => {
+                setExpandedGame(isExpanded ? null : game.id);
+                setExpandedDifficulty(null);
+              }}
               className="hover:bg-effect-glass flex cursor-pointer items-center gap-3 p-3 transition-colors sm:gap-4"
             >
               <Link
@@ -221,6 +513,11 @@ function GamesPanel({
                 <button
                   type="button"
                   aria-expanded={isExpanded}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setExpandedGame(isExpanded ? null : game.id);
+                    setExpandedDifficulty(null);
+                  }}
                   className="mt-1 flex w-full cursor-pointer items-center gap-3 rounded text-left"
                 >
                   <div className="min-w-0 flex-1">
@@ -250,12 +547,32 @@ function GamesPanel({
             </div>
             {isExpanded && (
               <div className="border-border bg-surface-soft/50 border-t p-4">
-                <DifficultyRows gameId={game.id} difficulties={difficulties} />
+                <DifficultyRows
+                  gameId={game.id}
+                  difficulties={difficulties}
+                  earnedBadges={earnedBadges}
+                  expandedDifficulty={expandedDifficulty}
+                  onToggleDifficulty={(difficulty) => {
+                    setExpandedDifficulty((current) =>
+                      current === difficulty ? null : difficulty,
+                    );
+                  }}
+                />
               </div>
             )}
           </article>
         );
       })}
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => void loadPage(nextPage)}
+          disabled={isLoadingMore}
+          className="border-border text-font-secondary hover:text-font-primary mx-auto block rounded-lg border px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isLoadingMore ? "Loading..." : "Show more"}
+        </button>
+      )}
     </div>
   );
 }

@@ -15,6 +15,8 @@ import { supabase } from "../../../utils/supabase";
 type StatsData = {
   claims: { badge_id: number }[];
   libraryIds: number[];
+  currentRank: number | null;
+  bestRank: { best_rank: number; achieved_at: string } | null;
 };
 
 function StatsPanel({ profileId }: { profileId: string }) {
@@ -36,16 +38,28 @@ function StatsPanel({ profileId }: { profileId: string }) {
         .from("user_game_library")
         .select("game_id")
         .eq("user_id", profileId),
-    ]).then(([claimsResult, libraryResult]) => {
+      supabase.rpc("get_leaderboard_position", {
+        p_board: "experience",
+        p_difficulty: null,
+        p_profile_id: profileId,
+      }),
+      supabase
+        .from("leaderboard_best_positions")
+        .select("best_rank, achieved_at")
+        .eq("profile_id", profileId)
+        .maybeSingle(),
+    ]).then(([claimsResult, libraryResult, currentRankResult, bestRankResult]) => {
       if (!isCurrent) return;
-      if (claimsResult.error || libraryResult.error) {
+      if (claimsResult.error || libraryResult.error || currentRankResult.error || bestRankResult.error) {
         setError("Profile statistics could not be loaded.");
-        setData({ claims: [], libraryIds: [] });
+        setData({ claims: [], libraryIds: [], currentRank: null, bestRank: null });
         return;
       }
       setData({
         claims: claimsResult.data || [],
         libraryIds: (libraryResult.data || []).map((entry) => entry.game_id),
+        currentRank: (currentRankResult.data || [])[0]?.player_rank || null,
+        bestRank: bestRankResult.data,
       });
     });
 
@@ -121,6 +135,19 @@ function StatsPanel({ profileId }: { profileId: string }) {
       value: stats.playedGames.toLocaleString(),
       Icon: FiBookOpen,
     },
+    {
+      label: "Current leaderboard position",
+      value: data.currentRank ? `#${data.currentRank.toLocaleString()}` : "—",
+      Icon: FiTrendingUp,
+    },
+    {
+      label: "Highest leaderboard position",
+      value: data.bestRank ? `#${data.bestRank.best_rank.toLocaleString()}` : "—",
+      description: data.bestRank
+        ? `Achieved ${new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }).format(new Date(data.bestRank.achieved_at))}`
+        : undefined,
+      Icon: FiAward,
+    },
   ];
   const highestDifficultyCount = Math.max(
     ...stats.difficulties.map(({ earned }) => earned),
@@ -133,7 +160,7 @@ function StatsPanel({ profileId }: { profileId: string }) {
       <section className="border-border bg-surface/75 rounded-xl border p-5 sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-font-primary font-serif text-2xl">
+            <h2 className="text-font-primary font-serif text-3xl sm:text-4xl">
               Level {levelProgress.level}
             </h2>
             <p className="text-font-secondary mt-1 text-sm">
@@ -161,8 +188,8 @@ function StatsPanel({ profileId }: { profileId: string }) {
         </div>
       </section>
       <section className="border-border bg-surface/75 overflow-hidden rounded-xl border">
-        <dl className="divide-border grid divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-          {overview.map(({ label, value, Icon }) => (
+        <dl className="divide-border grid divide-y sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-5">
+          {overview.map(({ label, value, description, Icon }) => (
             <div key={label} className="flex items-center gap-4 px-5 py-4 sm:block sm:p-5">
               <div className="bg-surface-raised/70 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg sm:mb-5">
                 <Icon className="text-accent-cold h-5 w-5" aria-hidden="true" />
@@ -174,6 +201,7 @@ function StatsPanel({ profileId }: { profileId: string }) {
                 <dt className="text-font-secondary mt-1.5 text-sm font-medium">
                   {label}
                 </dt>
+                {description && <p className="text-font-muted mt-1 text-xs">{description}</p>}
               </div>
             </div>
           ))}

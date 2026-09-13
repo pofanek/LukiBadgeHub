@@ -1,12 +1,21 @@
+import { useEffect, useState } from "react";
 import { FaInstagram, FaSteam, FaThumbtack, FaYoutube } from "react-icons/fa";
-import { FiEdit3, FiUserPlus } from "react-icons/fi";
-import { Link } from "react-router-dom";
+import {
+  FiAlertCircle,
+  FiEdit3,
+  FiGlobe,
+  FiUserCheck,
+  FiUserPlus,
+  FiX,
+} from "react-icons/fi";
+import { Link, useNavigate } from "react-router-dom";
 import { SiBluesky } from "react-icons/si";
 import { userchomik } from "../../../assets";
 import { BADGE_DIFFICULTY_DETAILS } from "../../../constants";
 import { getCountry } from "../../../constants/countries";
 import { usePinnedBadge } from "../../../hooks/usePinnedBadge";
 import { usePlayerLevel } from "../../../hooks/usePlayerLevel";
+import { useProfileFollows } from "../../../hooks/useProfileFollows";
 import type { UserProfile } from "../../../hooks/useUserProfile";
 import { useSocialLinks } from "../../../hooks/useSocialLinks";
 import { supabase } from "../../../utils/supabase";
@@ -21,9 +30,16 @@ const socialLinks = [
 type ProfileHeaderProps = {
   profile: UserProfile;
   isOwnProfile: boolean;
+  viewerId?: string;
 };
 
-function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
+function ProfileHeader({
+  profile,
+  isOwnProfile,
+  viewerId,
+}: ProfileHeaderProps) {
+  const navigate = useNavigate();
+  const [followError, setFollowError] = useState("");
   const links = useSocialLinks(profile.id);
   const {
     level,
@@ -33,8 +49,35 @@ function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
   const { pinnedBadge, isLoading: isPinnedBadgeLoading } = usePinnedBadge(
     profile.id,
   );
+  const { counts, isFollowing, isSaving, toggleFollow } = useProfileFollows(
+    profile.id,
+    viewerId,
+  );
   const socialLinksByPlatform = new Map(links.map((link) => [link.platform, link.url]));
   const country = getCountry(profile.country_code);
+
+  useEffect(() => {
+    if (!followError) return;
+    const timer = window.setTimeout(() => setFollowError(""), 3000);
+    return () => window.clearTimeout(timer);
+  }, [followError]);
+
+  const handleFollow = async () => {
+    if (!viewerId) {
+      window.sessionStorage.setItem(
+        "luki-post-login-path",
+        `${window.location.pathname}${window.location.search}`,
+      );
+      navigate("/login");
+      return;
+    }
+    try {
+      setFollowError("");
+      await toggleFollow();
+    } catch {
+      setFollowError("This profile could not be followed. Please try again.");
+    }
+  };
   return (
     <header className="relative isolate mx-auto w-full max-w-4xl [clip-path:inset(0_-100vw_0_-100vw)]">
       <div className="relative md:min-h-[33rem] lg:h-[23rem] lg:min-h-0">
@@ -70,9 +113,30 @@ function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
               ))}
             </div>
             <div className="text-font-muted mt-4 grid grid-cols-3 gap-x-1 text-center text-[8px] leading-3">
-              <span className="whitespace-nowrap">12<br />mutuals</span>
-              <span className="whitespace-nowrap">86<br />followers</span>
-              <span className="whitespace-nowrap">44<br />following</span>
+              <Link
+                to={`/profile/${encodeURIComponent(profile.username)}?tab=mutuals&category=mutuals`}
+                className="hover:text-hover whitespace-nowrap transition-colors"
+              >
+                {counts.mutuals}
+                <br />
+                mutuals
+              </Link>
+              <Link
+                to={`/profile/${encodeURIComponent(profile.username)}?tab=mutuals&category=followers`}
+                className="hover:text-hover whitespace-nowrap transition-colors"
+              >
+                {counts.followers}
+                <br />
+                followers
+              </Link>
+              <Link
+                to={`/profile/${encodeURIComponent(profile.username)}?tab=mutuals&category=following`}
+                className="hover:text-hover whitespace-nowrap transition-colors"
+              >
+                {counts.following}
+                <br />
+                following
+              </Link>
             </div>
           </div>
 
@@ -80,14 +144,19 @@ function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-font-primary break-words font-serif text-3xl leading-none sm:text-4xl">{profile.username}</h1>
               {!isOwnProfile && (
-                <button className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors">
-                  <FiUserPlus />
-                  Follow
+                <button
+                  type="button"
+                  onClick={() => void handleFollow()}
+                  disabled={isSaving}
+                  className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isFollowing ? <FiUserCheck /> : <FiUserPlus />}
+                  {isSaving ? "Updating..." : isFollowing ? "Following" : "Follow"}
                 </button>
               )}
             </div>
             <p className="text-font-secondary mt-3 flex items-center gap-2 text-sm">
-              {country.flag && <span aria-label={country.name} role="img">{country.flag}</span>}
+              {country.flag ? <span aria-label={country.name} role="img">{country.flag}</span> : <span aria-label="Country not set" className="border-border bg-surface-raised text-font-secondary inline-flex h-4 w-5 items-center justify-center rounded-sm border"><FiGlobe className="h-3 w-3" /></span>}
               {country.name}
             </p>
             <p className="text-font-secondary mt-3 hidden max-w-3xl break-words leading-relaxed lg:block">
@@ -164,6 +233,28 @@ function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
           </div>
         </div>
       </div>
+      {followError && (
+        <div
+          className="fixed bottom-4 left-1/2 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2"
+          role="alert"
+          aria-live="polite"
+        >
+          <div className="border-surface-raised bg-destructive-background text-font-primary flex items-start gap-3 rounded-xl border px-4 py-3 shadow-black">
+            <FiAlertCircle className="text-destructive mt-0.5 h-5 w-5 shrink-0" />
+            <p className="min-w-0 flex-1 text-sm leading-relaxed">
+              {followError}
+            </p>
+            <button
+              type="button"
+              onClick={() => setFollowError("")}
+              className="text-font-secondary hover:text-font-primary -mr-1 rounded p-1"
+              aria-label="Dismiss notification"
+            >
+              <FiX className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

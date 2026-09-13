@@ -18,7 +18,7 @@ function getPageTitle(pathname: string) {
   if (pathname === "/terms") return `Terms & Privacy | ${siteName}`;
   if (pathname === "/games") return `Games | ${siteName}`;
   if (/^\/games\/[^/]+$/.test(pathname)) return `Game | ${siteName}`;
-  if (pathname === "/rankings") return `Leaderboards | ${siteName}`;
+  if (pathname === "/leaderboard") return `Leaderboards | ${siteName}`;
   if (pathname === "/profile") return `Profile | ${siteName}`;
   if (pathname.startsWith("/profile/")) {
     return profileTitle(pathname.slice("/profile/".length));

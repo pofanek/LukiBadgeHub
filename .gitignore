@@ -35,3 +35,4 @@ AGENTS.md
 .agents
 .env.test
 achievementVerificationPlan.md
+.env.owner

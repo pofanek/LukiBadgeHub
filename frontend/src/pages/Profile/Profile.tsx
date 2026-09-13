@@ -88,6 +88,7 @@ function Profile() {
           <ProfileHeader
             profile={profile}
             isOwnProfile={user?.id === profile.id}
+            viewerId={user?.id}
           />
           <div>
             <ProfileTabs activeTab={activeTab} onChange={changeTab} />
@@ -98,7 +99,9 @@ function Profile() {
                   isOwnProfile={user?.id === profile.id}
                 />
               )}
-              {activeTab === "mutuals" && <MutualsPanel />}
+              {activeTab === "mutuals" && (
+                <MutualsPanel profileId={profile.id} viewerId={user?.id} />
+              )}
               {activeTab === "stats" && <StatsPanel profileId={profile.id} />}
               {activeTab === "recents" && (
                 <RecentsPanel

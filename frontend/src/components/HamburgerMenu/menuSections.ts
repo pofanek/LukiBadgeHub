@@ -20,7 +20,7 @@ export type MenuItem = {
 export const MENU_SECTIONS: MenuItem[][] = [
   [
     { label: "Games", pathTo: "/games", icon: IoGameControllerOutline },
-    { label: "Leaderboards", pathTo: "/rankings", icon: FiAward },
+    { label: "Leaderboards", pathTo: "/leaderboard", icon: FiAward },
   ],
   [
     { label: "Profile", pathTo: "/profile", icon: FiUser },

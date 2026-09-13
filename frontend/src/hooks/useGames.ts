@@ -14,6 +14,20 @@ import { supabase } from "../utils/supabase";
 export const GAME_FIELDS =
   "id, name, description, developer, publisher, release_date, genres, steam_url, cover_path, cover_position, banner_path, is_published, created_at, updated_at";
 
+export const GAMES_PAGE_SIZE = 12;
+
+export type GameSort = "name" | "release" | "created";
+
+type GamesPageOptions = {
+  includeDrafts?: boolean;
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  genre?: string;
+  gameIds?: number[];
+  sort?: GameSort;
+};
+
 function gameMediaUrl(path: string | null, fallback: string) {
   if (!path) return fallback;
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
@@ -37,14 +51,16 @@ export function toCatalogueGame(
       : 0,
     achievementCount: badges.length,
     totalExp: badges.reduce(
-      (total, badge) => total + getBadgeExperience(badge.difficulty, badge.tier),
+      (total, badge) =>
+        total + getBadgeExperience(badge.difficulty, badge.tier),
       0,
     ),
     popularity: 0,
     difficulties: BADGE_DIFFICULTIES.map((difficulty) => ({
       label: getBadgeDifficultyLabel(difficulty),
-      achievementCount: badges.filter((badge) => badge.difficulty === difficulty)
-        .length,
+      achievementCount: badges.filter(
+        (badge) => badge.difficulty === difficulty,
+      ).length,
     })).filter((difficulty) => difficulty.achievementCount > 0),
     badges,
     cover: gameMediaUrl(game.cover_path, coverFallback),
@@ -81,6 +97,70 @@ export async function fetchGames(includeDrafts = false) {
   return (data as GameRow[]).map((game) =>
     toCatalogueGame(game, badgesByGame.get(game.id)),
   );
+}
+
+export async function fetchGamesPage({
+  includeDrafts = false,
+  page = 0,
+  pageSize = GAMES_PAGE_SIZE,
+  search = "",
+  genre,
+  gameIds,
+  sort = "created",
+}: GamesPageOptions = {}) {
+  if (gameIds && !gameIds.length) return { games: [], count: 0 };
+
+  let query = supabase.from("games").select(GAME_FIELDS, { count: "exact" });
+
+  if (!includeDrafts) query = query.eq("is_published", true);
+  if (search.trim()) query = query.ilike("name", `%${search.trim()}%`);
+  if (genre) query = query.contains("genres", [genre]);
+  if (gameIds) query = query.in("id", gameIds);
+
+  if (sort === "name") {
+    query = query.order("name", { ascending: true }).order("id", {
+      ascending: true,
+    });
+  } else if (sort === "release") {
+    query = query
+      .order("release_date", { ascending: false, nullsFirst: false })
+      .order("id", { ascending: true });
+  } else {
+    query = query
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true });
+  }
+
+  const { data, error, count } = await query.range(
+    page * pageSize,
+    page * pageSize + pageSize - 1,
+  );
+  if (error) throw error;
+
+  const gameRows = (data || []) as GameRow[];
+  const gameIdsOnPage = gameRows.map((game) => game.id);
+  const { data: badgeData, error: badgeError } = gameIdsOnPage.length
+    ? await supabase
+        .from("game_badges")
+        .select("*")
+        .in("game_id", gameIdsOnPage)
+    : { data: [], error: null };
+  if (badgeError) throw badgeError;
+
+  const badgesByGame = new Map<number, BadgeRow[]>();
+  ((badgeData || []) as BadgeRow[]).forEach((badge) => {
+    badgesByGame.set(badge.game_id, [
+      ...(badgesByGame.get(badge.game_id) || []),
+      badge,
+    ]);
+  });
+
+  return {
+    games: gameRows.map((game) =>
+      toCatalogueGame(game, badgesByGame.get(game.id)),
+    ),
+    count: count || 0,
+  };
 }
 
 export function useGames(includeDrafts = false) {
@@ -127,22 +207,25 @@ export function useGame(gameId?: number) {
       setError("");
     });
     Promise.all([
-      supabase
-        .from("games")
-        .select(GAME_FIELDS)
-        .eq("id", gameId)
-        .maybeSingle(),
+      supabase.from("games").select(GAME_FIELDS).eq("id", gameId).maybeSingle(),
       supabase.from("game_badges").select("*").eq("game_id", gameId),
-    ]).then(([{ data, error: queryError }, { data: badgeData, error: badgeError }]) => {
+    ]).then(
+      ([
+        { data, error: queryError },
+        { data: badgeData, error: badgeError },
+      ]) => {
         if (!active) return;
         if (queryError || badgeError || !data) {
           setGame(null);
           setError("This game could not be found.");
         } else {
-          setGame(toCatalogueGame(data as GameRow, (badgeData || []) as BadgeRow[]));
+          setGame(
+            toCatalogueGame(data as GameRow, (badgeData || []) as BadgeRow[]),
+          );
         }
         setIsLoading(false);
-      });
+      },
+    );
 
     return () => {
       active = false;

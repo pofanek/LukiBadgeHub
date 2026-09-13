@@ -37,7 +37,7 @@ const router = createBrowserRouter([
       { path: "/admin", element: <AdminGames /> },
       { path: "/admin/games/:id", element: <AdminGames /> },
       { path: "/settings", element: <Settings /> },
-      { path: "/rankings", element: <Rankings /> },
+      { path: "/leaderboard", element: <Rankings /> },
       { path: "/profile", element: <Profile /> },
       { path: "/profile/:username", element: <Profile /> },
       { path: "/billing", element: <Billing /> },

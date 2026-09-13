@@ -13,16 +13,11 @@ import { FocusContent, LoadingIndicator } from "../../components";
 import type { CatalogueGame } from "../../constants";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { useGames } from "../../hooks/useGames";
+import { type LeaderboardEntry, useLeaderboard } from "../../hooks/useLeaderboard";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { supabase } from "../../utils/supabase";
 
 type LibraryEntry = { game_id: number; added_at: string };
-type CommunityEntry = LibraryEntry & { user_id: string };
-type CommunityProfile = {
-  id: string;
-  username: string;
-  avatar_path: string | null;
-};
 
 const difficulties = [
   [
@@ -41,7 +36,7 @@ const difficulties = [
   [
     "Inhuman",
     "only the best of the best can play it, it's above skill.",
-    "bg-[#31373d]",
+    "bg-[#9CA3AF]",
   ],
 ] as const;
 
@@ -282,36 +277,25 @@ function HowItWorks() {
 }
 
 function Leaderboards({
-  profiles,
-  potentialExp,
+  entries,
+  isLoading,
 }: {
-  profiles: CommunityProfile[];
-  potentialExp: Map<string, number>;
+  entries: LeaderboardEntry[];
+  isLoading: boolean;
 }) {
-  const leaders = useMemo(
-    () =>
-      profiles
-        .map((profile) => ({
-          ...profile,
-          score: potentialExp.get(profile.id) || 0,
-        }))
-        .filter((profile) => profile.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 5),
-    [potentialExp, profiles],
-  );
+  const leaders = entries.slice(0, 5);
   return (
     <section className="border-border bg-surface/75 rounded-xl border p-5 sm:p-6">
       <Heading
         title="EXP Leaderboard"
-        description="Players with the most potential EXP gained across their games."
-        action={<ActionLink to="/rankings">View Leaderboards</ActionLink>}
+        description="Players with the most EXP earned from completed badges."
+        action={<ActionLink to="/leaderboard">View Leaderboards</ActionLink>}
       />
-      {leaders.length ? (
+      {isLoading ? <div className="py-8"><LoadingIndicator label="Loading leaderboard..." /></div> : leaders.length ? (
         <ol className="divide-border divide-y">
-          {leaders.map(({ id, username, avatar_path, score }, index) => (
+          {leaders.map(({ profile_id, username, avatar_path, score }, index) => (
             <li
-              key={id}
+              key={profile_id}
               className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
             >
               <span className="text-accent-cold w-5 text-sm font-medium">
@@ -330,12 +314,12 @@ function Leaderboards({
               )}
               <Link
                 to={`/profile/${encodeURIComponent(username)}`}
-                className="text-font-primary hover:text-hover min-w-0 flex-1 truncate font-medium"
+                className="text-font-primary hover:text-hover min-w-0 flex-1 truncate"
               >
                 {username}
               </Link>
-              <span className="text-font-secondary text-sm">
-                {score.toLocaleString()} potential EXP
+              <span className="text-font-primary text-sm font-bold">
+                {score.toLocaleString()} EXP
               </span>
             </li>
           ))}
@@ -347,7 +331,7 @@ function Leaderboards({
             The first challengers are arriving
           </p>
           <p className="text-font-muted mt-1 text-sm">
-            Add games to your library to help shape the first leaderboard.
+            Complete a badge challenge to enter the leaderboard.
           </p>
         </div>
       )}
@@ -363,28 +347,7 @@ function Homepage() {
     null,
   );
   const [earnedBadgeIds, setEarnedBadgeIds] = useState<number[] | null>(null);
-  const [profiles, setProfiles] = useState<CommunityProfile[]>([]);
-  const [communityEntries, setCommunityEntries] = useState<CommunityEntry[]>(
-    [],
-  );
-
-  useEffect(() => {
-    let current = true;
-    Promise.all([
-      supabase
-        .from("user_profiles")
-        .select("id, username, avatar_path")
-        .limit(50),
-      supabase.from("user_game_library").select("user_id, game_id, added_at"),
-    ]).then(([profilesResult, libraryResult]) => {
-      if (!current) return;
-      setProfiles(profilesResult.data || []);
-      setCommunityEntries(libraryResult.data || []);
-    });
-    return () => {
-      current = false;
-    };
-  }, []);
+  const { entries: leaderboardEntries, position: leaderboardPosition, isLoading: isLeaderboardLoading } = useLeaderboard("experience", null, 1, user?.id);
 
   useEffect(() => {
     if (!user) {
@@ -442,22 +405,7 @@ function Homepage() {
     () => libraryGames.reduce((total, game) => total + game.totalExp, 0),
     [libraryGames],
   );
-  const communityPotentialExp = useMemo(() => {
-    const totals = new Map<string, number>();
-    communityEntries.forEach(({ user_id, game_id }) => {
-      const game = catalogueGames.find((item) => item.id === game_id);
-      if (game) totals.set(user_id, (totals.get(user_id) || 0) + game.totalExp);
-    });
-    return totals;
-  }, [catalogueGames, communityEntries]);
-  const currentRank = useMemo(() => {
-    if (!user || potentialExp === 0) return null;
-    const rankedIds = [...communityPotentialExp.entries()]
-      .sort(([, firstScore], [, secondScore]) => secondScore - firstScore)
-      .map(([id]) => id);
-    const rank = rankedIds.indexOf(user.id);
-    return rank === -1 ? null : rank + 1;
-  }, [communityPotentialExp, potentialExp, user]);
+  const currentRank = leaderboardPosition?.player_rank || null;
   const username = profile?.username || user?.email?.split("@")[0] || "player";
 
   if (isAuthLoading || isGamesLoading)
@@ -506,7 +454,7 @@ function Homepage() {
                     [
                       "Current rank",
                       currentRank ? `#${currentRank}` : "—",
-                      "Based on library potential EXP",
+                      "Current earned-EXP leaderboard position",
                     ],
                     [
                       "Games in library",
@@ -613,8 +561,8 @@ function Homepage() {
               </section>
               {browseGames}
               <Leaderboards
-                profiles={profiles}
-                potentialExp={communityPotentialExp}
+                entries={leaderboardEntries}
+                isLoading={isLeaderboardLoading}
               />
             </>
           ) : (
@@ -625,8 +573,8 @@ function Homepage() {
               <section className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
                 <DifficultyGuide />
                 <Leaderboards
-                  profiles={profiles}
-                  potentialExp={communityPotentialExp}
+                  entries={leaderboardEntries}
+                  isLoading={isLeaderboardLoading}
                 />
               </section>
               <section className="border-border bg-surface/75 rounded-xl border p-6 text-center sm:p-8">

@@ -33,7 +33,7 @@ export const BADGE_DIFFICULTY_DETAILS: Record<
   hard: { label: "Hard", color: "#f4900c", icon: "/hard.png" },
   extreme: { label: "Extreme", color: "#dd2e44", icon: "/extreme.png" },
   supreme: { label: "Supreme", color: "#aa8ed6", icon: "/supreme.png" },
-  inhuman: { label: "Inhuman", color: "#31373d", icon: "/inhuman.png" },
+  inhuman: { label: "Inhuman", color: "#9CA3AF", icon: "/inhuman.png" },
 };
 
 const badgeExperience: Record<BadgeDifficultyId, Record<BadgeTier, number>> = {

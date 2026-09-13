@@ -45,57 +45,81 @@ function RecentsPanel({
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [nextPage, setNextPage] = useState(0);
   const [error, setError] = useState("");
   const { pinnedBadgeId, setPinnedBadge, isSaving } = usePinnedBadge(profileId);
 
-  const loadPage = useCallback(async (page: number, replace = false) => {
-    const pageSize = 12;
-    replace ? setIsLoading(true) : setIsLoadingMore(true);
-    setError("");
-    const { data: claimData, error: claimError } = await supabase
-      .from("user_badges")
-      .select("badge_id, earned_at")
-      .eq("user_id", profileId)
-      .order("earned_at", { ascending: false })
-      .range(page * pageSize, page * pageSize + pageSize);
-    if (claimError) {
-      setError("Recent badges could not be loaded.");
-    } else {
-      const claims = (claimData || []) as BadgeClaim[];
-      const badgeIds = claims.map((claim) => claim.badge_id);
-      const { data: badgeData, error: badgeError } = badgeIds.length
-        ? await supabase.from("game_badges").select("*").in("id", badgeIds)
-        : { data: [], error: null };
-      const gameIds = [...new Set((badgeData || []).map((badge) => badge.game_id))];
-      const { data: gameData, error: gameError } = gameIds.length
-        ? await supabase.from("games").select(GAME_FIELDS).in("id", gameIds)
-        : { data: [], error: null };
-      if (badgeError || gameError) {
+  const loadPage = useCallback(
+    async (page: number, replace = false) => {
+      const pageSize = 12;
+      if (replace) setIsLoading(true);
+      else setIsLoadingMore(true);
+      setError("");
+      const { data: claimData, error: claimError } = await supabase
+        .from("user_badges")
+        .select("badge_id, earned_at")
+        .eq("user_id", profileId)
+        .order("earned_at", { ascending: false })
+        .range(page * pageSize, page * pageSize + pageSize);
+      if (claimError) {
         setError("Recent badges could not be loaded.");
       } else {
-        const badges = new Map((badgeData || []).map((badge) => [badge.id, badge]));
-        const games = new Map(
-          ((gameData || []) as GameRow[]).map((game) => [
-            game.id,
-            toCatalogueGame(game, (badgeData || []).filter((badge) => badge.game_id === game.id)),
-          ]),
-        );
-        const next = claims.flatMap((claim) => {
-          const badge = badges.get(claim.badge_id);
-          const game = badge ? games.get(badge.game_id) : undefined;
-          return badge && game ? [{ badge, game, earnedAt: claim.earned_at }] : [];
-        });
-        setRecentBadges((current) => (replace ? next : [...current, ...next]));
-        setHasMore(claims.length > pageSize);
+        const claims = (claimData || []) as BadgeClaim[];
+        const visibleClaims = claims.slice(0, pageSize);
+        const badgeIds = visibleClaims.map((claim) => claim.badge_id);
+        const { data: badgeData, error: badgeError } = badgeIds.length
+          ? await supabase.from("game_badges").select("*").in("id", badgeIds)
+          : { data: [], error: null };
+        const gameIds = [
+          ...new Set((badgeData || []).map((badge) => badge.game_id)),
+        ];
+        const { data: gameData, error: gameError } = gameIds.length
+          ? await supabase.from("games").select(GAME_FIELDS).in("id", gameIds)
+          : { data: [], error: null };
+        if (badgeError || gameError) {
+          setError("Recent badges could not be loaded.");
+        } else {
+          const badges = new Map(
+            (badgeData || []).map((badge) => [badge.id, badge]),
+          );
+          const games = new Map(
+            ((gameData || []) as GameRow[]).map((game) => [
+              game.id,
+              toCatalogueGame(
+                game,
+                (badgeData || []).filter((badge) => badge.game_id === game.id),
+              ),
+            ]),
+          );
+          const next = visibleClaims.flatMap((claim) => {
+            const badge = badges.get(claim.badge_id);
+            const game = badge ? games.get(badge.game_id) : undefined;
+            return badge && game
+              ? [{ badge, game, earnedAt: claim.earned_at }]
+              : [];
+          });
+          setRecentBadges((current) => {
+            const combined = replace ? next : [...current, ...next];
+            return [
+              ...new Map(
+                combined.map((item) => [item.badge.id, item]),
+              ).values(),
+            ];
+          });
+          setHasMore(claims.length > pageSize);
+          setNextPage(page + 1);
+        }
       }
-    }
-    setIsLoading(false);
-    setIsLoadingMore(false);
-  }, [profileId]);
+      setIsLoading(false);
+      setIsLoadingMore(false);
+    },
+    [profileId],
+  );
 
   useEffect(() => {
-    setRecentBadges([]);
-    void loadPage(0, true);
+    queueMicrotask(() => {
+      void loadPage(0, true);
+    });
   }, [loadPage]);
 
   if (isLoading) {
@@ -124,15 +148,15 @@ function RecentsPanel({
 
   return (
     <div className="space-y-3">
-      {recentBadges.map(({ badge, earnedAt, game }) => {
+      {recentBadges.map(({ badge, game }) => {
         const difficulty = BADGE_DIFFICULTY_DETAILS[badge.difficulty];
         return (
           <article
-            key={`${badge.id}-${earnedAt}`}
+            key={badge.id}
             className="border-border bg-surface/75 hover:bg-surface-soft flex min-w-0 items-center gap-3 rounded-xl border p-3 transition-colors max-sm:gap-2 max-sm:p-2.5"
           >
             <Link
-              to={`/games/${game.id}`}
+              to={`/games/${game.id}?difficulty=${badge.difficulty}&badge=${badge.id}`}
               className="focus-visible:ring-accent-cold flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:ring-2 focus-visible:outline-none max-sm:gap-2"
             >
               <div
@@ -157,10 +181,19 @@ function RecentsPanel({
                 </p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                   <span style={{ color: difficulty.color }}>
-                    <i className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: difficulty.color }} />
+                    <i
+                      className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: difficulty.color }}
+                    />
                     {getBadgeTierLabel(badge.tier)} {difficulty.label}
                   </span>
-                  <span className="text-font-secondary">{getBadgeExperience(badge.difficulty, badge.tier).toLocaleString()} EXP</span>
+                  <span className="text-font-secondary">
+                    {getBadgeExperience(
+                      badge.difficulty,
+                      badge.tier,
+                    ).toLocaleString()}{" "}
+                    EXP
+                  </span>
                 </div>
               </div>
             </Link>
@@ -168,9 +201,15 @@ function RecentsPanel({
               <button
                 type="button"
                 disabled={isSaving}
-                onClick={() => void setPinnedBadge(pinnedBadgeId === badge.id ? null : badge.id)}
+                onClick={() =>
+                  void setPinnedBadge(
+                    pinnedBadgeId === badge.id ? null : badge.id,
+                  )
+                }
                 className={`border-border shrink-0 rounded-lg border p-2 text-sm ${pinnedBadgeId === badge.id ? "bg-brand-secondary text-font-primary" : "text-font-secondary hover:bg-effect-glass hover:text-font-primary"}`}
-                aria-label={pinnedBadgeId === badge.id ? "Unpin badge" : "Pin badge"}
+                aria-label={
+                  pinnedBadgeId === badge.id ? "Unpin badge" : "Pin badge"
+                }
               >
                 <FaThumbtack className="h-3.5 w-3.5" />
               </button>
@@ -181,7 +220,7 @@ function RecentsPanel({
       {hasMore && (
         <button
           type="button"
-          onClick={() => void loadPage(Math.floor(recentBadges.length / 12))}
+          onClick={() => void loadPage(nextPage)}
           disabled={isLoadingMore}
           className="border-border text-font-secondary hover:text-font-primary mx-auto block rounded-lg border px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
         >

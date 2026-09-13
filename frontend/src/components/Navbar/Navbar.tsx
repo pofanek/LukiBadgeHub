@@ -53,9 +53,9 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
                 />
                 <NavbarButtonRightPanel
                   label="Leaderboards"
-                  tabName="/rankings"
+                  tabName="/leaderboard"
                   activeTab={activeTab}
-                  pathTo="/rankings"
+                  pathTo="/leaderboard"
                 />
               </div>
             </div>
