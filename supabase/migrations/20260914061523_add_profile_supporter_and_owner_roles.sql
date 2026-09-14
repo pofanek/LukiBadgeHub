@@ -1,0 +1,2 @@
+alter type public.role add value if not exists 'Supporter' after 'User';
+alter type public.role add value if not exists 'Owner' after 'Admin';

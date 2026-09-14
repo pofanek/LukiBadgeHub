@@ -11,7 +11,7 @@ export { default as Rankings } from "./Rankings/Rankings";
 export { default as Settings } from "./Settings/Settings";
 export { default as Terms } from "./Terms/Terms";
 export { default as Profile } from "./Profile/Profile";
-export { default as Billing } from "./Billing/Billing";
+export { default as Support } from "./Billing/Billing";
 export { default as Notifications } from "./Notifications/Notifications";
 export { default as AuthCallback } from "./AuthCallback/AuthCallback";
 export { default as ForgotPassword } from "./ForgotPassword/ForgotPassword";

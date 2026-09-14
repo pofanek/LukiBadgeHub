@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabase";
 
+export type UserRole = "User" | "Supporter" | "Moderator" | "Admin" | "Owner";
+
 export type UserProfile = {
   id: string;
   username: string;
@@ -11,35 +13,56 @@ export type UserProfile = {
   pinned_badge_id: number | null;
   hide_pinned_badge_edit: boolean;
   username_changed_at: string | null;
-  role: "User" | "Moderator" | "Admin";
+  role: UserRole;
   avatar_url: string | null;
   banner_url: string | null;
 };
 
 type ProfileRow = Omit<UserProfile, "avatar_url" | "banner_url">;
-export type ProfileChanges = Pick<UserProfile, "username" | "bio" | "country_code" | "avatar_path" | "banner_path" | "pinned_badge_id" | "hide_pinned_badge_edit">;
+export type ProfileChanges = Pick<
+  UserProfile,
+  | "username"
+  | "bio"
+  | "country_code"
+  | "avatar_path"
+  | "banner_path"
+  | "pinned_badge_id"
+  | "hide_pinned_badge_edit"
+>;
 const profileEvent = "luki-profile-updated";
 
 function mediaUrl(path: string | null) {
   if (!path) return null;
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  return supabase.storage.from("profile-media").getPublicUrl(path).data.publicUrl;
+  return supabase.storage.from("profile-media").getPublicUrl(path).data
+    .publicUrl;
 }
 
 function hydrateProfile(profile: ProfileRow): UserProfile {
-  return { ...profile, avatar_url: mediaUrl(profile.avatar_path), banner_url: mediaUrl(profile.banner_path) };
+  return {
+    ...profile,
+    avatar_url: mediaUrl(profile.avatar_path),
+    banner_url: mediaUrl(profile.banner_path),
+  };
 }
 
 export function publishUserProfile(profile: UserProfile) {
-  window.dispatchEvent(new CustomEvent<UserProfile>(profileEvent, { detail: profile }));
+  window.dispatchEvent(
+    new CustomEvent<UserProfile>(profileEvent, { detail: profile }),
+  );
 }
 
-export async function saveUserProfile(userId: string, changes: Partial<ProfileChanges>) {
+export async function saveUserProfile(
+  userId: string,
+  changes: Partial<ProfileChanges>,
+) {
   const { data, error } = await supabase
     .from("user_profiles")
     .update(changes)
     .eq("id", userId)
-    .select("id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, hide_pinned_badge_edit, username_changed_at, role")
+    .select(
+      "id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, hide_pinned_badge_edit, username_changed_at, role",
+    )
     .single();
   if (error) throw error;
   const profile = hydrateProfile(data);
@@ -48,20 +71,37 @@ export async function saveUserProfile(userId: string, changes: Partial<ProfileCh
 }
 
 export function useUserProfile(userId?: string) {
-  const [result, setResult] = useState<{ userId?: string; profile: UserProfile | null }>({ profile: null });
+  const [result, setResult] = useState<{
+    userId?: string;
+    profile: UserProfile | null;
+  }>({ profile: null });
 
   useEffect(() => {
     let isCurrent = true;
-    if (!userId) return () => { isCurrent = false; };
+    if (!userId)
+      return () => {
+        isCurrent = false;
+      };
 
     const onProfileUpdate = (event: Event) => {
       const profile = (event as CustomEvent<UserProfile>).detail;
       if (profile.id === userId) setResult({ userId, profile });
     };
     window.addEventListener(profileEvent, onProfileUpdate);
-    supabase.from("user_profiles").select("id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, hide_pinned_badge_edit, username_changed_at, role").eq("id", userId).maybeSingle().then(({ data, error }) => {
-      if (isCurrent) setResult({ userId, profile: error || !data ? null : hydrateProfile(data) });
-    });
+    supabase
+      .from("user_profiles")
+      .select(
+        "id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, hide_pinned_badge_edit, username_changed_at, role",
+      )
+      .eq("id", userId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (isCurrent)
+          setResult({
+            userId,
+            profile: error || !data ? null : hydrateProfile(data),
+          });
+      });
 
     return () => {
       isCurrent = false;
@@ -69,18 +109,28 @@ export function useUserProfile(userId?: string) {
     };
   }, [userId]);
 
-  return { profile: result.userId === userId ? result.profile : null, isLoading: Boolean(userId) && result.userId !== userId };
+  return {
+    profile: result.userId === userId ? result.profile : null,
+    isLoading: Boolean(userId) && result.userId !== userId,
+  };
 }
 
 export function useUserProfileByUsername(username?: string) {
-  const [result, setResult] = useState<{ username?: string; profile: UserProfile | null }>({ profile: null });
+  const [result, setResult] = useState<{
+    username?: string;
+    profile: UserProfile | null;
+  }>({ profile: null });
 
   useEffect(() => {
     let isCurrent = true;
-    if (!username) return () => { isCurrent = false; };
+    if (!username)
+      return () => {
+        isCurrent = false;
+      };
 
     const loadProfile = async () => {
-      const profileQuery = "id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, hide_pinned_badge_edit, username_changed_at, role";
+      const profileQuery =
+        "id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, hide_pinned_badge_edit, username_changed_at, role";
       const { data: currentProfile, error: currentError } = await supabase
         .from("user_profiles")
         .select(profileQuery)
@@ -104,15 +154,22 @@ export function useUserProfileByUsername(username?: string) {
         .eq("id", history.profile_id)
         .maybeSingle();
 
-      return historicalError || !historicalProfile ? null : hydrateProfile(historicalProfile);
+      return historicalError || !historicalProfile
+        ? null
+        : hydrateProfile(historicalProfile);
     };
 
     loadProfile().then((profile) => {
       if (isCurrent) setResult({ username, profile });
     });
 
-    return () => { isCurrent = false; };
+    return () => {
+      isCurrent = false;
+    };
   }, [username]);
 
-  return { profile: result.username === username ? result.profile : null, isLoading: Boolean(username) && result.username !== username };
+  return {
+    profile: result.username === username ? result.profile : null,
+    isLoading: Boolean(username) && result.username !== username,
+  };
 }

@@ -1,6 +1,7 @@
 import { FooterText, FooterLink } from "./";
 import { SiKofi } from "react-icons/si";
 import { FaDiscord } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 type FooterProps = {
   className?: string;
@@ -24,13 +25,10 @@ const Footer = ({ className = "" }: FooterProps) => {
             <FaDiscord size={26} color="#818181" />
             <FooterLink>Discord</FooterLink>
           </a>
-          <a
-            href="https://ko-fi.com/"
-            className="flex items-center justify-center gap-1"
-          >
+          <Link to="/support" className="flex items-center justify-center gap-1">
             <SiKofi size={24} color="#818181" />
-            <FooterLink>Support Me!</FooterLink>
-          </a>
+            <FooterLink>Support the project</FooterLink>
+          </Link>
         </div>
       </div>
 

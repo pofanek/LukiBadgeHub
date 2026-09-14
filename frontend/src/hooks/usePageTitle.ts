@@ -25,7 +25,7 @@ function getPageTitle(pathname: string) {
     return profileTitle(pathname.slice("/profile/".length));
   }
   if (pathname === "/settings") return `Settings | ${siteName}`;
-  if (pathname === "/billing") return `Billing | ${siteName}`;
+  if (pathname === "/support") return `Support | ${siteName}`;
   if (pathname === "/notifications") return `Notifications | ${siteName}`;
   if (pathname === "/login") return `Log in | ${siteName}`;
   if (pathname === "/signup") return `Sign up | ${siteName}`;

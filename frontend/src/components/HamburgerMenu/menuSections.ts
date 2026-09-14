@@ -36,9 +36,8 @@ export const MENU_SECTIONS: MenuItem[][] = [
       icon: RiDiscordLine,
     },
     {
-      label: "Support Me!",
-      pathTo: "https://ko-fi.com/",
-      isLink: true,
+      label: "Support the project",
+      pathTo: "/support",
       icon: FiCoffee,
     },
   ],

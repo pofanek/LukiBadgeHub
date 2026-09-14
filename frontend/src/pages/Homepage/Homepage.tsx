@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   FiArrowRight,
   FiAward,
+  FiHeart,
   FiMonitor,
   FiLayers,
   FiTrendingUp,
@@ -273,6 +274,33 @@ function HowItWorks() {
             </p>
           </article>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function SupportProject() {
+  return (
+    <section className="border-border bg-surface/75 rounded-xl border p-5 sm:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="max-w-2xl">
+          <div className="flex items-center gap-2">
+            <FiHeart className="text-accent-cold h-5 w-5" />
+            <h2 className="text-font-primary font-serif text-2xl">
+              Support Luki Badge Hub
+            </h2>
+          </div>
+          <p className="text-font-secondary mt-2 text-sm leading-relaxed">
+            Help cover development and keep the project growing. Supporters receive
+            a badge on their profile as a thank-you.
+          </p>
+        </div>
+        <Link
+          to="/support"
+          className="border-border text-font-primary hover:bg-effect-glass inline-flex shrink-0 items-center justify-center rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors"
+        >
+          Support the project
+        </Link>
       </div>
     </section>
   );
@@ -634,6 +662,7 @@ function Homepage() {
                 entries={leaderboardEntries}
                 isLoading={isLeaderboardLoading}
               />
+              <SupportProject />
             </>
           ) : (
             <>
@@ -663,6 +692,7 @@ function Homepage() {
                   Create an account
                 </Link>
               </section>
+              <SupportProject />
             </>
           )}
         </div>

@@ -186,7 +186,7 @@ export default function AdminAwards({ embedded = false }: { embedded?: boolean }
       <div className={embedded ? "" : "mx-auto w-full max-w-5xl px-3 sm:px-7 lg:px-10"}>
         <div className="border-border border-b pb-6">
           <header className="border-accent-cold/30 bg-brand-tertiary/35 w-fit max-w-full rounded-xl border p-4 sm:p-5">
-            <p className="text-accent-cold text-sm font-medium">Moderator CMS</p>
+            <p className="text-accent-cold text-sm font-medium">CMS</p>
             <h1 className="text-font-primary mt-1 font-serif text-4xl">Award special badges</h1>
             <p className="text-font-secondary mt-2 max-w-2xl">Award an existing Extreme, Supreme, or Inhuman badge from a selected game.</p>
           </header>
