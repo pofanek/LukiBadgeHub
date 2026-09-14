@@ -2,6 +2,7 @@ import { FooterText, FooterLink } from "./";
 import { SiKofi } from "react-icons/si";
 import { FaDiscord } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { DISCORD_URL } from "../../constants";
 
 type FooterProps = {
   className?: string;
@@ -22,7 +23,7 @@ const Footer = ({ className = "" }: FooterProps) => {
       <div className="flex h-[33%] w-full min-w-34 items-center justify-center gap-6 sm:order-3 sm:mr-7 sm:h-auto sm:justify-end">
         <div className="flex flex-row gap-6 sm:flex-col sm:gap-1 lg:flex-row lg:gap-6">
           <a
-            href="https://discord.gg/UH6eUVQQMX"
+            href={DISCORD_URL}
             className="flex items-center justify-center gap-1"
           >
             <FaDiscord size={26} color="#818181" />

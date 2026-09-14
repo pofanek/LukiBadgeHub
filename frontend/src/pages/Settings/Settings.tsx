@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { FiAlertCircle, FiBell, FiCamera, FiCheck, FiCheckCircle, FiChevronDown, FiImage, FiLock, FiMail, FiSave, FiSearch, FiTrash2, FiUpload, FiX } from "react-icons/fi";
 import { FaDiscord, FaInstagram, FaSteam, FaYoutube } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
@@ -18,6 +18,7 @@ import { passwordIsValid } from "../../utils/password";
 import { supabase } from "../../utils/supabase";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { CountrySelect, ImageCropDialog } from "./components";
+import { useNotifications, type NotificationPreferences } from "../../hooks/useNotifications";
 
 type SettingsTab = "profile" | "account" | "notifications";
 type CropTarget = { file: File; kind: "avatar" | "banner" };
@@ -118,7 +119,10 @@ function ConfirmationDialog({ title, children, onClose }: { title: string; child
 }
 
 function Settings() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<SettingsTab>(
+    searchParams.get("tab") === "notifications" ? "notifications" : "profile",
+  );
   const [profileForm, setProfileForm] = useState({ username: "", bio: "", country_code: "unknown" });
   const [socialValues, setSocialValues] = useState<Record<SocialPlatform, string>>({ steam: "", youtube: "", instagram: "", bluesky: "" });
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
@@ -152,6 +156,15 @@ function Settings() {
     usePinnedBadge(user?.id);
   const [ownedBadgeIds, setOwnedBadgeIds] = useState<number[]>([]);
   const [isPinnedBadgeButtonSaving, setIsPinnedBadgeButtonSaving] = useState(false);
+  const [notificationSaving, setNotificationSaving] = useState<keyof NotificationPreferences | null>(null);
+  const { preferences: notificationPreferences, updatePreferences } = useNotifications();
+
+  useEffect(() => {
+    const requestedTab = searchParams.get("tab");
+    if (requestedTab === "notifications" || requestedTab === "profile" || requestedTab === "account") {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!userId) return;
@@ -243,6 +256,25 @@ function Settings() {
   if (isAuthLoading || isProfileLoading || !user) return <FocusContent><LoadingIndicator label="Loading settings..." /></FocusContent>;
 
   const clearFeedback = () => { setNotice(""); setError(""); };
+  const selectTab = (tab: SettingsTab) => {
+    setActiveTab(tab);
+    const nextParams = new URLSearchParams(searchParams);
+    if (tab === "profile") nextParams.delete("tab");
+    else nextParams.set("tab", tab);
+    setSearchParams(nextParams, { replace: true });
+  };
+  const updateNotificationPreference = async (key: keyof NotificationPreferences) => {
+    clearFeedback();
+    setNotificationSaving(key);
+    try {
+      await updatePreferences({ [key]: !notificationPreferences[key] });
+      setNotice("Notification preference saved.");
+    } catch {
+      setError("Notification preference could not be saved. Please try again.");
+    } finally {
+      setNotificationSaving(null);
+    }
+  };
   const updatePinnedBadge = async (value: string) => {
     clearFeedback();
     try {
@@ -394,7 +426,7 @@ function Settings() {
 
   return <section className="flex-1"><div className="min-h-full w-full py-7 sm:py-10 lg:py-12"><div className="mx-auto w-full max-w-5xl px-3 sm:px-7">
     <header className="mb-6 sm:mb-8"><h1 className="text-font-primary font-serif text-4xl sm:text-5xl">Settings</h1><p className="text-font-secondary mt-2 max-w-xl leading-relaxed">Manage how your profile appears and how you sign in to Luki Badge Hub.</p></header>
-    <nav aria-label="Settings sections" className="border-border mb-5 overflow-x-auto border-b sm:mb-6"><div className="flex min-w-max gap-1 sm:gap-4">{tabs.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => setActiveTab(id)} className={`relative flex items-center gap-2 px-3 py-3.5 text-sm font-medium whitespace-nowrap sm:px-4 sm:text-base ${activeTab === id ? "text-font-primary" : "text-font-muted hover:text-font-secondary"}`}><Icon className="h-4 w-4" />{label}<span className={`bg-accent-cold absolute right-3 bottom-0 left-3 h-0.5 ${activeTab === id ? "scale-x-100" : "scale-x-0"}`} /></button>)}</div></nav>
+    <nav aria-label="Settings sections" className="border-border mb-5 overflow-x-auto border-b sm:mb-6"><div className="flex min-w-max gap-1 sm:gap-4">{tabs.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => selectTab(id)} className={`relative flex items-center gap-2 px-3 py-3.5 text-sm font-medium whitespace-nowrap sm:px-4 sm:text-base ${activeTab === id ? "text-font-primary" : "text-font-muted hover:text-font-secondary"}`}><Icon className="h-4 w-4" />{label}<span className={`bg-accent-cold absolute right-3 bottom-0 left-3 h-0.5 ${activeTab === id ? "scale-x-100" : "scale-x-0"}`} /></button>)}</div></nav>
     {activeTab === "profile" && <div className="space-y-4">
       <Section title="Profile appearance" description="Crop, zoom, and save the images people see on your profile."><div className="border-border overflow-hidden rounded-xl border"><div className="h-32 bg-surface-overlay bg-cover bg-center sm:h-40" style={profile?.banner_url ? { backgroundImage: `url(${profile.banner_url})` } : undefined}><div className="flex h-full items-end justify-end bg-surface-overlay/45 p-3"><button type="button" onClick={() => bannerInput.current?.click()} className="border-border bg-surface/90 text-font-primary rounded-lg border px-3 py-2 text-sm"><FiImage className="mr-2 inline" />Change banner</button></div></div><div className="bg-surface-soft/50 flex flex-col gap-4 p-4 sm:flex-row sm:items-center"><img src={profile?.avatar_url || userchomik} alt="Your profile avatar" className="border-border bg-surface-raised h-20 w-20 rounded-2xl border object-cover shadow-black" /><div className="min-w-0 flex-1"><p className="text-font-primary font-medium">Profile photo</p><p className="text-font-muted mt-1 text-sm">JPG, PNG, or WebP up to 5 MB. Large images are downscaled to fit 2000px.</p></div><button type="button" onClick={() => avatarInput.current?.click()} className="border-border bg-brand-secondary text-font-primary rounded-lg border px-3 py-2 text-sm font-medium"><FiUpload className="mr-2 inline" />Change avatar</button></div></div><input ref={avatarInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => { chooseImage("avatar", event.target.files?.[0]); event.target.value = ""; }} /><input ref={bannerInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => { chooseImage("banner", event.target.files?.[0]); event.target.value = ""; }} /></Section>
       <Section title="Profile details" description="These details appear on your public profile."><div className="grid gap-4 sm:grid-cols-2"><label className="text-font-secondary text-sm">Username<Input value={profileForm.username} onChange={(event) => setProfileForm({ ...profileForm, username: event.target.value })} className="mt-2" /><span className="text-font-muted mt-1 block text-xs">Your profile URL uses this name. <strong className="text-font-secondary font-semibold">You can change it twice per month.</strong></span></label><div className="text-font-secondary text-sm">Country<CountrySelect value={profileForm.country_code} onChange={(country_code) => setProfileForm({ ...profileForm, country_code })} /></div></div><label className="text-font-secondary mt-4 block text-sm">Bio<textarea value={profileForm.bio} maxLength={300} onChange={(event) => setProfileForm({ ...profileForm, bio: event.target.value })} className="border-border bg-surface-soft text-font-primary placeholder:text-font-muted focus:border-accent-cold mt-2 min-h-28 w-full resize-none rounded-lg border px-3 py-2.5 text-sm outline-none" placeholder="Tell people a little about yourself." /></label><div className="mt-4 flex items-center justify-between gap-3"><span className="text-font-muted text-xs">{profileForm.bio.length}/300</span><button type="button" onClick={saveDetails} disabled={saving} className="bg-brand-secondary text-font-primary hover:bg-brand-primary rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50"><FiSave className="mr-2 inline" />Save profile</button></div></Section>
@@ -405,7 +437,7 @@ function Settings() {
       <Section title="Sign-in methods" description="Connect Google or Discord so you have another way to access this account."><div className="space-y-3">{oauthProviders.map(({ provider, label, icon: Icon }) => { const identity = identities.find((item) => item.provider === provider); const canUnlink = identities.length > 1; return <div key={provider} className="border-border bg-surface-soft/60 flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center"><div className="flex min-w-0 flex-1 items-center gap-3"><Icon className="h-6 w-6 shrink-0" /><div><p className="text-font-primary text-sm font-medium">{label}</p><p className="text-font-muted mt-0.5 text-xs">{identitiesLoading ? "Checking connection..." : identity ? "Connected" : "Not connected"}</p></div></div>{identity ? <button type="button" onClick={() => unlinkIdentity(identity)} disabled={!canUnlink || identityBusy !== null} title={!canUnlink ? "Connect another sign-in method before removing this one." : undefined} className="border-border text-font-secondary hover:text-font-primary rounded-lg border px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50">{identityBusy === provider ? "Removing..." : "Remove"}</button> : <button type="button" onClick={() => linkIdentity(provider)} disabled={identitiesLoading || identityBusy !== null} className="bg-brand-secondary text-font-primary hover:bg-brand-primary rounded-lg px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50">{identityBusy === provider ? "Connecting..." : `Connect ${label}`}</button>}</div>; })}</div><p className="text-font-muted mt-3 text-xs leading-relaxed">You can only remove a sign-in method when another method remains connected.</p></Section>
       <Section title={hasPassword ? "Password" : "Set password"} description={hasPassword ? "Enter your current password before choosing a new one." : "We’ll send a recovery link to your account email so you can add password sign-in without removing OAuth."}>{hasPassword ? <><label className="text-font-secondary block text-sm">Current password<Input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} className="mt-2" /></label><label className="text-font-secondary mt-4 block text-sm">New password<Input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="mt-2" /></label><PasswordRequirements password={newPassword} /><button type="button" onClick={changePassword} className="bg-brand-secondary text-font-primary mt-4 rounded-lg px-3 py-2.5 text-sm font-medium">Change password</button></> : <button type="button" onClick={setPassword} className="bg-brand-secondary text-font-primary rounded-lg px-3 py-2.5 text-sm font-medium">Send password setup link</button>}</Section>
       <section className="border-destructive/40 bg-destructive-background/20 rounded-xl border p-4 sm:p-6"><h2 className="text-font-primary font-serif text-2xl">Delete account</h2><p className="text-font-secondary mt-1 max-w-xl text-sm leading-relaxed">This permanently removes your profile, social links, media, and future badge progress. It cannot be undone. To protect your account, you must enter your password, verify the deletion from your email, and make a final confirmation.</p>{!hasPassword && <Notice message="Set a password from the section above before deleting an OAuth-only account." error />}{deletionEmailSent && <Notice message="Verification email sent. Open its link within 15 minutes to unlock the final confirmation." />}<button type="button" onClick={() => { clearFeedback(); setShowDeleteDialog(true); }} disabled={!hasPassword || deletionBusy} className="border-destructive/50 text-destructive hover:bg-destructive-background mt-4 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50"><FiTrash2 className="mr-2 inline" />Delete account</button></section></div>}
-    {activeTab === "notifications" && <section className="border-border bg-surface/75 flex min-h-72 flex-col items-center justify-center rounded-xl border px-5 text-center"><div className="border-border bg-surface-soft flex h-12 w-12 items-center justify-center rounded-xl border"><FiBell className="text-font-secondary h-6 w-6" /></div><h2 className="text-font-primary mt-4 font-serif text-2xl">Notifications are on the way</h2><p className="text-font-muted mt-2 max-w-sm text-sm leading-relaxed">Soon you’ll be able to choose which updates reach you.</p></section>}
+    {activeTab === "notifications" && <Section title="In-app notifications" description="Choose the updates that appear in your notification inbox."><div className="space-y-3">{([{ key: "role_granted_enabled", title: "Role changes", description: "When you receive the Admin, Moderator, or Supporter role." }, { key: "special_badge_awarded_enabled", title: "Special badges", description: "When a moderator awards you an Extreme, Supreme, or Inhuman badge." }, { key: "new_follower_enabled", title: "New followers", description: "When another player starts following you." }, { key: "new_mutual_enabled", title: "New mutuals", description: "When a player follows you back." }] as const).map(({ key, title, description }) => <label key={key} className={`border-border bg-surface-soft/60 flex items-start gap-3 rounded-lg border p-3 ${notificationSaving === key ? "cursor-wait opacity-70" : "cursor-pointer"}`}><input type="checkbox" checked={notificationPreferences[key]} onChange={() => void updateNotificationPreference(key)} disabled={notificationSaving !== null} className="peer sr-only" /><span className={`border-border bg-surface-soft peer-focus-visible:ring-accent-cold mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors peer-focus-visible:ring-2 ${notificationPreferences[key] ? "border-accent-cold bg-brand-tertiary text-font-primary" : "hover:border-font-muted"}`}>{notificationPreferences[key] && <FiCheck className="h-3 w-3" />}</span><span><span className="text-font-primary block text-sm font-medium">{title}</span><span className="text-font-muted mt-0.5 block text-xs leading-relaxed">{description}</span></span></label>)}</div><p className="text-font-muted mt-4 text-xs leading-relaxed">These settings control notifications inside Luki Badge Hub. They do not send email or browser alerts.</p></Section>}
     {(notice || error) && <FeedbackToast message={error || notice} error={Boolean(error)} onDismiss={clearFeedback} />}
   </div></div>{cropTarget && <ImageCropDialog file={cropTarget.file} kind={cropTarget.kind} onCancel={() => setCropTarget(null)} onConfirm={saveImage} />}{showDeleteDialog && <ConfirmationDialog title="Confirm account deletion" onClose={() => !deletionBusy && setShowDeleteDialog(false)}><p className="text-font-secondary mt-3 text-sm leading-relaxed">This starts a permanent deletion request. We’ll email a verification link before anything is removed.</p><label className="text-font-secondary mt-4 block text-sm">Current password<Input type="password" autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} className="mt-2" /></label><label className="text-font-secondary mt-4 block text-sm">Type DELETE to continue<Input value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} className="mt-2" /></label><button type="button" onClick={beginAccountDeletion} disabled={deletionBusy} className="border-destructive/50 text-destructive hover:bg-destructive-background mt-5 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50">{deletionBusy ? "Verifying..." : "Send verification email"}</button></ConfirmationDialog>}{showFinalDeleteDialog && <ConfirmationDialog title="Permanently delete account?" onClose={() => !deletionBusy && setShowFinalDeleteDialog(false)}><p className="text-font-secondary mt-3 text-sm leading-relaxed">Your email and password have been verified. This final action immediately deletes your account and cannot be undone.</p><button type="button" onClick={deleteAccount} disabled={deletionBusy} className="border-destructive/50 text-destructive hover:bg-destructive-background mt-5 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50">{deletionBusy ? "Deleting..." : "Delete account permanently"}</button></ConfirmationDialog>}</section>;
 }

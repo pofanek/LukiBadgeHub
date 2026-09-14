@@ -31,6 +31,28 @@ const socialLinks = [
   { label: "Bluesky", icon: SiBluesky },
 ];
 
+const LEVEL_RING_COLORS = [
+  "#3d8ef0",
+  "#38b7a5",
+  "#78b159",
+  "#fdcb58",
+  "#f4900c",
+  "#dd2e44",
+  "#aa8ed6",
+  "#8bd5ff",
+  "#8b5cf6",
+  "#e6f1ff",
+] as const;
+
+function getLevelRingColor(level: number) {
+  const colorIndex = Math.min(
+    Math.max(0, Math.floor((level - 1) / 10)),
+    LEVEL_RING_COLORS.length - 1,
+  );
+
+  return LEVEL_RING_COLORS[colorIndex];
+}
+
 type ProfileHeaderProps = {
   profile: UserProfile;
   isOwnProfile: boolean;
@@ -62,6 +84,7 @@ function ProfileHeader({
   );
   const country = getCountry(profile.country_code);
   const profileRole = profile.role;
+  const levelRingColor = getLevelRingColor(level);
 
   useEffect(() => {
     if (!followError) return;
@@ -237,7 +260,14 @@ function ProfileHeader({
                   aria-label="View profile statistics"
                 >
                   <span>Level</span>
-                  <span className="border-accent-cold text-font-primary grid h-10 w-10 place-items-center rounded-full border text-lg">
+                  <span
+                    className="text-font-primary grid h-10 w-10 place-items-center rounded-full border text-lg transition-[border-color,box-shadow,background-color]"
+                    style={{
+                      borderColor: levelRingColor,
+                      backgroundColor: `${levelRingColor}14`,
+                      boxShadow: `0 0 14px ${levelRingColor}38`,
+                    }}
+                  >
                     {isLevelLoading || hasLevelError ? "—" : level}
                   </span>
                 </Link>

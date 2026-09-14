@@ -49,8 +49,8 @@ select throws_ok(
 );
 select results_eq(
   $$select name from public.game_badges where name like 'CMS test %' order by name$$,
-  array['CMS test published badge'],
-  'anon reads badges belonging to published games but not drafts'
+  array['CMS test published badge', 'CMS test published special badge'],
+  'anon reads every badge belonging to published games but not drafts'
 );
 select throws_ok(
   $$insert into public.user_badges (user_id, badge_id) select '11111111-1111-1111-1111-111111111111', id from public.game_badges where name = 'CMS test published badge'$$,

@@ -12,6 +12,13 @@ type SearchbarProps = {
   onSearch?: () => void;
 };
 
+function profileAvatarUrl(path: string | null) {
+  if (!path) return userchomik;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  return supabase.storage.from("profile-media").getPublicUrl(path).data
+    .publicUrl;
+}
+
 const Searchbar = ({
   className = "",
   inputClasses = "",
@@ -70,8 +77,8 @@ const Searchbar = ({
           }}
           onFocus={() => setIsSuggestionsOpen(true)}
           className={`text-font-primary placeholder:text-font-muted min-w-0 flex-1 appearance-none bg-transparent px-2 text-sm outline-none [&::-webkit-search-cancel-button]:appearance-none ${inputClasses}`}
-          placeholder="Search games"
-          aria-label="Search games"
+          placeholder="Search…"
+          aria-label="Search for games, users and badges"
           autoComplete="off"
         />
         {query && (
@@ -114,15 +121,13 @@ const Searchbar = ({
                     className={resultClassName}
                   >
                     <img
-                      src={
-                        user.avatar_path
-                          ? supabase.storage
-                              .from("profile-media")
-                              .getPublicUrl(user.avatar_path).data.publicUrl
-                          : userchomik
-                      }
+                      src={profileAvatarUrl(user.avatar_path)}
                       alt=""
                       className="border-border h-7 w-7 rounded-full border object-cover"
+                      onError={(event) => {
+                        event.currentTarget.onerror = null;
+                        event.currentTarget.src = userchomik;
+                      }}
                     />
                     <span className="truncate">{user.username}</span>
                   </Link>

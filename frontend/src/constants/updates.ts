@@ -38,73 +38,10 @@ export const projectUpdates: ProjectUpdate[] = [
   {
     date: "2026-09-14",
     type: "New",
-    title: "Updates are now live",
+    title: "The website is released!",
     summary:
-      "Follow balance adjustments, new releases, improvements, fixes, and maintenance in one place.",
-  },
-    {
-    date: "2026-09-15",
-    type: "Balance",
-    title: "Balance changes for badges",
-    summary:
-      "We changed niger badge to high inhuman.",
-  },
-      {
-    date: "2026-09-15",
-    type: "Balance",
-    title: "Balance changes for badges",
-    summary:
-      "We changed niger badge to high inhuman.",
-  },
-      {
-    date: "2026-09-15",
-    type: "Balance",
-    title: "Balance changes for badges",
-    summary:
-      "We changed niger badge to high inhuman.",
-  },
-      {
-    date: "2026-09-15",
-    type: "Balance",
-    title: "Balance changes for badges",
-    summary:
-      "We changed niger badge to high inhuman.",
-  },
-      {
-    date: "2026-09-15",
-    type: "Balance",
-    title: "Balance changes for badges",
-    summary:
-      "We changed niger badge to high inhuman.",
-  },
-      {
-    date: "2026-09-15",
-    type: "Balance",
-    title: "Balance changes for badges",
-    summary:
-      "We changed niger badge to high inhuman.",
-  },
-      {
-    date: "2026-09-15",
-    type: "Balance",
-    title: "Balance changes for badges",
-    summary:
-      "We changed niger badge to high inhuman.",
-  },
-      {
-    date: "2026-09-15",
-    type: "Balance",
-    title: "Balance changes for badges",
-    summary:
-      "We changed niger badge to high inhuman.",
-  },
-      {
-    date: "2026-09-15",
-    type: "Balance",
-    title: "Balance changes for badges",
-    summary:
-      "We changed niger badge to high inhuman.",
-  },
+      "After long time waiting, and doing absolutely nothing, I made the website in less than 1 month!.",
+  }
   
 ];
 

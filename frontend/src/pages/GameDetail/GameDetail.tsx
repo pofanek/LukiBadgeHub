@@ -14,11 +14,12 @@ import {
   FiSend,
   FiX,
 } from "react-icons/fi";
-import { FaSteam, FaStar, FaThumbtack, FaTrophy } from "react-icons/fa";
+import { FaDiscord, FaSteam, FaStar, FaThumbtack, FaTrophy } from "react-icons/fa";
 import { hollow, hollowthumb, userchomik } from "../../assets";
 import {
   BADGE_DIFFICULTIES,
   BADGE_DIFFICULTY_DETAILS,
+  DISCORD_URL,
   getBadgeDifficultyLabel,
   getBadgeExperience,
   getBadgeTierLabel,
@@ -762,6 +763,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
                   <DifficultyCard
                     key={difficulty.id}
                     difficulty={difficulty}
+                    disabled={difficulty.total === 0}
                     selected={
                       !selectedDifficulties.length ||
                       selectedDifficulties.includes(difficulty.id)
@@ -1000,21 +1002,24 @@ function Stat({
 }
 function DifficultyCard({
   difficulty,
+  disabled,
   selected,
   onClick,
 }: {
   difficulty: Difficulty;
+  disabled: boolean;
   selected: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
-      aria-pressed={selected}
+      disabled={disabled}
+      aria-pressed={!disabled && selected}
       onClick={onClick}
-      className={`min-w-0 cursor-pointer rounded-xl border p-3 text-left transition-colors ${selected ? "bg-surface-soft/90" : "bg-surface-overlay/70 opacity-65 hover:opacity-90"}`}
+      className={`min-w-0 rounded-xl border p-3 text-left transition-colors ${selected && !disabled ? "cursor-pointer bg-surface-soft/90" : "bg-surface-overlay/70 opacity-65"} ${disabled ? "cursor-not-allowed" : "hover:opacity-90"}`}
       style={{
-        borderColor: selected
+        borderColor: selected && !disabled
           ? `${difficulty.color}a6`
           : `${difficulty.color}45`,
       }}
@@ -1095,7 +1100,7 @@ function Comments({ canComment }: { canComment: boolean }) {
           </div>
         </div>
       ) : (
-        <p className="text-font-muted mt-3 text-sm">No comments yet.</p>
+        <p className="text-font-muted mt-3 text-sm">Coming Soon.</p>
       )}
     </section>
   );
@@ -1347,14 +1352,83 @@ function Pagination({
   );
 }
 function VerificationButton() {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <button
-      type="button"
-      onClick={(event) => event.stopPropagation()}
-      className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary focus-visible:outline-accent-cold mt-1.5 cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95"
+    <>
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          setIsOpen(true);
+        }}
+        className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary focus-visible:outline-accent-cold mt-1.5 cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95"
+      >
+        Verify
+      </button>
+      {isOpen && <VerificationDialog onClose={() => setIsOpen(false)} />}
+    </>
+  );
+}
+function VerificationDialog({ onClose }: { onClose: () => void }) {
+  return createPortal(
+    <div
+      role="presentation"
+      onClick={onClose}
+      className="bg-surface-overlay/80 fixed inset-0 z-[60] flex items-center justify-center p-4"
     >
-      Verify
-    </button>
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="verification-dialog-title"
+        onClick={(event) => event.stopPropagation()}
+        className="border-border bg-surface-raised max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl border p-5 shadow-black sm:p-6"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-accent-cold text-sm font-medium">Badge verification</p>
+            <h2 id="verification-dialog-title" className="text-font-primary mt-1 font-serif text-2xl">
+              Verify your completion
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close verification instructions"
+            className="text-font-muted hover:text-font-primary rounded p-1"
+          >
+            <FiX className="h-5 w-5" />
+          </button>
+        </div>
+        <p className="text-font-secondary mt-4 text-sm leading-relaxed">
+          It&apos;s easy: join our Discord server, open the tickets channel, create a ticket, and send your proof.
+        </p>
+        <div className="border-border bg-surface-soft mt-5 rounded-xl border p-4">
+          <p className="text-font-primary text-sm font-medium">What to send</p>
+          <ul className="text-font-secondary mt-3 space-y-3 text-sm leading-relaxed">
+            <li className="flex gap-2">
+              <FiCheck className="text-accent-cold mt-0.5 h-4 w-4 shrink-0" />
+              <span><strong className="text-font-primary font-medium">Extreme:</strong> a recording showing your Luki Badge Hub username and the completed challenge. You can upload the recording file directly to the ticket.</span>
+            </li>
+            <li className="flex gap-2">
+              <FiCheck className="text-accent-cold mt-0.5 h-4 w-4 shrink-0" />
+              <span><strong className="text-font-primary font-medium">Supreme and Inhuman:</strong> a complete, unedited recording of the entire run. A YouTube link is recommended.</span>
+            </li>
+          </ul>
+        </div>
+        <a
+          href={DISCORD_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="bg-brand-secondary text-font-primary hover:bg-brand-primary focus-visible:outline-accent-cold mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
+          <FaDiscord className="h-4 w-4" />
+          Join Discord and create a ticket
+          <FiExternalLink className="h-4 w-4" />
+        </a>
+      </section>
+    </div>,
+    document.body,
   );
 }
 function AchievementCard({
@@ -1465,10 +1539,7 @@ function AchievementCard({
             <span>Completed</span>
           </label>
         ) : (
-          <div>
-            <p className="text-font-muted text-xs">Manual verification required</p>
-            <VerificationButton />
-          </div>
+          <VerificationButton />
         )}
       </div>
       {achievement.developerNote &&
@@ -1523,7 +1594,7 @@ function AchievementCard({
         />
       )}
       <div
-        className={`flex items-center justify-between ${list ? "ml-3 shrink-0 justify-end gap-3 max-sm:ml-0" : "border-border border-t pt-3"}`}
+        className={`flex items-center justify-between ${list ? "ml-3 shrink-0 justify-end gap-3 max-sm:ml-0" : "border-border min-h-12 border-t pt-3"}`}
       >
         <span className="text-xs" style={{ color: difficulty.color }}>
           <i
@@ -1631,10 +1702,7 @@ function AchievementDetailsModal({
               <span>Completed</span>
             </label>
           ) : (
-            <div>
-              <p className="text-font-muted text-sm">Manual verification required</p>
-              <VerificationButton />
-            </div>
+            <VerificationButton />
           )}
           <div className="flex shrink-0 items-center gap-3 self-end sm:self-auto">
             <span className="text-sm" style={{ color: difficulty.color }}>

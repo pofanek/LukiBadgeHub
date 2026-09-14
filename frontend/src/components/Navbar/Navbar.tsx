@@ -10,8 +10,7 @@ import {
   NavbarButtonRightPanel,
 } from "./";
 import { useState } from "react";
-import { FiBell } from "react-icons/fi";
-import { Link } from "react-router-dom";
+import NotificationsMenu from "./NotificationsMenu";
 import { supabase } from "../../utils/supabase";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { useUserProfile } from "../../hooks/useUserProfile";
@@ -72,13 +71,7 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
                   setter={setSearchbarOpen}
                 />
               </div>
-              <Link
-                to="/notifications"
-                aria-label="Notifications"
-                className="text-font-secondary hover:bg-effect-glass hover:text-font-primary focus-visible:ring-accent-cold hidden h-10 w-10 items-center justify-center rounded-xl transition-colors focus-visible:ring-2 sm:flex"
-              >
-                <FiBell className="h-5 w-5" />
-              </Link>
+              <NotificationsMenu />
               <div className="relative">
                 <Login
                   user={user}

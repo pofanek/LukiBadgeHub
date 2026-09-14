@@ -31,6 +31,10 @@ export type ProfileChanges = Pick<
 >;
 const profileEvent = "luki-profile-updated";
 
+function caseInsensitiveUsername(value: string) {
+  return value.replace(/[\\%_]/g, "\\$&");
+}
+
 function mediaUrl(path: string | null) {
   if (!path) return null;
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
@@ -131,10 +135,11 @@ export function useUserProfileByUsername(username?: string) {
     const loadProfile = async () => {
       const profileQuery =
         "id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, hide_pinned_badge_edit, username_changed_at, role";
+      const normalizedUsername = caseInsensitiveUsername(username);
       const { data: currentProfile, error: currentError } = await supabase
         .from("user_profiles")
         .select(profileQuery)
-        .eq("username", username)
+        .ilike("username", normalizedUsername)
         .maybeSingle();
 
       if (currentError) return null;
@@ -143,7 +148,7 @@ export function useUserProfileByUsername(username?: string) {
       const { data: history, error: historyError } = await supabase
         .from("user_profile_username_history")
         .select("profile_id")
-        .eq("username", username)
+        .ilike("username", normalizedUsername)
         .maybeSingle();
 
       if (historyError || !history) return null;

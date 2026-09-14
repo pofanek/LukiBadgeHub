@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Footer, Navbar } from "../components";
 import { useAuthListener } from "../hooks/useAuthListener";
 import { usePageTitle } from "../hooks/usePageTitle";
+import { NotificationProvider } from "../hooks/useNotifications";
 import { SHORT_NAVBAR_PAGES } from "../constants";
 function MainLayout() {
   useAuthListener();
@@ -12,13 +13,15 @@ function MainLayout() {
     /^\/profile\/[^/]+$/.test(location.pathname) ||
     /^\/games\/[^/]+$/.test(location.pathname);
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar activeTab={location.pathname} titleOnly={titleOnly} />
-      <main className="flex flex-1">
-        <Outlet />
-      </main>
-      <Footer className={hasOpaqueFooter ? "bg-primary" : undefined} />
-    </div>
+    <NotificationProvider>
+      <div className="flex min-h-screen flex-col">
+        <Navbar activeTab={location.pathname} titleOnly={titleOnly} />
+        <main className="flex flex-1">
+          <Outlet />
+        </main>
+        <Footer className={hasOpaqueFooter ? "bg-primary" : undefined} />
+      </div>
+    </NotificationProvider>
   );
 }
 
