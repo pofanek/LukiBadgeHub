@@ -100,16 +100,22 @@ function Games() {
   }, []);
 
   useEffect(() => {
+    let active = true;
     if (!user) {
-      setLibraryIds([]);
-      setIsLibraryLoading(false);
-      return;
+      queueMicrotask(() => {
+        if (!active) return;
+        setLibraryIds([]);
+        setIsLibraryLoading(false);
+      });
+      return () => {
+        active = false;
+      };
     }
 
-    let active = true;
-    setLibraryError("");
     queueMicrotask(() => {
-      if (active) setIsLibraryLoading(true);
+      if (!active) return;
+      setLibraryError("");
+      setIsLibraryLoading(true);
     });
     supabase
       .from("user_game_library")

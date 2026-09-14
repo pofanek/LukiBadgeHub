@@ -3,6 +3,7 @@ import { supabase } from "./supabase";
 const publicMediaBaseUrl = (
   import.meta.env.VITE_R2_PUBLIC_URL || "https://media.lukibadgehub.com"
 ).replace(/\/$/, "");
+const mediaCacheControl = "public, max-age=604800, immutable";
 
 type UploadTarget =
   | "profile-avatar"
@@ -60,7 +61,10 @@ export async function uploadMedia({ target, file, gameId, badgeId }: UploadOptio
   const signedUpload = data as SignedUpload;
   const uploadResponse = await fetch(signedUpload.uploadUrl, {
     method: "PUT",
-    headers: { "Content-Type": file.type },
+    headers: {
+      "Content-Type": file.type,
+      "Cache-Control": mediaCacheControl,
+    },
     body: file,
   });
   if (!uploadResponse.ok) {

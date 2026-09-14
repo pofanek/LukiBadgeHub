@@ -7,6 +7,7 @@ import { getBadgeExperience, type BadgeDifficultyId, type BadgeTier } from "../.
 import { useGame } from "../../hooks/useGames";
 import { supabase } from "../../utils/supabase";
 import { mediaUrl } from "../../utils/media";
+import { getCachedQuery } from "../../utils/queryCache";
 
 type GamePlayer = { player_rank: number; profile_id: string; username: string; avatar_path: string | null; badges_collected: number; earned_experience: number };
 
@@ -84,7 +85,11 @@ export default function GamePlayers() {
         .slice(0, 100)
         .map((player, index) => ({ ...player, player_rank: index + 1 }));
     };
-    loadFallbackLeaderboard().then((fallbackPlayers) => {
+    getCachedQuery(
+      `game-players:${gameId}:${board}`,
+      30_000,
+      loadFallbackLeaderboard,
+    ).then((fallbackPlayers) => {
       if (!active) return;
       setPlayers(fallbackPlayers);
       setIsLoading(false);

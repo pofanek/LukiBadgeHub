@@ -24,6 +24,7 @@ import { useUserProfile } from "../../hooks/useUserProfile";
 import { getLevelProgress } from "../../utils/leveling";
 import { supabase } from "../../utils/supabase";
 import { mediaUrl } from "../../utils/media";
+import { getCachedQuery } from "../../utils/queryCache";
 
 type LibraryEntry = { game_id: number; added_at: string };
 type BadgeClaim = { badge_id: number; earned_at: string };
@@ -465,13 +466,22 @@ function Homepage() {
 
   useEffect(() => {
     let current = true;
-    supabase
-      .from("homepage_featured_games")
-      .select("slot, game_id")
-      .order("slot")
-      .then(({ data }) => {
-        if (current) setFeaturedGameIds((data || []).map((entry) => entry.game_id));
-      });
+    getCachedQuery(
+      "homepage:featured-games",
+      5 * 60_000,
+      async () => {
+        const { data, error } = await supabase
+          .from("homepage_featured_games")
+          .select("slot, game_id")
+          .order("slot");
+        if (error) throw error;
+        return (data || []).map((entry) => entry.game_id);
+      },
+    ).then((gameIds) => {
+      if (current) setFeaturedGameIds(gameIds);
+    }).catch(() => {
+      if (current) setFeaturedGameIds([]);
+    });
     return () => {
       current = false;
     };

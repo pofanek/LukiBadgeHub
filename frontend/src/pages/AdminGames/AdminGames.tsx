@@ -26,11 +26,13 @@ import {
   type GameRow,
 } from "../../constants";
 import { useAuthUser } from "../../hooks/useAuthUser";
-import { GAME_FIELDS } from "../../hooks/useGames";
+import { GAME_FIELDS, invalidateCatalogueCache } from "../../hooks/useGames";
 import { useGamesPageSize } from "../../hooks/useGamesPageSize";
+import { invalidateLeaderboardCache } from "../../hooks/useLeaderboard";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { supabase } from "../../utils/supabase";
 import { deleteMedia, mediaUrl, uploadMedia } from "../../utils/media";
+import { invalidateCachedQueries } from "../../utils/queryCache";
 import { ImageCropDialog } from "../Settings/components";
 import AdminAwards from "../AdminAwards/AdminAwards";
 
@@ -533,6 +535,7 @@ function AdminGames() {
       setError("The draft could not be created. Try again.");
       return;
     }
+    invalidateCatalogueCache();
     setGames((current) => [data as GameRow, ...current]);
     navigate(`/admin/games/${data.id}`);
   };
@@ -554,6 +557,7 @@ function AdminGames() {
       return;
     }
 
+    invalidateLeaderboardCache();
     setLeaderboardStartedAt(result.started_at);
     setNotice(
       result.seeded_players
@@ -577,6 +581,7 @@ function AdminGames() {
       return;
     }
 
+    invalidateLeaderboardCache();
     setLeaderboardStartedAt(null);
     setNotice(
       `Leaderboard rankings reverted for ${result.cleared_players.toLocaleString()} players.`,
@@ -596,6 +601,7 @@ function AdminGames() {
       setError("The featured game could not be saved. Try again.");
       return;
     }
+    invalidateCachedQueries("homepage:");
     setFeaturedGameIds((current) =>
       current.map((currentGameId, index) =>
         index + 1 === slot ? gameId : currentGameId,
@@ -645,6 +651,7 @@ function AdminGames() {
         game.id === selectedGame.id ? (data as GameRow) : game,
       ),
     );
+    invalidateCatalogueCache();
     setNotice(selectedGame.is_published ? "Game saved." : "Game published.");
   };
 
@@ -694,6 +701,7 @@ function AdminGames() {
       setGames((current) =>
         current.map((game) => game.id === selectedGame.id ? (data as GameRow) : game),
       );
+      invalidateCatalogueCache();
       setNotice(`${target === "cover" ? "Cover" : "Banner"} image updated.`);
     } finally {
       setIsUploading(null);
@@ -726,6 +734,9 @@ function AdminGames() {
       return;
     }
     const badge = data as BadgeRow;
+    invalidateCatalogueCache();
+    invalidateLeaderboardCache();
+    invalidateCachedQueries(`game-players:${selectedGame.id}:`);
     setBadges((current) => [...current, badge]);
     setBadgeDrafts((current) => ({
       ...current,
@@ -772,6 +783,11 @@ function AdminGames() {
       return;
     }
     const savedBadges = results.map(({ data }) => data as BadgeRow);
+    invalidateCatalogueCache();
+    invalidateLeaderboardCache();
+    if (savedBadges[0]) {
+      invalidateCachedQueries(`game-players:${savedBadges[0].game_id}:`);
+    }
     setBadges(savedBadges);
     setBadgeDrafts(
       Object.fromEntries(
@@ -820,6 +836,9 @@ function AdminGames() {
       setBadges((current) =>
         current.map((badge) => badge.id === selectedBadge.id ? (data as BadgeRow) : badge),
       );
+      invalidateCatalogueCache();
+      invalidateLeaderboardCache();
+      invalidateCachedQueries(`game-players:${selectedGame.id}:`);
       setNotice("Custom Inhuman icon updated.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "The badge icon could not be uploaded.");

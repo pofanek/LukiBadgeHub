@@ -29,9 +29,11 @@ import {
 } from "../../constants";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { useGame } from "../../hooks/useGames";
+import { invalidateLeaderboardCache } from "../../hooks/useLeaderboard";
 import { usePinnedBadge } from "../../hooks/usePinnedBadge";
 import { supabase } from "../../utils/supabase";
 import { mediaUrl } from "../../utils/media";
+import { invalidateCachedQueries } from "../../utils/queryCache";
 
 const ACHIEVEMENTS_PER_PAGE = 9;
 
@@ -704,6 +706,8 @@ export function GameDetailTemplate({ game }: TemplateProps) {
       setClaimError("Badge progress could not be updated. Please try again.");
       return;
     }
+    invalidateLeaderboardCache();
+    invalidateCachedQueries(`game-players:${game.id}:`);
     setBadgeClaims((current) =>
       claimed
         ? [

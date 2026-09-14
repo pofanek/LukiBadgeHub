@@ -11,11 +11,15 @@ import {
 } from "../constants";
 import { supabase } from "../utils/supabase";
 import { mediaUrl } from "../utils/media";
+import { getCachedQuery, invalidateCachedQueries } from "../utils/queryCache";
 
 export const GAME_FIELDS =
   "id, name, description, developer, publisher, release_date, genres, steam_url, cover_path, cover_position, banner_path, is_published, created_at, updated_at";
 
 export const GAMES_PAGE_SIZE = 12;
+export const CATALOGUE_CACHE_PREFIX = "catalogue:";
+
+const PUBLIC_CATALOGUE_CACHE_TTL_MS = 60_000;
 
 export type GameSort = "name" | "release" | "experience" | "badges" | "created";
 
@@ -28,6 +32,10 @@ type GamesPageOptions = {
   gameIds?: number[];
   sort?: GameSort;
 };
+
+export function invalidateCatalogueCache() {
+  invalidateCachedQueries(CATALOGUE_CACHE_PREFIX);
+}
 
 function gameMediaUrl(path: string | null, fallback: string) {
   return mediaUrl(path) || fallback;
@@ -74,7 +82,16 @@ export function toCatalogueGame(
   };
 }
 
-export async function fetchGames(includeDrafts = false) {
+export function fetchGames(includeDrafts = false) {
+  if (includeDrafts) return fetchGamesUncached(true);
+  return getCachedQuery(
+    `${CATALOGUE_CACHE_PREFIX}all`,
+    PUBLIC_CATALOGUE_CACHE_TTL_MS,
+    () => fetchGamesUncached(false),
+  );
+}
+
+async function fetchGamesUncached(includeDrafts: boolean) {
   let query = supabase.from("games").select(GAME_FIELDS).order("created_at", {
     ascending: false,
   });
@@ -98,7 +115,7 @@ export async function fetchGames(includeDrafts = false) {
   );
 }
 
-export async function fetchGamesPage({
+async function fetchGamesPageUncached({
   includeDrafts = false,
   page = 0,
   pageSize = GAMES_PAGE_SIZE,
@@ -208,6 +225,27 @@ export async function fetchGamesPage({
   };
 }
 
+export function fetchGamesPage(options: GamesPageOptions = {}) {
+  const {
+    includeDrafts = false,
+    gameIds,
+    search = "",
+    page = 0,
+    pageSize = GAMES_PAGE_SIZE,
+    genre,
+    sort = "created",
+  } = options;
+  const canCache = !includeDrafts && !gameIds && !search.trim();
+
+  if (!canCache) return fetchGamesPageUncached(options);
+
+  return getCachedQuery(
+    `${CATALOGUE_CACHE_PREFIX}page:${page}:${pageSize}:${genre || "all"}:${sort}`,
+    PUBLIC_CATALOGUE_CACHE_TTL_MS,
+    () => fetchGamesPageUncached(options),
+  );
+}
+
 export function useGames(includeDrafts = false) {
   const [games, setGames] = useState<CatalogueGame[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -251,23 +289,33 @@ export function useGame(gameId?: number) {
       setIsLoading(true);
       setError("");
     });
-    Promise.all([
-      supabase.from("games").select(GAME_FIELDS).eq("id", gameId).maybeSingle(),
-      supabase.from("game_badges").select("*").eq("game_id", gameId),
-    ]).then(
-      ([
-        { data, error: queryError },
-        { data: badgeData, error: badgeError },
-      ]) => {
-        if (!active) return;
+    getCachedQuery(
+      `${CATALOGUE_CACHE_PREFIX}game:${gameId}`,
+      PUBLIC_CATALOGUE_CACHE_TTL_MS,
+      async () => {
+        const [
+          { data, error: queryError },
+          { data: badgeData, error: badgeError },
+        ] = await Promise.all([
+          supabase.from("games").select(GAME_FIELDS).eq("id", gameId).maybeSingle(),
+          supabase.from("game_badges").select("*").eq("game_id", gameId),
+        ]);
         if (queryError || badgeError || !data) {
-          setGame(null);
-          setError("This game could not be found.");
-        } else {
-          setGame(
-            toCatalogueGame(data as GameRow, (badgeData || []) as BadgeRow[]),
-          );
+          throw new Error("This game could not be found.");
         }
+        return toCatalogueGame(data as GameRow, (badgeData || []) as BadgeRow[]);
+      },
+      { cacheIf: (game) => Boolean(game.isPublished) },
+    ).then(
+      (game) => {
+        if (!active) return;
+        setGame(game);
+        setIsLoading(false);
+      },
+      () => {
+        if (!active) return;
+        setGame(null);
+        setError("This game could not be found.");
         setIsLoading(false);
       },
     );

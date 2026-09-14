@@ -8,8 +8,10 @@ import {
   type GameRow,
 } from "../../constants";
 import { type UserProfile } from "../../hooks/useUserProfile";
+import { invalidateLeaderboardCache } from "../../hooks/useLeaderboard";
 import { supabase } from "../../utils/supabase";
 import { mediaUrl } from "../../utils/media";
+import { invalidateCachedQueries } from "../../utils/queryCache";
 
 const awardableDifficulties = new Set(["extreme", "supreme", "inhuman"]);
 
@@ -175,6 +177,8 @@ export default function AdminAwards({ embedded = false }: { embedded?: boolean }
       );
       return;
     }
+    invalidateLeaderboardCache();
+    invalidateCachedQueries(`game-players:${selectedGame.id}:`);
     setNotice(`${selectedBadge.name} awarded to ${selectedUser.username}.`);
   };
 

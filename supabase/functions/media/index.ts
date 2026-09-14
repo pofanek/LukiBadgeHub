@@ -9,6 +9,7 @@ const corsHeaders = {
 };
 
 const allowedContentTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+const mediaCacheControl = "public, max-age=604800, immutable";
 const cmsRoles = new Set(["Admin", "Owner"]);
 
 type UploadTarget =
@@ -103,7 +104,10 @@ async function signedUpload(
   const signedRequest = await r2Client(config).sign(
     new Request(uploadUrl, {
       method: "PUT",
-      headers: { "Content-Type": body.contentType },
+      headers: {
+        "Content-Type": body.contentType,
+        "Cache-Control": mediaCacheControl,
+      },
     }),
     { aws: { signQuery: true } },
   );
