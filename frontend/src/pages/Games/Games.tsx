@@ -101,16 +101,20 @@ function Games() {
 
   useEffect(() => {
     if (!user) {
+      setLibraryIds([]);
+      setIsLibraryLoading(false);
       return;
     }
 
     let active = true;
+    setLibraryError("");
     queueMicrotask(() => {
       if (active) setIsLibraryLoading(true);
     });
     supabase
       .from("user_game_library")
       .select("game_id")
+      .eq("user_id", user.id)
       .then(({ data, error }) => {
         if (!active) return;
         setIsLibraryLoading(false);
