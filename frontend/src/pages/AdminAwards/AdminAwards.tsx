@@ -9,15 +9,12 @@ import {
 } from "../../constants";
 import { type UserProfile } from "../../hooks/useUserProfile";
 import { supabase } from "../../utils/supabase";
+import { mediaUrl } from "../../utils/media";
 
 const awardableDifficulties = new Set(["extreme", "supreme", "inhuman"]);
 
 function badgeIconUrl(badge: BadgeRow) {
-  if (badge.icon_path) {
-    return supabase.storage.from("game-media").getPublicUrl(badge.icon_path).data
-      .publicUrl;
-  }
-  return BADGE_DIFFICULTY_DETAILS[badge.difficulty].icon;
+  return mediaUrl(badge.icon_path) || BADGE_DIFFICULTY_DETAILS[badge.difficulty].icon;
 }
 
 function FeedbackToast({

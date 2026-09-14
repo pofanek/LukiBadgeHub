@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { hollowthumb, userchomik } from "../../assets";
 import { BADGE_DIFFICULTY_DETAILS } from "../../constants";
 import { useGlobalSearch } from "../../hooks/useGlobalSearch";
-import { supabase } from "../../utils/supabase";
+import { mediaUrl } from "../../utils/media";
 
 type SearchbarProps = {
   className?: string;
@@ -13,10 +13,7 @@ type SearchbarProps = {
 };
 
 function profileAvatarUrl(path: string | null) {
-  if (!path) return userchomik;
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  return supabase.storage.from("profile-media").getPublicUrl(path).data
-    .publicUrl;
+  return mediaUrl(path) || userchomik;
 }
 
 const Searchbar = ({
@@ -143,11 +140,7 @@ const Searchbar = ({
                   >
                     <img
                       src={
-                        game.cover_path
-                          ? supabase.storage
-                              .from("game-media")
-                              .getPublicUrl(game.cover_path).data.publicUrl
-                          : hollowthumb
+                        mediaUrl(game.cover_path) || hollowthumb
                       }
                       alt=""
                       className="bg-surface-raised h-7 w-7 rounded-md object-cover object-center"
@@ -166,11 +159,7 @@ const Searchbar = ({
                   >
                     <img
                       src={
-                        badge.icon_path
-                          ? supabase.storage
-                              .from("game-media")
-                              .getPublicUrl(badge.icon_path).data.publicUrl
-                          : BADGE_DIFFICULTY_DETAILS[badge.difficulty].icon
+                        mediaUrl(badge.icon_path) || BADGE_DIFFICULTY_DETAILS[badge.difficulty].icon
                       }
                       alt=""
                       className="bg-surface-raised h-7 w-7 rounded-full object-cover"

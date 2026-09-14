@@ -16,6 +16,7 @@ import { saveUserProfile, useUserProfile } from "../../hooks/useUserProfile";
 import { publishSocialLinks, type SocialPlatform, useSocialLinks } from "../../hooks/useSocialLinks";
 import { passwordIsValid } from "../../utils/password";
 import { supabase } from "../../utils/supabase";
+import { deleteMedia, uploadMedia } from "../../utils/media";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { CountrySelect, ImageCropDialog } from "./components";
 import { useNotifications, type NotificationPreferences } from "../../hooks/useNotifications";
@@ -315,17 +316,18 @@ function Settings() {
   };
   const saveImage = async (file: File) => {
     if (!cropTarget || !profile) return;
-    const path = `${user.id}/${cropTarget.kind}/${crypto.randomUUID()}.webp`;
-    const { error: uploadError } = await supabase.storage.from("profile-media").upload(path, file, { contentType: "image/webp", cacheControl: "31536000" });
-    if (uploadError) throw new Error(settingsError(uploadError, "The image could not be uploaded."));
+    const path = await uploadMedia({
+      target: cropTarget.kind === "avatar" ? "profile-avatar" : "profile-banner",
+      file,
+    });
     const field = cropTarget.kind === "avatar" ? "avatar_path" : "banner_path";
     const previousPath = profile[field];
     try {
       await saveUserProfile(user.id, { [field]: path });
-      if (previousPath && !previousPath.startsWith("http")) await supabase.storage.from("profile-media").remove([previousPath]);
+      await deleteMedia(previousPath).catch(() => undefined);
       setCropTarget(null); setNotice(`${cropTarget.kind === "avatar" ? "Avatar" : "Banner"} updated.`);
     } catch (reason) {
-      await supabase.storage.from("profile-media").remove([path]);
+      await deleteMedia(path).catch(() => undefined);
       throw new Error(settingsError(reason, "The image could not be saved."));
     }
   };

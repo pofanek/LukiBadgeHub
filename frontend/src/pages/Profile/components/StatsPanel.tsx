@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiAward, FiBookOpen, FiTrendingUp, FiX } from "react-icons/fi";
+import { FiAward, FiBookOpen, FiChevronDown, FiTrendingUp, FiX } from "react-icons/fi";
 import { LoadingIndicator } from "../../../components";
 import {
   BADGE_DIFFICULTIES,
@@ -14,6 +14,7 @@ import {
 import { useGames } from "../../../hooks/useGames";
 import { getLevelProgress } from "../../../utils/leveling";
 import { supabase } from "../../../utils/supabase";
+import { mediaUrl } from "../../../utils/media";
 
 type StatsData = {
   claims: { badge_id: number }[];
@@ -27,6 +28,7 @@ function StatsPanel({ profileId }: { profileId: string }) {
   const [data, setData] = useState<StatsData | null>(null);
   const [error, setError] = useState("");
   const [selectedDifficulty, setSelectedDifficulty] = useState<BadgeDifficultyId | null>(null);
+  const [expandedBadgeId, setExpandedBadgeId] = useState<number | null>(null);
 
   useEffect(() => {
     let isCurrent = true;
@@ -251,7 +253,10 @@ function StatsPanel({ profileId }: { profileId: string }) {
               <div key={id} className="flex h-full min-w-0 flex-col text-center">
                 <button
                   type="button"
-                  onClick={() => setSelectedDifficulty(id)}
+                  onClick={() => {
+                    setSelectedDifficulty(id);
+                    setExpandedBadgeId(null);
+                  }}
                   className="hover:bg-effect-glass focus-visible:ring-accent-cold flex min-h-0 flex-1 flex-col justify-end rounded-lg px-1 outline-none transition-colors focus-visible:ring-2"
                   aria-label={`Show ${earned} ${difficulty.label} badges`}
                 >
@@ -311,15 +316,17 @@ function StatsPanel({ profileId }: { profileId: string }) {
                   <section key={game.id}>
                     <h3 className="text-font-primary font-serif text-xl">{game.title}</h3>
                     <div className="mt-2 space-y-2">
-                      {badges.map((badge) => (
-                        <div key={badge.id} className="border-border bg-surface-soft flex items-center gap-3 rounded-lg border p-3">
-                          <img src={badge.icon_path ? supabase.storage.from("game-media").getPublicUrl(badge.icon_path).data.publicUrl : selectedDifficultyDetails.icon} alt="" className="bg-surface-raised h-10 w-10 shrink-0 rounded-full object-cover" />
-                          <div className="min-w-0">
-                            <p className="text-font-primary truncate text-sm font-medium">{badge.name}</p>
-                            <p className="text-font-muted mt-0.5 text-xs">{getBadgeTierLabel(badge.tier)} {selectedDifficultyDetails.label}</p>
-                          </div>
-                        </div>
-                      ))}
+                      {badges.map((badge) => {
+                        const isExpanded = expandedBadgeId === badge.id;
+                        return <div key={badge.id} className="border-border bg-surface-soft overflow-hidden rounded-lg border">
+                          <button type="button" onClick={() => setExpandedBadgeId(isExpanded ? null : badge.id)} aria-expanded={isExpanded} className="hover:bg-effect-glass focus-visible:ring-accent-cold flex w-full items-center gap-3 p-3 text-left outline-none transition-colors focus-visible:ring-2">
+                            <img src={mediaUrl(badge.icon_path) || selectedDifficultyDetails.icon} alt="" className="bg-surface-raised h-10 w-10 shrink-0 rounded-full object-cover" />
+                            <span className="min-w-0 flex-1"><span className="text-font-primary block truncate text-sm font-medium">{badge.name}</span><span className="text-font-muted mt-0.5 block text-xs">{getBadgeTierLabel(badge.tier)} {selectedDifficultyDetails.label}</span></span>
+                            <FiChevronDown className={`text-font-muted h-4 w-4 shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                          </button>
+                          {isExpanded && <p className="border-border text-font-secondary border-t px-3 py-3 text-sm leading-relaxed">{badge.description || "No description provided."}</p>}
+                        </div>;
+                      })}
                     </div>
                   </section>
                 ))}

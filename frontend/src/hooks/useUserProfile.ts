@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabase";
+import { mediaUrl } from "../utils/media";
 
 export type UserRole = "User" | "Supporter" | "Moderator" | "Admin" | "Owner";
 
@@ -33,13 +34,6 @@ const profileEvent = "luki-profile-updated";
 
 function caseInsensitiveUsername(value: string) {
   return value.replace(/[\\%_]/g, "\\$&");
-}
-
-function mediaUrl(path: string | null) {
-  if (!path) return null;
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  return supabase.storage.from("profile-media").getPublicUrl(path).data
-    .publicUrl;
 }
 
 function hydrateProfile(profile: ProfileRow): UserProfile {

@@ -23,6 +23,7 @@ import { type LeaderboardEntry, useLeaderboard } from "../../hooks/useLeaderboar
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { getLevelProgress } from "../../utils/leveling";
 import { supabase } from "../../utils/supabase";
+import { mediaUrl } from "../../utils/media";
 
 type LibraryEntry = { game_id: number; added_at: string };
 type BadgeClaim = { badge_id: number; earned_at: string };
@@ -183,10 +184,7 @@ function GameCards({
 }
 
 function avatarUrl(path: string | null) {
-  if (!path) return null;
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  return supabase.storage.from("profile-media").getPublicUrl(path).data
-    .publicUrl;
+  return mediaUrl(path);
 }
 
 function DifficultyGuide() {

@@ -38,7 +38,7 @@ type LibraryGame = {
 function GameArt({ game }: { game: CatalogueGame }) {
   return (
     <div
-      className="border-border flex h-20 w-48 shrink-0 items-end rounded-lg border bg-cover bg-center p-2"
+      className="flex h-20 w-48 shrink-0 items-end rounded-lg bg-cover bg-center p-2"
       style={{ backgroundImage: `url(${game.bannerUrl})` }}
     >
       <span className="text-font-primary font-serif text-sm leading-none">
@@ -486,7 +486,7 @@ function GamesPanel({
         return (
           <article
             key={game.id}
-            className="border-border bg-surface/75 overflow-hidden rounded-xl border"
+            className="bg-surface/75 overflow-hidden rounded-xl"
           >
             <div
               onClick={() => {

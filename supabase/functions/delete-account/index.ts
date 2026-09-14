@@ -1,5 +1,6 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "@supabase/supabase-js";
+import { deleteR2Prefix, getR2Config } from "../_shared/r2.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -16,25 +17,6 @@ type DeletionRequest = {
   confirmation?: string;
   currentPassword?: string;
 };
-
-async function listFiles(
-  storage: ReturnType<typeof createClient>["storage"],
-  prefix: string,
-): Promise<string[]> {
-  const { data, error } = await storage.from("profile-media").list(prefix, {
-    limit: 1000,
-    sortBy: { column: "name", order: "asc" },
-  });
-  if (error) throw error;
-
-  const paths: string[] = [];
-  for (const item of data ?? []) {
-    const path = `${prefix}/${item.name}`;
-    if (item.id) paths.push(path);
-    else paths.push(...(await listFiles(storage, path)));
-  }
-  return paths;
-}
 
 function emailVerificationTimestamp(authorization: string): number | null {
   try {
@@ -159,11 +141,7 @@ Deno.serve(async (request) => {
       return Response.json({ error: "Verify your email before deleting your account." }, { status: 403, headers: corsHeaders });
     }
 
-    const paths = await listFiles(admin.storage, userData.user.id);
-    if (paths.length > 0) {
-      const { error: removeError } = await admin.storage.from("profile-media").remove(paths);
-      if (removeError) throw removeError;
-    }
+    await deleteR2Prefix(getR2Config(), `${userData.user.id}/`);
 
     const { error: deleteError } = await admin.auth.admin.deleteUser(userData.user.id, false);
     if (deleteError) throw deleteError;

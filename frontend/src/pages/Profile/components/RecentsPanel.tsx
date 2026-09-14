@@ -14,6 +14,7 @@ import {
 import { GAME_FIELDS, toCatalogueGame } from "../../../hooks/useGames";
 import { usePinnedBadge } from "../../../hooks/usePinnedBadge";
 import { supabase } from "../../../utils/supabase";
+import { mediaUrl } from "../../../utils/media";
 
 type BadgeClaim = {
   badge_id: number;
@@ -27,11 +28,7 @@ type RecentBadge = {
 };
 
 function badgeIconUrl(badge: BadgeRow) {
-  if (badge.icon_path) {
-    return supabase.storage.from("game-media").getPublicUrl(badge.icon_path)
-      .data.publicUrl;
-  }
-  return BADGE_DIFFICULTY_DETAILS[badge.difficulty].icon;
+  return mediaUrl(badge.icon_path) || BADGE_DIFFICULTY_DETAILS[badge.difficulty].icon;
 }
 
 function RecentsPanel({

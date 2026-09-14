@@ -10,6 +10,7 @@ import {
   type GameRow,
 } from "../constants";
 import { supabase } from "../utils/supabase";
+import { mediaUrl } from "../utils/media";
 
 export const GAME_FIELDS =
   "id, name, description, developer, publisher, release_date, genres, steam_url, cover_path, cover_position, banner_path, is_published, created_at, updated_at";
@@ -29,9 +30,7 @@ type GamesPageOptions = {
 };
 
 function gameMediaUrl(path: string | null, fallback: string) {
-  if (!path) return fallback;
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  return supabase.storage.from("game-media").getPublicUrl(path).data.publicUrl;
+  return mediaUrl(path) || fallback;
 }
 
 export function toCatalogueGame(

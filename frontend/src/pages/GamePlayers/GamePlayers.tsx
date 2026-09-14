@@ -6,11 +6,12 @@ import { userchomik } from "../../assets";
 import { getBadgeExperience, type BadgeDifficultyId, type BadgeTier } from "../../constants";
 import { useGame } from "../../hooks/useGames";
 import { supabase } from "../../utils/supabase";
+import { mediaUrl } from "../../utils/media";
 
 type GamePlayer = { player_rank: number; profile_id: string; username: string; avatar_path: string | null; badges_collected: number; earned_experience: number };
 
 function avatarUrl(path: string | null) {
-  return path ? supabase.storage.from("profile-media").getPublicUrl(path).data.publicUrl : null;
+  return mediaUrl(path);
 }
 
 export default function GamePlayers() {

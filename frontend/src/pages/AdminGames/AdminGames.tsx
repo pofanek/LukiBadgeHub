@@ -30,6 +30,7 @@ import { GAME_FIELDS } from "../../hooks/useGames";
 import { useGamesPageSize } from "../../hooks/useGamesPageSize";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { supabase } from "../../utils/supabase";
+import { deleteMedia, mediaUrl, uploadMedia } from "../../utils/media";
 import { ImageCropDialog } from "../Settings/components";
 import AdminAwards from "../AdminAwards/AdminAwards";
 
@@ -89,8 +90,7 @@ function formFromGame(game: GameRow): GameForm {
 }
 
 function gameMediaUrl(path: string | null) {
-  if (!path) return null;
-  return supabase.storage.from("game-media").getPublicUrl(path).data.publicUrl;
+  return mediaUrl(path);
 }
 
 function badgeIconUrl(badge: BadgeRow) {
@@ -669,37 +669,35 @@ function AdminGames() {
     setError("");
     setNotice("");
     setIsUploading(target);
-    const path = `games/${selectedGame.id}/${target}/${crypto.randomUUID()}.webp`;
-    const { error: uploadError } = await supabase.storage
-      .from("game-media")
-      .upload(path, file, { contentType: "image/webp" });
-    if (uploadError) {
-      setIsUploading(null);
-      throw new Error("The image could not be uploaded.");
-    }
-
-    const column = target === "cover" ? "cover_path" : "banner_path";
-    const { data, error: updateError } = await supabase
-      .from("games")
-      .update({
-        [column]: path,
-        ...(target === "cover" ? { cover_position: "center" } : {}),
-      })
-      .eq("id", selectedGame.id)
-      .select(GAME_FIELDS)
-      .single();
-    setIsUploading(null);
-    if (updateError || !data) {
-      throw new Error(
-        "The image uploaded, but the game artwork could not be saved.",
+    try {
+      const path = await uploadMedia({
+        target: target === "cover" ? "game-cover" : "game-banner",
+        file,
+        gameId: selectedGame.id,
+      });
+      const column = target === "cover" ? "cover_path" : "banner_path";
+      const previousPath = selectedGame[column];
+      const { data, error: updateError } = await supabase
+        .from("games")
+        .update({
+          [column]: path,
+          ...(target === "cover" ? { cover_position: "center" } : {}),
+        })
+        .eq("id", selectedGame.id)
+        .select(GAME_FIELDS)
+        .single();
+      if (updateError || !data) {
+        await deleteMedia(path).catch(() => undefined);
+        throw new Error("The image uploaded, but the game artwork could not be saved.");
+      }
+      await deleteMedia(previousPath).catch(() => undefined);
+      setGames((current) =>
+        current.map((game) => game.id === selectedGame.id ? (data as GameRow) : game),
       );
+      setNotice(`${target === "cover" ? "Cover" : "Banner"} image updated.`);
+    } finally {
+      setIsUploading(null);
     }
-    setGames((current) =>
-      current.map((game) =>
-        game.id === selectedGame.id ? (data as GameRow) : game,
-      ),
-    );
-    setNotice(`${target === "cover" ? "Cover" : "Banner"} image updated.`);
   };
 
   const saveCroppedImage = async (file: File) => {
@@ -796,37 +794,38 @@ function AdminGames() {
     setError("");
     setNotice("");
     setIsUploadingBadgeIcon(true);
-    const extension = file.type.split("/")[1];
-    const path = `games/${selectedGame.id}/badges/${selectedBadge.id}/${crypto.randomUUID()}.${extension}`;
-    const { error: uploadError } = await supabase.storage
-      .from("game-media")
-      .upload(path, file, { contentType: file.type });
-    if (uploadError) {
+    try {
+      const path = await uploadMedia({
+        target: "badge-icon",
+        file,
+        gameId: selectedGame.id,
+        badgeId: selectedBadge.id,
+      });
+      const { data, error: updateError } = await supabase
+        .from("game_badges")
+        .update({
+          difficulty: badgeForm.difficulty,
+          tier: badgeForm.tier,
+          icon_path: path,
+        })
+        .eq("id", selectedBadge.id)
+        .select("*")
+        .single();
+      if (updateError || !data) {
+        await deleteMedia(path).catch(() => undefined);
+        setError("The icon uploaded, but could not be attached to the badge.");
+        return;
+      }
+      await deleteMedia(selectedBadge.icon_path).catch(() => undefined);
+      setBadges((current) =>
+        current.map((badge) => badge.id === selectedBadge.id ? (data as BadgeRow) : badge),
+      );
+      setNotice("Custom Inhuman icon updated.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "The badge icon could not be uploaded.");
+    } finally {
       setIsUploadingBadgeIcon(false);
-      setError("The badge icon could not be uploaded.");
-      return;
     }
-    const { data, error: updateError } = await supabase
-      .from("game_badges")
-      .update({
-        difficulty: badgeForm.difficulty,
-        tier: badgeForm.tier,
-        icon_path: path,
-      })
-      .eq("id", selectedBadge.id)
-      .select("*")
-      .single();
-    setIsUploadingBadgeIcon(false);
-    if (updateError || !data) {
-      setError("The icon uploaded, but could not be attached to the badge.");
-      return;
-    }
-    setBadges((current) =>
-      current.map((badge) =>
-        badge.id === selectedBadge.id ? (data as BadgeRow) : badge,
-      ),
-    );
-    setNotice("Custom Inhuman icon updated.");
   };
 
   if (isAuthLoading || isProfileLoading) {
@@ -1417,11 +1416,11 @@ function AdminGames() {
                       <img
                         src={gameMediaUrl(path) || undefined}
                         alt=""
-                        className={`bg-surface-soft mt-3 w-full rounded-lg object-cover ${target === "cover" ? "aspect-[3/4]" : "aspect-video"}`}
+                        className={`bg-surface-soft mt-3 w-full rounded-lg object-cover ${target === "cover" ? "aspect-[3/4]" : "aspect-[3/1]"}`}
                       />
                     ) : (
                       <div
-                        className={`bg-surface-soft text-font-muted mt-3 flex w-full items-center justify-center rounded-lg ${target === "cover" ? "aspect-[3/4]" : "aspect-video"}`}
+                        className={`bg-surface-soft text-font-muted mt-3 flex w-full items-center justify-center rounded-lg ${target === "cover" ? "aspect-[3/4]" : "aspect-[3/1]"}`}
                       >
                         <FiImage className="h-6 w-6" />
                       </div>

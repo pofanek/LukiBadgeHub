@@ -31,6 +31,7 @@ import { useAuthUser } from "../../hooks/useAuthUser";
 import { useGame } from "../../hooks/useGames";
 import { usePinnedBadge } from "../../hooks/usePinnedBadge";
 import { supabase } from "../../utils/supabase";
+import { mediaUrl } from "../../utils/media";
 
 const ACHIEVEMENTS_PER_PAGE = 9;
 
@@ -511,11 +512,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
                 month: "short",
               }).format(new Date(latest))
             : "",
-          avatarUrl: profile?.avatar_path
-            ? supabase.storage
-                .from("profile-media")
-                .getPublicUrl(profile.avatar_path).data.publicUrl
-            : undefined,
+          avatarUrl: mediaUrl(profile?.avatar_path) || undefined,
           obtained: claims.length,
           total: achievements.length,
           experience: claims.reduce(
@@ -1538,6 +1535,13 @@ function AchievementCard({
             </span>
             <span>Completed</span>
           </label>
+        ) : claimed ? (
+          <span className="text-font-secondary inline-flex items-center gap-2 text-xs">
+            <span className="border-accent-cold bg-brand-tertiary text-font-primary flex h-5 w-5 shrink-0 items-center justify-center rounded border">
+              <FiCheck className="h-3 w-3" />
+            </span>
+            <span>Completed</span>
+          </span>
         ) : (
           <VerificationButton />
         )}
@@ -1701,6 +1705,13 @@ function AchievementDetailsModal({
               </span>
               <span>Completed</span>
             </label>
+          ) : claimed ? (
+            <span className="text-font-secondary inline-flex items-center gap-2 text-sm">
+              <span className="border-accent-cold bg-brand-tertiary text-font-primary flex h-4 w-4 shrink-0 items-center justify-center rounded border">
+                <FiCheck className="h-3 w-3" />
+              </span>
+              <span>Completed</span>
+            </span>
           ) : (
             <VerificationButton />
           )}
@@ -1881,10 +1892,7 @@ function toGameDetailData(game: CatalogueGame): GameDetailData {
       difficultyId: badge.difficulty,
       tier: badge.tier,
       exp: getBadgeExperience(badge.difficulty, badge.tier),
-      iconUrl: badge.icon_path
-        ? supabase.storage.from("game-media").getPublicUrl(badge.icon_path).data
-            .publicUrl
-        : BADGE_DIFFICULTY_DETAILS[badge.difficulty].icon,
+      iconUrl: mediaUrl(badge.icon_path) || BADGE_DIFFICULTY_DETAILS[badge.difficulty].icon,
       developerNote: badge.additional_note || undefined,
     })),
     difficulties: demoGame.difficulties.map((difficulty) => ({

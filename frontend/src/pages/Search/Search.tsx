@@ -5,7 +5,7 @@ import { hollowthumb, userchomik } from "../../assets";
 import { FocusContent, LoadingIndicator } from "../../components";
 import { BADGE_DIFFICULTY_DETAILS } from "../../constants";
 import { useGlobalSearch } from "../../hooks/useGlobalSearch";
-import { supabase } from "../../utils/supabase";
+import { mediaUrl } from "../../utils/media";
 
 function Search() {
   const [searchParams] = useSearchParams();
@@ -64,11 +64,7 @@ function Search() {
                   >
                     <img
                       src={
-                        user.avatar_path
-                          ? supabase.storage
-                              .from("profile-media")
-                              .getPublicUrl(user.avatar_path).data.publicUrl
-                          : userchomik
+                        mediaUrl(user.avatar_path) || userchomik
                       }
                       alt=""
                       className="border-border h-10 w-10 rounded-full border object-cover"
@@ -90,11 +86,7 @@ function Search() {
                   >
                     <img
                       src={
-                        game.cover_path
-                          ? supabase.storage
-                              .from("game-media")
-                              .getPublicUrl(game.cover_path).data.publicUrl
-                          : hollowthumb
+                        mediaUrl(game.cover_path) || hollowthumb
                       }
                       alt=""
                       className="bg-surface-raised h-10 w-10 rounded-lg object-cover object-center"
@@ -116,11 +108,7 @@ function Search() {
                   >
                     <img
                       src={
-                        badge.icon_path
-                          ? supabase.storage
-                              .from("game-media")
-                              .getPublicUrl(badge.icon_path).data.publicUrl
-                          : BADGE_DIFFICULTY_DETAILS[badge.difficulty].icon
+                        mediaUrl(badge.icon_path) || BADGE_DIFFICULTY_DETAILS[badge.difficulty].icon
                       }
                       alt=""
                       className="bg-surface-raised h-10 w-10 rounded-full object-cover"

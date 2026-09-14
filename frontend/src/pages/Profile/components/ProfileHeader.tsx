@@ -22,7 +22,7 @@ import { usePlayerLevel } from "../../../hooks/usePlayerLevel";
 import { useProfileFollows } from "../../../hooks/useProfileFollows";
 import type { UserProfile } from "../../../hooks/useUserProfile";
 import { useSocialLinks } from "../../../hooks/useSocialLinks";
-import { supabase } from "../../../utils/supabase";
+import { mediaUrl } from "../../../utils/media";
 
 const socialLinks = [
   { label: "Steam", icon: FaSteam },
@@ -277,29 +277,24 @@ function ProfileHeader({
                 !profile.hide_pinned_badge_edit &&
                 !isPinnedBadgeLoading &&
                 !pinnedBadge && (
-                  <Link
-                    to="/settings"
-                    className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary mt-3 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
-                  >
-                    <FiEdit3 />
-                    Edit pinned badge
-                  </Link>
+                  <div className="mt-3 flex justify-center">
+                    <Link
+                      to="/settings"
+                      className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+                    >
+                      <FiEdit3 />
+                      Edit pinned badge
+                    </Link>
+                  </div>
                 )}
 
-              <div className="flex justify-end">
+              <div className="flex justify-center">
                 {!isPinnedBadgeLoading && pinnedBadge && (
                   <div className="border-border bg-surface/60 mt-4 w-fit max-w-full rounded-xl border p-3">
                     <div className="flex items-center gap-3">
                       <img
                         src={
-                          pinnedBadge.badge.icon_path
-                            ? supabase.storage
-                                .from("game-media")
-                                .getPublicUrl(pinnedBadge.badge.icon_path).data
-                                .publicUrl
-                            : BADGE_DIFFICULTY_DETAILS[
-                                pinnedBadge.badge.difficulty
-                              ].icon
+                          mediaUrl(pinnedBadge.badge.icon_path) || BADGE_DIFFICULTY_DETAILS[pinnedBadge.badge.difficulty].icon
                         }
                         alt=""
                         className="bg-surface-raised h-11 w-11 shrink-0 rounded-full object-cover"
@@ -333,16 +328,18 @@ function ProfileHeader({
                   </div>
                 )}
               </div>
+              {isOwnProfile && !profile.hide_pinned_badge_edit && pinnedBadge && (
+                <div className="mt-3 flex justify-center">
+                  <Link
+                    to="/settings"
+                    className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+                  >
+                    <FiEdit3 />
+                    Edit pinned badge
+                  </Link>
+                </div>
+              )}
             </div>
-            {isOwnProfile && !profile.hide_pinned_badge_edit && pinnedBadge && (
-              <Link
-                to="/settings"
-                className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary mt-3 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
-              >
-                <FiEdit3 />
-                Edit pinned badge
-              </Link>
-            )}
           </div>
         </div>
       </div>

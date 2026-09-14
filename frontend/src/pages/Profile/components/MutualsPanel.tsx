@@ -6,6 +6,7 @@ import {
   useProfileFollows,
 } from "../../../hooks/useProfileFollows";
 import { supabase } from "../../../utils/supabase";
+import { mediaUrl } from "../../../utils/media";
 
 const categories = ["Mutuals", "Followers", "Following"] as const;
 type Category = (typeof categories)[number];
@@ -13,9 +14,7 @@ type FollowProfile = { id: string; username: string; avatar_path: string | null 
 type ListedPerson = { profile: FollowProfile; since: string };
 
 function avatarUrl(path: string | null) {
-  if (!path) return userchomik;
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  return supabase.storage.from("profile-media").getPublicUrl(path).data.publicUrl;
+  return mediaUrl(path) || userchomik;
 }
 
 function relationshipIds(profileId: string, relationships: FollowRelationship[], category: Category) {

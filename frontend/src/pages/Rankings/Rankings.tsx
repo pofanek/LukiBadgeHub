@@ -6,6 +6,7 @@ import { BADGE_DIFFICULTY_DETAILS, type BadgeDifficultyId } from "../../constant
 import { getCountry } from "../../constants/countries";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { type LeaderboardBoard, useLeaderboard } from "../../hooks/useLeaderboard";
+import { mediaUrl } from "../../utils/media";
 
 const boards: { value: LeaderboardBoard; label: string }[] = [
   { value: "experience", label: "EXP" },
@@ -15,9 +16,7 @@ const boards: { value: LeaderboardBoard; label: string }[] = [
 const difficulties = Object.keys(BADGE_DIFFICULTY_DETAILS) as BadgeDifficultyId[];
 
 function avatarUrl(path: string | null) {
-  if (!path) return null;
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/profile-media/${path}`;
+  return mediaUrl(path);
 }
 
 function Rankings() {
