@@ -20,7 +20,7 @@ export const sendFeedbackWebhook = async (payload: WebhookPayload) => {
     payload.type === "message"
       ? { content: payload.content }
       : { embeds: [payload.embed] };
-  await fetch(import.meta.env.VITE_WEBHOOK_URL, {
+  await fetch(import.meta.env.WEBHOOK_URL, {
     method: "POST",
     headers: { "Content-type": "application/json" },
     body: JSON.stringify(body),
