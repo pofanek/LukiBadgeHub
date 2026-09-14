@@ -38,7 +38,10 @@ function Rankings() {
     user?.id,
   );
   const pageCount = entries[0] ? Math.ceil(entries[0].total_players / 100) : 0;
-  const podium = entries.filter(({ player_rank }) => player_rank <= 3).slice(0, 3);
+  const podium = entries
+    .filter(({ player_rank }) => player_rank <= 3)
+    .sort((left, right) => left.player_rank - right.player_rank)
+    .slice(0, 3);
   const visibleRanks = page === 1 ? entries.filter(({ player_rank }) => player_rank > 3) : entries;
   const setBoard = (nextBoard: LeaderboardBoard) => {
     const next = new URLSearchParams();
@@ -95,7 +98,7 @@ function Rankings() {
             return <button key={item} type="button" onClick={() => setDifficulty(item)} aria-pressed={isSelected} style={isSelected ? { borderColor: details.color, color: details.color } : undefined} className={`border-border bg-surface-soft hover:bg-surface-raised rounded-lg border px-3 py-3 text-sm font-semibold transition-colors ${isSelected ? "bg-surface-raised" : "text-font-secondary"}`}>{details.label}</button>;
           })}</div>}
           {isLoading ? <div className="py-20"><LoadingIndicator label="Loading leaderboards..." /></div> : error ? <p role="alert" className="text-destructive mt-6 text-sm">{error}</p> : entries.length ? <>
-            {page === 1 && <div className="mt-8 grid items-end gap-3 sm:grid-cols-3">{podium.map((entry) => <PodiumCard key={entry.profile_id} entry={entry} scoreLabel={scoreLabel(entry.score)} />)}</div>}
+            {page === 1 && <div className="mt-8 grid items-end gap-3 sm:grid-cols-3">{podium.map((entry, podiumPosition) => <PodiumCard key={entry.profile_id} entry={entry} podiumPosition={podiumPosition} scoreLabel={scoreLabel(entry.score)} />)}</div>}
             {position && !entries.some((entry) => entry.profile_id === user?.id) && <div className="border-accent-cold/40 bg-surface-soft mt-6 flex items-center justify-between gap-4 rounded-xl border px-4 py-3"><span className="text-font-primary text-sm">Your position</span><span className="text-font-secondary text-sm">#{position.player_rank} · {scoreLabel(position.score)}</span></div>}
             <ol className="border-border bg-surface/75 divide-border mt-6 overflow-hidden rounded-xl border divide-y">{visibleRanks.map((entry) => <RankingRow key={entry.profile_id} entry={entry} scoreLabel={scoreLabel(entry.score)} board={board} />)}</ol>
             {pageCount > 1 && <nav className="mt-7 flex items-center justify-center gap-3" aria-label="Leaderboard pagination"><button type="button" disabled={page === 1} onClick={() => { const next = new URLSearchParams(searchParams); next.set("page", String(page - 1)); setSearchParams(next, { replace: true }); }} className="border-border text-font-secondary hover:text-font-primary rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-45">Previous</button><span className="text-font-muted text-sm">Page {page} of {pageCount}</span><button type="button" disabled={page >= pageCount} onClick={() => { const next = new URLSearchParams(searchParams); next.set("page", String(page + 1)); setSearchParams(next, { replace: true }); }} className="border-border text-font-secondary hover:text-font-primary rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-45">Next</button></nav>}
@@ -106,12 +109,18 @@ function Rankings() {
   );
 }
 
-function PodiumCard({ entry, scoreLabel }: { entry: import("../../hooks/useLeaderboard").LeaderboardEntry; scoreLabel: string }) {
+function PodiumCard({ entry, podiumPosition, scoreLabel }: { entry: import("../../hooks/useLeaderboard").LeaderboardEntry; podiumPosition: number; scoreLabel: string }) {
   const avatar = avatarUrl(entry.avatar_path);
   const country = getCountry(entry.country_code);
   const rankClass = podiumRankClass(entry.player_rank);
   const profilePath = `/profile/${encodeURIComponent(entry.username)}`;
-  return <article className={`border-border bg-surface/75 relative rounded-xl border p-4 text-center ${entry.player_rank === 1 ? "sm:-order-0 sm:pb-7" : entry.player_rank === 2 ? "sm:order-first" : "sm:order-last"}`}>{entry.player_rank === 1 && <FaCrown aria-label="First place" className="mx-auto mb-2 h-8 w-8 text-[#f4c542] drop-shadow-[0_2px_6px_rgba(244,197,66,0.45)]" />}<Link to={profilePath} aria-label={`View ${entry.username}'s profile`} className="mx-auto block w-fit rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cold">{avatar ? <img src={avatar} alt="" className="border-border h-16 w-16 rounded-full border object-cover" /> : <span className="bg-brand-tertiary text-font-primary flex h-16 w-16 items-center justify-center rounded-full font-serif text-2xl">{entry.username[0]?.toUpperCase()}</span>}</Link><Link to={profilePath} className="text-font-primary hover:text-hover mt-3 flex items-center justify-center gap-1.5 truncate text-base font-semibold"><span className="truncate">{entry.username}</span><CountryFlag country={country} /></Link><p className="text-font-secondary mt-1 text-sm font-bold">{scoreLabel}</p><span className={`mt-3 block text-4xl font-semibold sm:text-5xl ${rankClass}`}>#{entry.player_rank}</span></article>;
+  const placementClass = podiumPosition === 0
+    ? "sm:col-start-2 sm:row-start-1 sm:pb-7"
+    : podiumPosition === 1
+      ? "sm:col-start-1 sm:row-start-1"
+      : "sm:col-start-3 sm:row-start-1";
+
+  return <article className={`border-border bg-surface/75 relative rounded-xl border p-4 text-center ${placementClass}`}>{entry.player_rank === 1 && <FaCrown aria-label="First place" className="mx-auto mb-2 h-8 w-8 text-[#f4c542] drop-shadow-[0_2px_6px_rgba(244,197,66,0.45)]" />}<Link to={profilePath} aria-label={`View ${entry.username}'s profile`} className="mx-auto block w-fit rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cold">{avatar ? <img src={avatar} alt="" className="border-border h-16 w-16 rounded-full border object-cover" /> : <span className="bg-brand-tertiary text-font-primary flex h-16 w-16 items-center justify-center rounded-full font-serif text-2xl">{entry.username[0]?.toUpperCase()}</span>}</Link><Link to={profilePath} className="text-font-primary hover:text-hover mt-3 flex items-center justify-center gap-1.5 truncate text-base font-semibold"><span className="truncate">{entry.username}</span><CountryFlag country={country} /></Link><p className="text-font-secondary mt-1 text-sm font-bold">{scoreLabel}</p><span className={`mt-3 block text-4xl font-semibold sm:text-5xl ${rankClass}`}>#{entry.player_rank}</span></article>;
 }
 
 function RankingRow({ entry, scoreLabel, board }: { entry: import("../../hooks/useLeaderboard").LeaderboardEntry; scoreLabel: string; board: LeaderboardBoard }) {

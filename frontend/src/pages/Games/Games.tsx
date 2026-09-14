@@ -15,7 +15,7 @@ import { fetchGamesPage } from "../../hooks/useGames";
 import { useGamesPageSize } from "../../hooks/useGamesPageSize";
 import { supabase } from "../../utils/supabase";
 
-type SortOption = "name" | "release";
+type SortOption = "name" | "release" | "experience" | "badges";
 
 const DIFFICULTY_COLORS: Record<string, string> = {
   Easy: "bg-[#78b159]",
@@ -28,7 +28,9 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 
 const SORT_LABELS: Record<SortOption, string> = {
   name: "Name",
-  release: "Release date",
+  release: "release date",
+  experience: "Potential EXP gain",
+  badges: "Badge count",
 };
 
 const EMPTY_GAME_IDS: number[] = [];
@@ -445,7 +447,7 @@ function FilterSelect({
         <ul
           role="listbox"
           aria-label={label}
-          className="border-border bg-surface absolute z-20 mt-1.5 min-w-full overflow-hidden rounded-xl border p-1.5 shadow-black"
+          className={`border-border bg-surface absolute z-20 mt-1.5 min-w-full rounded-xl border p-1.5 shadow-black ${label === "Genre" ? "max-h-64 overflow-y-auto" : "overflow-hidden"}`}
         >
           {options.map((option) => (
             <li key={option.value}>

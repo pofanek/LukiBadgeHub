@@ -17,7 +17,7 @@ export const GAME_FIELDS =
 
 export const GAMES_PAGE_SIZE = 12;
 
-export type GameSort = "name" | "release" | "created";
+export type GameSort = "name" | "release" | "experience" | "badges" | "created";
 
 type GamesPageOptions = {
   includeDrafts?: boolean;
@@ -108,6 +108,52 @@ export async function fetchGamesPage({
   sort = "created",
 }: GamesPageOptions = {}) {
   if (gameIds && !gameIds.length) return { games: [], count: 0 };
+
+  if (sort === "experience" || sort === "badges") {
+    let aggregateQuery = supabase.from("games").select(GAME_FIELDS);
+
+    if (!includeDrafts) aggregateQuery = aggregateQuery.eq("is_published", true);
+    if (search.trim()) aggregateQuery = aggregateQuery.ilike("name", `%${search.trim()}%`);
+    if (genre) aggregateQuery = aggregateQuery.contains("genres", [genre]);
+    if (gameIds) aggregateQuery = aggregateQuery.in("id", gameIds);
+
+    const { data: aggregateData, error: aggregateError } = await aggregateQuery;
+    if (aggregateError) throw aggregateError;
+
+    const aggregateGames = (aggregateData || []) as GameRow[];
+    const aggregateGameIds = aggregateGames.map((game) => game.id);
+    const { data: aggregateBadgeData, error: aggregateBadgeError } =
+      aggregateGameIds.length
+        ? await supabase
+            .from("game_badges")
+            .select("*")
+            .in("game_id", aggregateGameIds)
+        : { data: [], error: null };
+    if (aggregateBadgeError) throw aggregateBadgeError;
+
+    const badgesByGame = new Map<number, BadgeRow[]>();
+    ((aggregateBadgeData || []) as BadgeRow[]).forEach((badge) => {
+      badgesByGame.set(badge.game_id, [
+        ...(badgesByGame.get(badge.game_id) || []),
+        badge,
+      ]);
+    });
+
+    const sortedGames = aggregateGames
+      .map((game) => toCatalogueGame(game, badgesByGame.get(game.id)))
+      .sort((left, right) => {
+        const difference =
+          sort === "experience"
+            ? right.totalExp - left.totalExp
+            : right.achievementCount - left.achievementCount;
+        return difference || left.id - right.id;
+      });
+
+    return {
+      games: sortedGames.slice(page * pageSize, (page + 1) * pageSize),
+      count: sortedGames.length,
+    };
+  }
 
   let query = supabase.from("games").select(GAME_FIELDS, { count: "exact" });
 
