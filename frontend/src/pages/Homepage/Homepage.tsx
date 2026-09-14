@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   FiArrowRight,
   FiAward,
+  FiChevronDown,
+  FiClock,
   FiHeart,
   FiMonitor,
   FiLayers,
@@ -10,7 +12,11 @@ import {
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { FocusContent, LoadingIndicator } from "../../components";
-import { getBadgeExperience, type CatalogueGame } from "../../constants";
+import {
+  getBadgeExperience,
+  projectUpdates,
+  type CatalogueGame,
+} from "../../constants";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { useGames } from "../../hooks/useGames";
 import { type LeaderboardEntry, useLeaderboard } from "../../hooks/useLeaderboard";
@@ -21,6 +27,12 @@ import { supabase } from "../../utils/supabase";
 type LibraryEntry = { game_id: number; added_at: string };
 type BadgeClaim = { badge_id: number; earned_at: string };
 type Activity = { id: string; timestamp: string; icon: "library" | "badge" | "level"; content: ReactNode };
+
+const updateDateFormatter = new Intl.DateTimeFormat(undefined, {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
 
 const difficulties = [
   [
@@ -306,6 +318,59 @@ function SupportProject() {
   );
 }
 
+function LatestUpdate() {
+  const updates = [...projectUpdates]
+    .sort((left, right) => right.date.localeCompare(left.date))
+    .slice(0, 3);
+
+  if (!updates.length) return null;
+
+  return (
+    <details className="border-border bg-surface/75 group rounded-xl border">
+      <summary className="hover:bg-surface-soft flex cursor-pointer list-none items-center justify-between gap-4 rounded-xl px-5 py-4 transition-colors [&::-webkit-details-marker]:hidden sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <FiClock className="text-accent-cold h-5 w-5 shrink-0" />
+          <p className="text-font-secondary min-w-0 truncate text-sm">
+            <span className="text-font-primary font-medium">Latest update:</span>{" "}
+            {updates[0].title}
+          </p>
+        </div>
+        <FiChevronDown className="text-accent-cold h-5 w-5 shrink-0 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="border-border border-t px-5 py-2 sm:px-6">
+        <ul>
+          {updates.map((update) => (
+            <li
+              key={`${update.date}-${update.title}`}
+              className="border-border py-3 not-last:border-b"
+            >
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                <span className="text-accent-cold font-medium">{update.type}</span>
+                <time className="text-font-muted" dateTime={update.date}>
+                  {updateDateFormatter.format(new Date(`${update.date}T12:00:00`))}
+                </time>
+              </div>
+              <p className="text-font-primary mt-1 text-sm font-medium">
+                {update.title}
+              </p>
+              <p className="text-font-secondary mt-1 text-sm leading-relaxed">
+                {update.summary}
+              </p>
+            </li>
+          ))}
+        </ul>
+        <Link
+          to="/updates"
+          className="text-accent-cold hover:text-hover inline-flex items-center gap-1.5 py-3 text-sm font-medium"
+        >
+          View all updates
+          <FiArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+    </details>
+  );
+}
+
 function Leaderboards({
   entries,
   isLoading,
@@ -510,7 +575,7 @@ function Homepage() {
   const browseGames = (
     <section>
       <Heading
-        title={user ? "Browse games" : "Featured games"}
+        title={user ? "Latest Releases" : "Browse Games"}
         description={
           user
             ? "Find a fresh badge path, a new genre, or the next high-value challenge."
@@ -662,6 +727,7 @@ function Homepage() {
                 entries={leaderboardEntries}
                 isLoading={isLeaderboardLoading}
               />
+              <LatestUpdate />
               <SupportProject />
             </>
           ) : (
@@ -692,6 +758,7 @@ function Homepage() {
                   Create an account
                 </Link>
               </section>
+              <LatestUpdate />
               <SupportProject />
             </>
           )}

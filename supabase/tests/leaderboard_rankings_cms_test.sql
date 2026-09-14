@@ -11,7 +11,7 @@ on conflict (id) do nothing;
 
 insert into public.user_profiles (id, username, country_code, role)
 values
-  ('3fd7d1a9-c1f2-4ba9-91d1-dd8f4154b8a3', 'rankings-owner', 'unknown', 'Admin'),
+  ('3fd7d1a9-c1f2-4ba9-91d1-dd8f4154b8a3', 'rankings-owner', 'unknown', 'Owner'),
   ('88888888-8888-8888-8888-888888888888', 'rankings-player-one', 'unknown', 'User'),
   ('99999999-9999-9999-9999-999999999999', 'rankings-player-two', 'unknown', 'User')
 on conflict (id) do update

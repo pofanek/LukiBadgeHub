@@ -26,6 +26,8 @@ function getPageTitle(pathname: string) {
   }
   if (pathname === "/settings") return `Settings | ${siteName}`;
   if (pathname === "/support") return `Support | ${siteName}`;
+  if (pathname === "/updates") return `Updates | ${siteName}`;
+  if (pathname === "/search") return `Search | ${siteName}`;
   if (pathname === "/notifications") return `Notifications | ${siteName}`;
   if (pathname === "/login") return `Log in | ${siteName}`;
   if (pathname === "/signup") return `Sign up | ${siteName}`;

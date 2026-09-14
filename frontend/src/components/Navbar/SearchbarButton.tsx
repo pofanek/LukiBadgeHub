@@ -1,5 +1,5 @@
+import { FiSearch } from "react-icons/fi";
 import { NavbarButton } from "./";
-import { CiSearch } from "react-icons/ci";
 
 type SearchbarButtonProps = {
   value: boolean;
@@ -11,9 +11,9 @@ const SearchbarButton = ({ value, setter }: SearchbarButtonProps) => {
     <NavbarButton
       onClick={() => setter(!value)}
       ariaLabel={value ? "Close search" : "Open search"}
-      className="from-brand-primary to-brand-secondary w-16 cursor-pointer bg-linear-to-r p-0.5 min-[764px]:hidden"
+      className="border-border bg-surface-soft text-font-secondary hover:bg-brand-tertiary hover:text-font-primary h-10 w-10 border p-0 lg:hidden"
     >
-      <CiSearch className="m-auto" size={32} color="#e6f1ff" />
+      <FiSearch className="m-auto h-5 w-5" />
     </NavbarButton>
   );
 };

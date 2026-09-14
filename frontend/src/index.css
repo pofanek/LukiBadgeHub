@@ -8,6 +8,22 @@ textarea[placeholder="Tell people a little about yourself."] {
   resize: none;
 }
 
+.ResultLink {
+  color: var(--color-font-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  transition: color 150ms, background-color 150ms;
+}
+
+.ResultLink:hover {
+  color: var(--color-font-primary);
+  background-color: var(--color-surface-soft);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
 }

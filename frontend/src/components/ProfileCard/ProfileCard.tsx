@@ -52,7 +52,7 @@ const ProfileCard = ({
         <ProfileItem pathTo="/settings" onClick={closeMenu} Icon={FiSettings}>
           Settings
         </ProfileItem>
-        {profile?.role === "Admin" && (
+        {(profile?.role === "Admin" || profile?.role === "Owner") && (
           <ProfileItem pathTo="/admin" onClick={closeMenu} Icon={FiEdit3}>
             CMS panel
           </ProfileItem>

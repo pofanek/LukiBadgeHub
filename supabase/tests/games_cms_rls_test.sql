@@ -1,18 +1,20 @@
 begin;
 
-select plan(22);
+select plan(25);
 
 insert into auth.users (id, email)
 values
   ('11111111-1111-1111-1111-111111111111', 'member@example.com'),
   ('22222222-2222-2222-2222-222222222222', 'admin@example.com'),
-  ('33333333-3333-3333-3333-333333333333', 'moderator@example.com');
+  ('33333333-3333-3333-3333-333333333333', 'moderator@example.com'),
+  ('44444444-4444-4444-4444-444444444444', 'owner@example.com');
 
 insert into public.user_profiles (id, username, country_code, role)
 values
   ('11111111-1111-1111-1111-111111111111', 'member', 'unknown', 'User'),
   ('22222222-2222-2222-2222-222222222222', 'admin', 'unknown', 'Admin'),
-  ('33333333-3333-3333-3333-333333333333', 'moderator', 'unknown', 'Moderator')
+  ('33333333-3333-3333-3333-333333333333', 'moderator', 'unknown', 'Moderator'),
+  ('44444444-4444-4444-4444-444444444444', 'owner', 'unknown', 'Owner')
 on conflict (id) do update set role = excluded.role;
 
 insert into public.games (name, description, is_published)
@@ -138,6 +140,21 @@ select lives_ok(
 select lives_ok(
   $$update public.game_badges set description = 'updated' where name = 'admin badge'$$,
   'admins can update badge definitions'
+);
+
+select set_config('request.jwt.claim.sub', '44444444-4444-4444-4444-444444444444', true);
+select lives_ok(
+  $$insert into public.games (name, description) values ('owner game', '')$$,
+  'owners can create games'
+);
+select results_eq(
+  $$select name from public.games where name like 'CMS test %' order by name$$,
+  array['CMS test draft', 'CMS test published'],
+  'owners can read drafts'
+);
+select lives_ok(
+  $$insert into public.user_badges (user_id, badge_id) select '11111111-1111-1111-1111-111111111111', id from public.game_badges where name = 'CMS test published special badge'$$,
+  'owners can award special badges to another user'
 );
 
 select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', true);

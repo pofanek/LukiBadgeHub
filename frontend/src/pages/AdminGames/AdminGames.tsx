@@ -254,10 +254,9 @@ function AdminGames() {
   const hydratedGameId = useRef<number | null>(null);
   const previousPageSize = useRef(pageSize);
 
-  const isAdmin = profile?.role === "Admin";
+  const isAdmin = profile?.role === "Admin" || profile?.role === "Owner";
   const canAwardSpecialBadges = isAdmin || profile?.role === "Moderator";
-  const isLeaderboardOwner =
-    user?.id === import.meta.env.VITE_LEADERBOARD_OWNER_ID;
+  const isLeaderboardOwner = profile?.role === "Owner";
   const selectedGame = useMemo(
     () => games.find((game) => game.id === Number(id)) || null,
     [games, id],

@@ -14,6 +14,9 @@ const Footer = ({ className = "" }: FooterProps) => {
         <FooterText pathTo="/about">About</FooterText>
         <FooterText pathTo="/terms">Terms & Privacy</FooterText>
         <FooterText pathTo="/contact">Contact</FooterText>
+        <FooterText pathTo="/updates" className="hidden min-[1135px]:inline">
+          Updates
+        </FooterText>
       </div>
 
       <div className="flex h-[33%] w-full min-w-34 items-center justify-center gap-6 sm:order-3 sm:mr-7 sm:h-auto sm:justify-end">
@@ -27,7 +30,10 @@ const Footer = ({ className = "" }: FooterProps) => {
           </a>
           <Link to="/support" className="flex items-center justify-center gap-1">
             <SiKofi size={24} color="#818181" />
-            <FooterLink>Support the project</FooterLink>
+            <FooterLink className="hidden min-[764px]:block">
+              Support the project
+            </FooterLink>
+            <FooterLink className="min-[764px]:hidden">Support me</FooterLink>
           </Link>
         </div>
       </div>

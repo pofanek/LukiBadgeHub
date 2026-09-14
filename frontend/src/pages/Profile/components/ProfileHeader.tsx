@@ -61,10 +61,7 @@ function ProfileHeader({
     links.map((link) => [link.platform, link.url]),
   );
   const country = getCountry(profile.country_code);
-  const profileRole =
-    profile.id === import.meta.env.VITE_LEADERBOARD_OWNER_ID
-      ? "Owner"
-      : profile.role;
+  const profileRole = profile.role;
 
   useEffect(() => {
     if (!followError) return;
@@ -194,7 +191,8 @@ function ProfileHeader({
                 </button>
               )}
             </div>
-            <p className="text-font-secondary mt-3 flex items-center gap-2 text-sm">
+            <div className="mt-3 flex items-center gap-2">
+              <p className="text-font-secondary flex items-center gap-2 text-sm">
               {country.flag ? (
                 <span aria-label={country.name} role="img">
                   {country.flag}
@@ -208,7 +206,17 @@ function ProfileHeader({
                 </span>
               )}
               {country.name}
-            </p>
+              </p>
+              {isOwnProfile && profile.country_code === "unknown" && (
+                <Link
+                  to="/settings"
+                  className="text-accent-cold hover:text-font-primary inline-flex items-center gap-1 text-xs font-medium transition-colors"
+                >
+                  <FiEdit3 className="h-3 w-3" />
+                  Edit your country
+                </Link>
+              )}
+            </div>
             <p className="text-font-secondary mt-3 hidden max-w-3xl leading-relaxed break-words lg:block">
               {profile.bio || "No bio provided."}
             </p>

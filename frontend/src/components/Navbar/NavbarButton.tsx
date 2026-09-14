@@ -15,7 +15,7 @@ const NavbarButton = ({
     <button
       onClick={onClick}
       aria-label={ariaLabel}
-      className={`cursor-pointer rounded-xl px-3 py-1.5 font-sans transition-all duration-200 ease-out hover:-translate-y-0.5 ${className}`}
+      className={`cursor-pointer rounded-xl px-2 py-1.5 font-sans transition-all duration-200 ease-out hover:-translate-y-0.5 ${className}`}
     >
       {children}
     </button>

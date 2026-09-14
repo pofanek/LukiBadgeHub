@@ -25,7 +25,10 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
   const [profileMenuOpen, setProfileMenu] = useState(false);
   const { user } = useAuthUser();
   const { profile } = useUserProfile(user?.id);
-  const profilePath = user && profile ? `/profile/${encodeURIComponent(profile.username)}` : "/profile";
+  const profilePath =
+    user && profile
+      ? `/profile/${encodeURIComponent(profile.username)}`
+      : "/profile";
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -59,14 +62,11 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
                 />
               </div>
             </div>
-            <div className="mx-3 hidden min-w-0 max-w-80 flex-1 min-[764px]:flex min-[1350px]:hidden">
-              <Searchbar className="flex w-full" inputClasses="w-full" />
-            </div>
-            <div className="absolute left-1/2 hidden h-full w-80 -translate-x-1/2 items-center justify-center min-[1350px]:flex">
-              <Searchbar className="flex w-full" inputClasses="w-full" />
+            <div className="mx-3 hidden max-w-80 min-w-0 flex-1 min-[1350px]:absolute min-[1350px]:left-1/2 min-[1350px]:mx-0 min-[1350px]:w-80 min-[1350px]:max-w-none min-[1350px]:flex-none min-[1350px]:-translate-x-1/2 lg:flex">
+              <Searchbar className="w-full" inputClasses="w-full" />
             </div>
             <div className="ml-auto flex h-full items-center justify-end gap-0 sm:gap-1">
-              <div className="hidden min-[380px]:block min-[764px]:hidden">
+              <div className="block lg:hidden">
                 <SearchbarButton
                   value={searchbarOpen}
                   setter={setSearchbarOpen}
