@@ -10,6 +10,8 @@ import {
   NavbarButtonRightPanel,
 } from "./";
 import { useState } from "react";
+import { FiSettings } from "react-icons/fi";
+import { Link } from "react-router-dom";
 import NotificationsMenu from "./NotificationsMenu";
 import { supabase } from "../../utils/supabase";
 import { useAuthUser } from "../../hooks/useAuthUser";
@@ -72,6 +74,16 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
                 />
               </div>
               <NotificationsMenu />
+              {user && (
+                <Link
+                  to="/settings"
+                  aria-label="Settings"
+                  title="Settings"
+                  className="text-font-secondary hover:text-font-primary hover:bg-effect-glass ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-cold"
+                >
+                  <FiSettings className="h-5 w-5" aria-hidden="true" />
+                </Link>
+              )}
               <div className="relative">
                 <Login
                   user={user}
