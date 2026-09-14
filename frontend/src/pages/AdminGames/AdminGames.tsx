@@ -326,7 +326,7 @@ function AdminGames() {
     const timer = window.setTimeout(() => {
       setError("");
       setNotice("");
-    }, 3000);
+    }, 5000);
     return () => window.clearTimeout(timer);
   }, [notice, error]);
 

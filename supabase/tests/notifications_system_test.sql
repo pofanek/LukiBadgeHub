@@ -109,11 +109,16 @@ select lives_ok(
   'a user can follow back'
 );
 
-select is(
-  (select count(*) from public.notifications where user_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and type = 'new_mutual'),
-  1::bigint,
-  'following back creates one combined mutual notification for the original follower'
+set local role postgres;
+
+select results_eq(
+  $$select user_id::text || '|' || body from public.notifications where type = 'new_mutual'$$,
+  array['bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb|notification-recipient followed you back — you are now mutuals.'],
+  'following back notifies the original follower and names the person who followed back'
 );
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', true);
 
 select is_empty(
   $$select id from public.notifications where user_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'$$,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiAward, FiCheck, FiSearch } from "react-icons/fi";
+import { FiAward, FiCheck, FiSearch, FiX } from "react-icons/fi";
 import {
   BADGE_DIFFICULTY_DETAILS,
   getBadgeDifficultyLabel,
@@ -45,7 +45,7 @@ function FeedbackToast({
           className="text-font-secondary hover:text-font-primary -mr-1 rounded p-1"
           aria-label="Dismiss notification"
         >
-          ×
+          <FiX className="h-4 w-4" />
         </button>
       </div>
     </div>
@@ -67,6 +67,15 @@ export default function AdminAwards({ embedded = false }: { embedded?: boolean }
   const [isAwarding, setIsAwarding] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!notice && !error) return;
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setError("");
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [notice, error]);
 
   const inputClass =
     "border-border bg-surface-soft text-font-primary placeholder:text-font-muted focus:border-accent-cold w-full rounded-lg border px-3 py-2.5 text-sm outline-none";
@@ -148,15 +157,6 @@ export default function AdminAwards({ embedded = false }: { embedded?: boolean }
       active = false;
     };
   }, [selectedGame]);
-
-  useEffect(() => {
-    if (!notice && !error) return;
-    const timer = window.setTimeout(() => {
-      setNotice("");
-      setError("");
-    }, 3000);
-    return () => window.clearTimeout(timer);
-  }, [notice, error]);
 
   const awardBadge = async () => {
     if (!selectedUser || !selectedGame || !selectedBadge) return;

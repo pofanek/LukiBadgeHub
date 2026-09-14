@@ -190,7 +190,7 @@ function Settings() {
     const timer = window.setTimeout(() => {
       setNotice("");
       setError("");
-    }, 3000);
+    }, 5000);
     return () => window.clearTimeout(timer);
   }, [notice, error]);
 

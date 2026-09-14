@@ -409,7 +409,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
     const timer = window.setTimeout(() => {
       setClaimNotice("");
       setClaimError("");
-    }, 3000);
+    }, 5000);
     return () => window.clearTimeout(timer);
   }, [claimNotice, claimError]);
   const badgeIds = useMemo(

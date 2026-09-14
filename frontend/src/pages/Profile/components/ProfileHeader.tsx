@@ -88,7 +88,7 @@ function ProfileHeader({
 
   useEffect(() => {
     if (!followError) return;
-    const timer = window.setTimeout(() => setFollowError(""), 3000);
+    const timer = window.setTimeout(() => setFollowError(""), 5000);
     return () => window.clearTimeout(timer);
   }, [followError]);
 
