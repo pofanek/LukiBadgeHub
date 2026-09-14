@@ -1,6 +1,6 @@
 export const APP_NAME = "Luki Badge Hub";
 export const APP_SHORT_NAME = "L. B. H.";
-export const DONATION_URL = "https://ko-fi.com/";
+export const DONATION_URL = "https://ko-fi.com/pofanek";
 export {
   latestProjectUpdate,
   projectUpdates,
