@@ -27,6 +27,7 @@ import {
   AdminGames,
 } from "./pages";
 import { MainLayout, EmptyLayout } from "./layouts/";
+// cms
 const router = createBrowserRouter([
   {
     element: <MainLayout />,
