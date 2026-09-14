@@ -8,24 +8,58 @@ function ResetPassword() {
   const [newPassword, setNewPassword] = useState("");
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    let active = true;
+    const recoveryLink = new URLSearchParams(window.location.hash.slice(1)).get("type") === "recovery";
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setReady(true);
     });
-    return () => listener.subscription.unsubscribe();
+
+    if (recoveryLink) {
+      void supabase.auth.getSession().then(({ data }) => {
+        if (active && data.session) setReady(true);
+      });
+    }
+
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   const handleReset = async () => {
     setError("");
+    if (!ready) {
+      setError("This password recovery link is invalid or has expired. Request a new one.");
+      return;
+    }
     if (!passwordIsValid(newPassword)) {
       setError("Choose a password that meets every requirement below.");
       return;
     }
+    setIsSaving(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) setError(error.message);
-    else navigate("/settings", { replace: true });
+    if (error) {
+      setError(error.message);
+      setIsSaving(false);
+      return;
+    }
+
+    const { data: hasPassword, error: verificationError } = await supabase.rpc(
+      "current_user_has_password",
+    );
+    setIsSaving(false);
+    if (verificationError || !hasPassword) {
+      setError("The password could not be verified. Request a new recovery link and try again.");
+      return;
+    }
+
+    setNewPassword("");
+    setIsSaved(true);
   };
 
   return (
@@ -36,7 +70,9 @@ function ResetPassword() {
             New password
           </h2>
           <p className="text-font-muted mt-2 text-center font-sans text-sm">
-            {ready
+            {isSaved
+              ? "Your password has been saved."
+              : ready
               ? "Enter your new password below."
               : "Waiting for password recovery link..."}
           </p>
@@ -50,7 +86,8 @@ function ResetPassword() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="New password"
-            disabled={!ready}
+            autoComplete="new-password"
+            disabled={!ready || isSaved || isSaving}
             className="bg-surface text-font-primary border-surface-soft focus:border-accent-cold w-full rounded-xl border-2 p-2 font-sans text-lg transition-all duration-200 outline-none disabled:opacity-40"
           />
           <PasswordRequirements password={newPassword} />
@@ -61,13 +98,22 @@ function ResetPassword() {
             </p>
           )}
 
-          <button
-            onClick={handleReset}
-            disabled={!ready}
-            className={`bg-surface text-font-primary from-accent-cold to-accent-cold-dim w-full ${ready ? "cursor-pointer" : "cursor-not-allowed"} rounded-xl bg-linear-to-r p-2 font-sans text-lg transition-transform duration-300 hover:scale-[103%] disabled:opacity-40 disabled:hover:scale-100`}
-          >
-            Save password
-          </button>
+          {isSaved ? (
+            <button
+              onClick={() => navigate("/settings", { replace: true })}
+              className="bg-surface text-font-primary from-accent-cold to-accent-cold-dim w-full cursor-pointer rounded-xl bg-linear-to-r p-2 font-sans text-lg transition-transform duration-300 hover:scale-[103%]"
+            >
+              Continue to settings
+            </button>
+          ) : (
+            <button
+              onClick={handleReset}
+              disabled={!ready || isSaving}
+              className={`bg-surface text-font-primary from-accent-cold to-accent-cold-dim w-full ${ready && !isSaving ? "cursor-pointer" : "cursor-not-allowed"} rounded-xl bg-linear-to-r p-2 font-sans text-lg transition-transform duration-300 hover:scale-[103%] disabled:opacity-40 disabled:hover:scale-100`}
+            >
+              {isSaving ? "Saving..." : "Save password"}
+            </button>
+          )}
           <button
             onClick={() => navigate("/login")}
             className="border-surface-soft hover:ring-surface-raised text-font-secondary w-full cursor-pointer rounded-xl border-2 p-2 font-sans text-lg transition-all duration-200 hover:ring-2"

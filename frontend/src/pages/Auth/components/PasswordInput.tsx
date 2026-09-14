@@ -4,8 +4,14 @@ type PasswordInputProps = {
   value: string;
   setter: React.Dispatch<React.SetStateAction<string>>;
   id: string;
+  autoComplete?: "current-password" | "new-password";
 };
-const PasswordInput = ({ value, setter, id }: PasswordInputProps) => {
+const PasswordInput = ({
+  value,
+  setter,
+  id,
+  autoComplete = "current-password",
+}: PasswordInputProps) => {
   const [show, setShow] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -18,11 +24,12 @@ const PasswordInput = ({ value, setter, id }: PasswordInputProps) => {
     >
       <LuLock size={24} className="shrink-0 text-gray-500" />
       <input
-        minLength={12}
+        minLength={8}
         required={true}
         id={id}
         ref={inputRef}
         type={show ? "text" : "password"}
+        autoComplete={autoComplete}
         value={value}
         onChange={(e) => setter(e.target.value)}
         placeholder="Password"

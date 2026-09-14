@@ -35,7 +35,11 @@ const Title = ({
       </p>
       <p
         className={`text-font-primary font-serif text-4xl whitespace-nowrap ${
-          alwaysExpandText ? "hidden" : "max-[379px]:hidden lg:hidden"
+          alwaysExpandText
+            ? "hidden"
+            : longNavbar
+              ? "max-[379px]:hidden lg:hidden"
+              : "sm:hidden"
         }`}
       >
         {Constants.APP_SHORT_NAME}

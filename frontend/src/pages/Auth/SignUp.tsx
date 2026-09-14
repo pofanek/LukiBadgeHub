@@ -79,7 +79,12 @@ const Register = () => {
         />
         <Splitter />
         <EmailInput value={email} id="email" setter={setEmail} />
-        <PasswordInput id="password" value={password} setter={setPassword} />
+        <PasswordInput
+          id="password"
+          value={password}
+          setter={setPassword}
+          autoComplete="new-password"
+        />
         <div className="w-[80%] min-w-64"><PasswordRequirements password={password} /></div>
         <FormFooter>
           <Submit
