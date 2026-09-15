@@ -1,19 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../utils/supabase";
+import { Turnstile } from "../../components/UI";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
   const navigate = useNavigate();
 
   const handleSubmit = async () => {
+    if (!captchaToken) return;
     setError("");
     setMessage("");
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
+      captchaToken,
     });
+    setCaptchaToken(null); setCaptchaReset((value) => value + 1);
     if (error) setError(error.message);
     else setMessage("Sprawdź maila!");
   };
@@ -40,6 +46,7 @@ function ForgotPassword() {
             placeholder="Enter your Email address"
             className="bg-surface text-font-primary border-surface-soft focus:border-accent-cold w-full rounded-xl border-2 p-2 font-sans text-lg transition-all duration-200 outline-none"
           />
+          <Turnstile key={captchaReset} onTokenChange={setCaptchaToken} />
 
           {error && (
             <p className="text-center font-sans text-sm text-red-400">
@@ -54,6 +61,7 @@ function ForgotPassword() {
 
           <button
             onClick={handleSubmit}
+            disabled={!captchaToken}
             className="bg-surface text-font-primary from-accent-cold to-accent-cold-dim w-full cursor-pointer rounded-xl bg-linear-to-r p-2 font-sans text-lg transition-transform duration-300 hover:scale-[103%]"
           >
             Send reset link

@@ -10,7 +10,7 @@ import {
 } from "./components";
 import { FcGoogle } from "react-icons/fc";
 import { FaDiscord } from "react-icons/fa";
-import { FocusContent, Submit } from "../../components/UI";
+import { FocusContent, Submit, Turnstile } from "../../components/UI";
 import { supabase } from "../../utils/supabase";
 import { useNavigate } from "react-router-dom";
 const Login = () => {
@@ -19,14 +19,19 @@ const Login = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showResend, setShowResend] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
   const navigate = useNavigate();
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!captchaToken) return;
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: login,
       password: password,
+      options: { captchaToken },
     });
+    setCaptchaToken(null); setCaptchaReset((value) => value + 1);
     if (error) {
       setError(error.message);
       if (error.message.toLowerCase().includes("email not confirmed")) {
@@ -41,10 +46,13 @@ const Login = () => {
     }
   };
   const handleResendEmail = async () => {
+    if (!captchaToken) return;
     const { error: resendError } = await supabase.auth.resend({
       type: "signup",
       email: login,
+      options: { captchaToken },
     });
+    setCaptchaToken(null); setCaptchaReset((value) => value + 1);
 
     if (resendError) {
       setError(resendError.message);
@@ -54,21 +62,23 @@ const Login = () => {
     }
   };
   const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
+    if (error) setError(error.message);
   };
 
   const handleDiscordLogin = async () => {
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "discord",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
+    if (error) setError(error.message);
   };
   return (
     <FocusContent>
@@ -88,6 +98,7 @@ const Login = () => {
           onClick={handleDiscordLogin}
         />
         <Splitter />
+        <Turnstile key={captchaReset} onTokenChange={setCaptchaToken} />
         <EmailInput value={login} id="name" setter={setLogin} />
         <FormFooter>
           <PasswordInput id="password" value={password} setter={setPassword} />
@@ -98,7 +109,7 @@ const Login = () => {
         <FormFooter>
           <Submit
             label={loading ? "Loading..." : "Login"}
-            disabled={loading}
+            disabled={loading || !captchaToken}
             className="w-[80%] min-w-64 font-sans text-xl"
           />
           <NoAccount login={true} />
@@ -108,6 +119,7 @@ const Login = () => {
         <button
           type="button"
           onClick={handleResendEmail}
+          disabled={!captchaToken}
           className="text-font-secondary hover:text-font-primary text-sm underline transition-colors"
         >
           Didn't get the email? Resend link

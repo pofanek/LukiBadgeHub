@@ -3,4 +3,5 @@ export { default as FocusContent } from "./FocusContent";
 export { default as Divider } from "./Divider";
 export { default as LoadingIndicator } from "./LoadingIndicator";
 export { default as PasswordRequirements } from "./PasswordRequirements";
+export { default as Turnstile } from "./Turnstile";
 export { default as RoleBadge } from "./RoleBadge";

@@ -14,6 +14,7 @@ type DeletionAction = "begin" | "verify-email" | "delete";
 
 type DeletionRequest = {
   action?: DeletionAction;
+  captchaToken?: string;
   confirmation?: string;
   currentPassword?: string;
 };
@@ -85,6 +86,9 @@ Deno.serve(async (request) => {
       if (!body?.currentPassword) {
         return Response.json({ error: "Enter your current password to continue." }, { status: 400, headers: corsHeaders });
       }
+      if (!body.captchaToken) {
+        return Response.json({ error: "Complete the security check to continue." }, { status: 400, headers: corsHeaders });
+      }
 
       const passwordClient = createClient(supabaseUrl, publishableKey, {
         auth: { persistSession: false, autoRefreshToken: false },
@@ -92,6 +96,7 @@ Deno.serve(async (request) => {
       const { data: passwordData, error: passwordError } = await passwordClient.auth.signInWithPassword({
         email: userData.user.email ?? "",
         password: body.currentPassword,
+        options: { captchaToken: body.captchaToken },
       });
       if (passwordError || passwordData.user?.id !== userData.user.id) {
         return Response.json({ error: "Your current password is incorrect." }, { status: 401, headers: corsHeaders });

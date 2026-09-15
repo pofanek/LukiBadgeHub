@@ -8,7 +8,7 @@ import type { IconType } from "react-icons";
 import type { UserIdentity } from "@supabase/supabase-js";
 import { userchomik } from "../../assets";
 import { getBadgeDifficultyLabel } from "../../constants";
-import { PasswordRequirements, FocusContent, LoadingIndicator } from "../../components";
+import { PasswordRequirements, FocusContent, LoadingIndicator, Turnstile } from "../../components";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { useGames } from "../../hooks/useGames";
 import { usePinnedBadge } from "../../hooks/usePinnedBadge";
@@ -139,6 +139,9 @@ function Settings() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showFinalDeleteDialog, setShowFinalDeleteDialog] = useState(false);
   const [deletionEmailSent, setDeletionEmailSent] = useState(false);
+  const [deletionEmailReady, setDeletionEmailReady] = useState(false);
+  const [deletionCaptchaToken, setDeletionCaptchaToken] = useState<string | null>(null);
+  const [deletionCaptchaReset, setDeletionCaptchaReset] = useState(0);
   const [deletionBusy, setDeletionBusy] = useState(false);
   const [passwordStatus, setPasswordStatus] = useState<boolean | null>(null);
   const [identities, setIdentities] = useState<UserIdentity[]>([]);
@@ -372,20 +375,31 @@ function Settings() {
     clearFeedback();
     if (deleteConfirmation !== "DELETE") return setError('Type DELETE exactly to confirm account deletion.');
     if (!deletePassword) return setError("Enter your current password to continue.");
+    if (!deletionCaptchaToken) return;
     setDeletionBusy(true);
-    const { error: verificationError } = await supabase.functions.invoke("delete-account", { body: { action: "begin", currentPassword: deletePassword } });
+    const { error: verificationError } = await supabase.functions.invoke("delete-account", { body: { action: "begin", currentPassword: deletePassword, captchaToken: deletionCaptchaToken } });
+    setDeletionCaptchaToken(null); setDeletionCaptchaReset((value) => value + 1);
     if (verificationError) { setDeletionBusy(false); return setError(await edgeFunctionSettingsError(verificationError, "Account deletion could not be started.")); }
+    setDeletionEmailReady(true);
+    setDeletionBusy(false);
+  };
+  const sendDeletionVerificationEmail = async () => {
+    clearFeedback();
+    if (!deletionCaptchaToken) return;
     window.localStorage.setItem("luki-pending-account-deletion", "1");
+    setDeletionBusy(true);
     const { error: emailVerificationError } = await supabase.auth.signInWithOtp({
       email: user.email || "",
-      options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}/auth/callback?delete-email-verification=1` },
+      options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}/auth/callback?delete-email-verification=1`, captchaToken: deletionCaptchaToken },
     });
+    setDeletionCaptchaToken(null); setDeletionCaptchaReset((value) => value + 1);
     setDeletionBusy(false);
     if (emailVerificationError) {
       window.localStorage.removeItem("luki-pending-account-deletion");
       return setError(settingsError(emailVerificationError, "The verification email could not be sent."));
     }
     setShowDeleteDialog(false);
+    setDeletionEmailReady(false);
     setDeletionEmailSent(true);
     setDeletePassword("");
     setNotice(`A verification link was sent to ${user.email}. Open it within 15 minutes to continue.`);
@@ -441,7 +455,7 @@ function Settings() {
       <section className="border-destructive/40 bg-destructive-background/20 rounded-xl border p-4 sm:p-6"><h2 className="text-font-primary font-serif text-2xl">Delete account</h2><p className="text-font-secondary mt-1 max-w-xl text-sm leading-relaxed">This permanently removes your profile, social links, media, and future badge progress. It cannot be undone. To protect your account, you must enter your password, verify the deletion from your email, and make a final confirmation.</p>{!hasPassword && <Notice message="Set a password from the section above before deleting an OAuth-only account." error />}{deletionEmailSent && <Notice message="Verification email sent. Open its link within 15 minutes to unlock the final confirmation." />}<button type="button" onClick={() => { clearFeedback(); setShowDeleteDialog(true); }} disabled={!hasPassword || deletionBusy} className="border-destructive/50 text-destructive hover:bg-destructive-background mt-4 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50"><FiTrash2 className="mr-2 inline" />Delete account</button></section></div>}
     {activeTab === "notifications" && <Section title="In-app notifications" description="Choose the updates that appear in your notification inbox."><div className="space-y-3">{([{ key: "role_granted_enabled", title: "Role changes", description: "When you receive the Admin, Moderator, or Supporter role." }, { key: "special_badge_awarded_enabled", title: "Special badges", description: "When a moderator awards you an Extreme, Supreme, or Inhuman badge." }, { key: "new_follower_enabled", title: "New followers", description: "When another player starts following you." }, { key: "new_mutual_enabled", title: "New mutuals", description: "When a player follows you back." }] as const).map(({ key, title, description }) => <label key={key} className={`border-border bg-surface-soft/60 flex items-start gap-3 rounded-lg border p-3 ${notificationSaving === key ? "cursor-wait opacity-70" : "cursor-pointer"}`}><input type="checkbox" checked={notificationPreferences[key]} onChange={() => void updateNotificationPreference(key)} disabled={notificationSaving !== null} className="peer sr-only" /><span className={`border-border bg-surface-soft peer-focus-visible:ring-accent-cold mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors peer-focus-visible:ring-2 ${notificationPreferences[key] ? "border-accent-cold bg-brand-tertiary text-font-primary" : "hover:border-font-muted"}`}>{notificationPreferences[key] && <FiCheck className="h-3 w-3" />}</span><span><span className="text-font-primary block text-sm font-medium">{title}</span><span className="text-font-muted mt-0.5 block text-xs leading-relaxed">{description}</span></span></label>)}</div><p className="text-font-muted mt-4 text-xs leading-relaxed">These settings control notifications inside Luki Badge Hub. They do not send email or browser alerts.</p></Section>}
     {(notice || error) && <FeedbackToast message={error || notice} error={Boolean(error)} onDismiss={clearFeedback} />}
-  </div></div>{cropTarget && <ImageCropDialog file={cropTarget.file} kind={cropTarget.kind} onCancel={() => setCropTarget(null)} onConfirm={saveImage} />}{showDeleteDialog && <ConfirmationDialog title="Confirm account deletion" onClose={() => !deletionBusy && setShowDeleteDialog(false)}><p className="text-font-secondary mt-3 text-sm leading-relaxed">This starts a permanent deletion request. We’ll email a verification link before anything is removed.</p><label className="text-font-secondary mt-4 block text-sm">Current password<Input type="password" autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} className="mt-2" /></label><label className="text-font-secondary mt-4 block text-sm">Type DELETE to continue<Input value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} className="mt-2" /></label><button type="button" onClick={beginAccountDeletion} disabled={deletionBusy} className="border-destructive/50 text-destructive hover:bg-destructive-background mt-5 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50">{deletionBusy ? "Verifying..." : "Send verification email"}</button></ConfirmationDialog>}{showFinalDeleteDialog && <ConfirmationDialog title="Permanently delete account?" onClose={() => !deletionBusy && setShowFinalDeleteDialog(false)}><p className="text-font-secondary mt-3 text-sm leading-relaxed">Your email and password have been verified. This final action immediately deletes your account and cannot be undone.</p><button type="button" onClick={deleteAccount} disabled={deletionBusy} className="border-destructive/50 text-destructive hover:bg-destructive-background mt-5 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50">{deletionBusy ? "Deleting..." : "Delete account permanently"}</button></ConfirmationDialog>}</section>;
+  </div></div>{cropTarget && <ImageCropDialog file={cropTarget.file} kind={cropTarget.kind} onCancel={() => setCropTarget(null)} onConfirm={saveImage} />}{showDeleteDialog && <ConfirmationDialog title="Confirm account deletion" onClose={() => !deletionBusy && setShowDeleteDialog(false)}><p className="text-font-secondary mt-3 text-sm leading-relaxed">This starts a permanent deletion request. We’ll email a verification link before anything is removed.</p>{!deletionEmailReady ? <><label className="text-font-secondary mt-4 block text-sm">Current password<Input type="password" autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} className="mt-2" /></label><label className="text-font-secondary mt-4 block text-sm">Type DELETE to continue<Input value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} className="mt-2" /></label><div className="mt-4"><Turnstile key={deletionCaptchaReset} onTokenChange={setDeletionCaptchaToken} /></div><button type="button" onClick={beginAccountDeletion} disabled={deletionBusy || !deletionCaptchaToken} className="border-destructive/50 text-destructive hover:bg-destructive-background mt-5 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50">{deletionBusy ? "Verifying..." : "Continue"}</button></> : <><p className="text-font-secondary mt-4 text-sm leading-relaxed">Complete one more security check to send the deletion verification email.</p><div className="mt-4"><Turnstile key={deletionCaptchaReset} onTokenChange={setDeletionCaptchaToken} /></div><button type="button" onClick={sendDeletionVerificationEmail} disabled={deletionBusy || !deletionCaptchaToken} className="border-destructive/50 text-destructive hover:bg-destructive-background mt-5 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50">{deletionBusy ? "Sending..." : "Send verification email"}</button></>}</ConfirmationDialog>}{showFinalDeleteDialog && <ConfirmationDialog title="Permanently delete account?" onClose={() => !deletionBusy && setShowFinalDeleteDialog(false)}><p className="text-font-secondary mt-3 text-sm leading-relaxed">Your email and password have been verified. This final action immediately deletes your account and cannot be undone.</p><button type="button" onClick={deleteAccount} disabled={deletionBusy} className="border-destructive/50 text-destructive hover:bg-destructive-background mt-5 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50">{deletionBusy ? "Deleting..." : "Delete account permanently"}</button></ConfirmationDialog>}</section>;
 }
 
 export default Settings;

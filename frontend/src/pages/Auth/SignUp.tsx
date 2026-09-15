@@ -9,7 +9,7 @@ import {
 } from "./components";
 import { FcGoogle } from "react-icons/fc";
 import { FaDiscord } from "react-icons/fa";
-import { FocusContent, Submit } from "../../components/UI";
+import { FocusContent, Submit, Turnstile } from "../../components/UI";
 import { supabase } from "../../utils/supabase";
 import { PasswordRequirements } from "../../components/UI";
 import { passwordIsValid } from "../../utils/password";
@@ -20,9 +20,15 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!captchaToken) {
+      setError("Complete the security check to continue.");
+      return;
+    }
     if (!passwordIsValid(password)) {
       setError("Choose a password that meets every requirement below.");
       return;
@@ -33,8 +39,10 @@ const Register = () => {
       password: password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        captchaToken,
       },
     });
+    setCaptchaToken(null); setCaptchaReset((value) => value + 1);
     if (error) {
       setError(error.message);
       setLoading(false);
@@ -44,21 +52,23 @@ const Register = () => {
     }
   };
   const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
+    if (error) setError(error.message);
   };
 
   const handleDiscordLogin = async () => {
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "discord",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
+    if (error) setError(error.message);
   };
   return (
     <FocusContent>
@@ -78,6 +88,7 @@ const Register = () => {
           onClick={handleDiscordLogin}
         />
         <Splitter />
+        <Turnstile key={captchaReset} onTokenChange={setCaptchaToken} />
         <EmailInput value={email} id="email" setter={setEmail} />
         <PasswordInput
           id="password"
@@ -88,7 +99,7 @@ const Register = () => {
         <div className="w-[80%] min-w-64"><PasswordRequirements password={password} /></div>
         <FormFooter>
           <Submit
-            disabled={loading}
+            disabled={loading || !captchaToken}
             label={loading ? "Loading..." : "Register"}
             className="w-[80%] min-w-64 font-sans text-xl"
           />
