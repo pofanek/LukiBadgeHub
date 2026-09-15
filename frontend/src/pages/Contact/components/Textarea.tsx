@@ -8,11 +8,12 @@ const Textarea = ({ message, setMessage, id }: TextareaProps) => {
   return (
     <textarea
       required
+      maxLength={1024}
       id={id}
       value={message}
       onChange={(e) => setMessage(e.target.value)}
       placeholder="Your message here..."
-      className="bg-surface text-font-primary focus:ring-brand-secondary max-w-full flex-1 rounded-lg p-2 transition-all duration-100 outline-none focus:ring-2"
+      className="bg-surface text-font-primary focus:ring-brand-secondary max-w-full flex-1 resize-none rounded-lg p-2 transition-all duration-100 outline-none focus:ring-2"
     />
   );
 };

@@ -1,33 +1,32 @@
-import { StrictMode } from "react";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./index.css";
-import {
-  About,
-  Contact,
-  Games,
-  GameDetail,
-  GamePlayers,
-  Rankings,
-  Settings,
-  Terms,
-  Profile,
-  Support,
-  Updates,
-  Search,
-  Login,
-  Register,
-  ErrorPage,
-  Notifications,
-  AuthCallback,
-  Homepage,
-  ForgotPassword,
-  ResetPassword,
-  Goodbye,
-  AdminGames,
-} from "./pages";
 import { MainLayout, EmptyLayout } from "./layouts/";
-// cms
+
+const About = lazy(() => import("./pages/About/About"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback/AuthCallback"));
+const Contact = lazy(() => import("./pages/Contact/Contact"));
+const ErrorPage = lazy(() => import("./pages/ErrorPage/ErrorPage"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword/ForgotPassword"));
+const GameDetail = lazy(() => import("./pages/GameDetail"));
+const GamePlayers = lazy(() => import("./pages/GamePlayers/GamePlayers"));
+const Games = lazy(() => import("./pages/Games/Games"));
+const Goodbye = lazy(() => import("./pages/Goodbye/Goodbye"));
+const Homepage = lazy(() => import("./pages/Homepage/Homepage"));
+const Login = lazy(() => import("./pages/Auth/Login"));
+const Notifications = lazy(() => import("./pages/Notifications/Notifications"));
+const Profile = lazy(() => import("./pages/Profile/Profile"));
+const Rankings = lazy(() => import("./pages/Rankings/Rankings"));
+const Register = lazy(() => import("./pages/Auth/SignUp"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword/ResetPassword"));
+const Search = lazy(() => import("./pages/Search/Search"));
+const Settings = lazy(() => import("./pages/Settings/Settings"));
+const Support = lazy(() => import("./pages/Billing/Billing"));
+const Terms = lazy(() => import("./pages/Terms/Terms"));
+const Updates = lazy(() => import("./pages/Updates/Updates"));
+const AdminGames = lazy(() => import("./pages/AdminGames/AdminGames"));
+
 const router = createBrowserRouter([
   {
     element: <MainLayout />,
@@ -64,12 +63,10 @@ const router = createBrowserRouter([
     ],
   },
 ]);
-// TODO kolor searchbara jest z pizdy i mnie wkurwia
-// TODO ContactContent na md szerszy troche
-// TODO dodać do navbara sign up i zmienić login na Log in
-// TODO shadcn.
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <Suspense fallback={<main className="text-font-secondary flex min-h-screen items-center justify-center">Loading page...</main>}>
+      <RouterProvider router={router} />
+    </Suspense>
   </StrictMode>,
 );

@@ -3,7 +3,6 @@ import { FiArrowLeft, FiAward } from "react-icons/fi";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { FocusContent, LoadingIndicator } from "../../components";
 import { userchomik } from "../../assets";
-import { getBadgeExperience, type BadgeDifficultyId, type BadgeTier } from "../../constants";
 import { useGame } from "../../hooks/useGames";
 import { supabase } from "../../utils/supabase";
 import { mediaUrl } from "../../utils/media";
@@ -34,61 +33,19 @@ export default function GamePlayers() {
       setError("");
       setPlayers([]);
     });
-    const loadFallbackLeaderboard = async () => {
-      const { data: badgeData, error: badgeError } = await supabase
-        .from("game_badges")
-        .select("id, difficulty, tier")
-        .eq("game_id", gameId);
-      if (badgeError || !badgeData?.length) return [];
-      const badgeById = new Map(
-        badgeData.map((badge) => [
-          badge.id,
-          {
-            difficulty: badge.difficulty as BadgeDifficultyId,
-            tier: badge.tier as BadgeTier,
-          },
-        ]),
-      );
-      const { data: claimData, error: claimError } = await supabase
-        .from("user_badges")
-        .select("user_id, badge_id")
-        .in("badge_id", [...badgeById.keys()]);
-      if (claimError) throw claimError;
-      const scores = new Map<string, { badges: number; experience: number }>();
-      (claimData || []).forEach((claim) => {
-        const badge = badgeById.get(claim.badge_id);
-        if (!badge) return;
-        const score = scores.get(claim.user_id) || { badges: 0, experience: 0 };
-        score.badges += 1;
-        score.experience += getBadgeExperience(badge.difficulty, badge.tier);
-        scores.set(claim.user_id, score);
+    const loadLeaderboard = async () => {
+      const { data, error } = await supabase.rpc("get_game_leaderboard", {
+        p_board: board,
+        p_game_id: gameId,
+        p_limit: 100,
       });
-      const profileIds = [...scores.keys()];
-      if (!profileIds.length) return [];
-      const { data: profileData, error: profileError } = await supabase
-        .from("user_profiles")
-        .select("id, username, avatar_path")
-        .in("id", profileIds);
-      if (profileError) throw profileError;
-      return (profileData || [])
-        .map((profile) => ({
-          profile_id: profile.id,
-          username: profile.username,
-          avatar_path: profile.avatar_path,
-          badges_collected: scores.get(profile.id)?.badges || 0,
-          earned_experience: scores.get(profile.id)?.experience || 0,
-          player_rank: 0,
-        }))
-        .sort((left, right) => board === "experience"
-          ? right.earned_experience - left.earned_experience || right.badges_collected - left.badges_collected || left.username.localeCompare(right.username)
-          : right.badges_collected - left.badges_collected || right.earned_experience - left.earned_experience || left.username.localeCompare(right.username))
-        .slice(0, 100)
-        .map((player, index) => ({ ...player, player_rank: index + 1 }));
+      if (error) throw error;
+      return (data || []) as GamePlayer[];
     };
     getCachedQuery(
       `game-players:${gameId}:${board}`,
       30_000,
-      loadFallbackLeaderboard,
+      loadLeaderboard,
     ).then((fallbackPlayers) => {
       if (!active) return;
       setPlayers(fallbackPlayers);

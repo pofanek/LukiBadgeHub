@@ -22,14 +22,6 @@ export {
   type BadgeTier,
 } from "./badges";
 
-// const exampleString = `name = ${values[0]} email = ${values[1]} selectedOption = ${values[2]}  message = ${values[3]}`;
-export const TOPIC_COLORS: Record<string, number> = {
-  Feedback: 3866481,
-  "Bug Report": 15548997,
-  "Feature Request": 5814783,
-  "Balance Suggestion": 16763904,
-  Other: 16777215,
-};
 export const SHORT_NAVBAR_PAGES = [
   "/login",
   "/Login",

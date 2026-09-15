@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { ContactLabel, ContactInput, Textarea, Dropdown } from "./components";
-import { TOPIC_COLORS } from "../../constants";
-import { sendFeedbackWebhook } from "../../utils/webhook";
 import type { ContactTopic } from "../../types/Contact";
-import { FocusContent, Submit } from "../../components/UI";
+import { FocusContent, Submit, Turnstile } from "../../components/UI";
+import { supabase } from "../../utils/supabase";
+import { getFunctionErrorMessage } from "../../utils/media";
 
 const COOLDOWN_TIME = 60000;
 
@@ -15,16 +15,18 @@ const Contact = () => {
   const [message, setMessage] = useState("");
 
   const [cooldown, setCooldown] = useState(0);
-
   const [isDropdownOpen, setisDropdownOpen] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState("");
   useEffect(() => {
-    //? lastSubmitTimestamp sie nie updatuje!!! zmienia sie jeden raz
     const saved = sessionStorage.getItem("lastSubmitTimestamp");
     if (!saved) return;
     const now = Date.now();
     const timeLeft = COOLDOWN_TIME - (now - Number(saved));
-    const remaining = Math.ceil(timeLeft / 1000);
-    setCooldown(remaining);
+    const remaining = Math.max(0, Math.ceil(timeLeft / 1000));
+    queueMicrotask(() => setCooldown(remaining));
   }, []);
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -34,44 +36,38 @@ const Contact = () => {
     return () => clearTimeout(timer);
   }, [cooldown]);
 
-  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!captchaToken) {
+      setFeedback("Complete the security check before sending your message.");
+      return;
+    }
 
-    const safeName = name || "Name not provided";
+    setFeedback("");
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.functions.invoke("feedback", {
+        body: { captchaToken, email, message, name, topic: selectedOption },
+      });
+      if (error) {
+        setFeedback(await getFunctionErrorMessage(error, "Your message could not be sent."));
+        return;
+      }
 
-    const WEBHOOK_EMBED = {
-      title: "CATEGORY: " + selectedOption.toUpperCase(),
-      color: TOPIC_COLORS[selectedOption],
-      timestamp: new Date().toISOString(),
-      description: "─────────────────────────────────────",
-      footer: {
-        icon_url: "https://i.ibb.co/TMvd0jHX/logo.jpg",
-        text: "© Luki Badge Hub",
-      },
-      thumbnail: {
-        url: "https://i.ibb.co/chFRcFPS/NOWAYINGpng.png",
-      },
-      author: {
-        name: safeName,
-        url: "https://discordapp.com",
-        icon_url: "https://i.ibb.co/GvrzrP4G/USERCHOMIK.webp",
-      },
-      fields: [
-        { name: "Name", value: safeName, inline: true },
-        { name: "E-mail", value: email, inline: true },
-        { name: "Message", value: message },
-      ],
-    };
-
-    sendFeedbackWebhook({ type: "embed", embed: WEBHOOK_EMBED });
-
-    setName("");
-    setEmail("");
-    setMessage("");
-    setSelectedOption("Feedback");
-    setCooldown(COOLDOWN_TIME / 1000);
-    const now = Date.now();
-    sessionStorage.setItem("lastSubmitTimestamp", now.toString());
+      setName("");
+      setEmail("");
+      setMessage("");
+      setSelectedOption("Feedback");
+      setCooldown(COOLDOWN_TIME / 1000);
+      sessionStorage.setItem("lastSubmitTimestamp", Date.now().toString());
+      setFeedback("Thanks — your message has been sent.");
+    } catch {
+      setFeedback("Your message could not be sent.");
+    } finally {
+      setIsSubmitting(false);
+      setCaptchaToken(null);
+      setCaptchaReset((value) => value + 1);
+    }
   };
 
   return (
@@ -121,11 +117,13 @@ const Contact = () => {
           <div className="mt-6 flex w-full flex-col gap-6 md:mt-0 md:ml-6 md:gap-3">
             <ContactLabel htmlFor="message" text="Message" />
             <Textarea id="message" message={message} setMessage={setMessage} />
+            <Turnstile key={captchaReset} onTokenChange={setCaptchaToken} />
             <Submit
-              label="Submit"
+              label={isSubmitting ? "Sending..." : "Submit"}
               cooldown={cooldown}
-              disabled={cooldown > 0}
+              disabled={cooldown > 0 || isSubmitting || !captchaToken}
             />
+            {feedback && <p role="status" className="text-font-secondary text-sm">{feedback}</p>}
           </div>
         </div>
       </form>

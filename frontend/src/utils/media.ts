@@ -24,7 +24,7 @@ type SignedUpload = {
   uploadUrl: string;
 };
 
-function functionError(error: unknown, fallback: string) {
+export function getFunctionErrorMessage(error: unknown, fallback: string) {
   if (error && typeof error === "object" && "context" in error) {
     const context = error.context;
     if (context instanceof Response) {
@@ -55,7 +55,7 @@ export async function uploadMedia({ target, file, gameId, badgeId }: UploadOptio
     },
   });
   if (error || !data?.path || !data?.uploadUrl) {
-    throw new Error(await functionError(error, "The image could not be uploaded."));
+    throw new Error(await getFunctionErrorMessage(error, "The image could not be uploaded."));
   }
 
   const signedUpload = data as SignedUpload;
@@ -78,5 +78,5 @@ export async function deleteMedia(path: string | null | undefined) {
   const { error } = await supabase.functions.invoke("media", {
     body: { action: "delete", path },
   });
-  if (error) throw new Error(await functionError(error, "The image could not be removed."));
+  if (error) throw new Error(await getFunctionErrorMessage(error, "The image could not be removed."));
 }

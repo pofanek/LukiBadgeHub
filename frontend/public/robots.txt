@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /auth/
+Disallow: /forgot-password
+Disallow: /goodbye
+Disallow: /login
+Disallow: /notifications
+Disallow: /reset-password
+Disallow: /search
+Disallow: /settings
+Disallow: /signup
+Disallow: /support
+
+Sitemap: https://www.lukibadgehub.com/sitemap.xml

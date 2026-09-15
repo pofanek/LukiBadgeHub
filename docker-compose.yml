@@ -1,6 +1,7 @@
 services:
     frontend:
         build: ./frontend
+        dockerfile: dockerfile
         ports:
             - "5173:5173"
         volumes:
