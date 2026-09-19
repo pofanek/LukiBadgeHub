@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../utils/supabase";
 import { PasswordRequirements } from "../../components/UI";
@@ -10,6 +10,7 @@ function ResetPassword() {
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const recoveryExchangeRef = useRef<Promise<boolean> | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,10 +27,33 @@ function ResetPassword() {
 
     const establishRecoverySession = async () => {
       if (code) {
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        recoveryExchangeRef.current ??= supabase.auth
+          .exchangeCodeForSession(code)
+          .then(({ error: exchangeError }) => !exchangeError);
+        const recoverySessionEstablished = await recoveryExchangeRef.current;
         if (!active) return;
 
-        if (exchangeError) {
+        if (!recoverySessionEstablished) {
+          setError("This password recovery link is invalid or has expired. Request a new one.");
+          return;
+        }
+
+        window.history.replaceState({}, document.title, url.pathname);
+        setReady(true);
+        return;
+      }
+
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+
+      if (recoveryLink && accessToken && refreshToken) {
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (!active) return;
+
+        if (setSessionError) {
           setError("This password recovery link is invalid or has expired. Request a new one.");
           return;
         }
