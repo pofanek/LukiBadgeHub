@@ -3,6 +3,7 @@ import { hollow, hollowthumb } from "../assets";
 import {
   BADGE_DIFFICULTIES,
   catalogueGames,
+  compareBadges,
   getBadgeDifficultyLabel,
   getBadgeExperience,
   type BadgeRow,
@@ -21,7 +22,7 @@ export const CATALOGUE_CACHE_PREFIX = "catalogue:";
 
 const PUBLIC_CATALOGUE_CACHE_TTL_MS = 60_000;
 
-export type GameSort = "name" | "release" | "experience" | "badges" | "created";
+export type GameSort = "name" | "release" | "experience" | "badges" | "created" | "created-oldest";
 
 type GamesPageOptions = {
   includeDrafts?: boolean;
@@ -111,7 +112,7 @@ async function fetchGamesUncached(includeDrafts: boolean) {
     ]);
   });
   return (data as GameRow[]).map((game) =>
-    toCatalogueGame(game, badgesByGame.get(game.id)),
+    toCatalogueGame(game, (badgesByGame.get(game.id) || []).sort(compareBadges)),
   );
 }
 
@@ -157,7 +158,7 @@ async function fetchGamesPageUncached({
     });
 
     const sortedGames = aggregateGames
-      .map((game) => toCatalogueGame(game, badgesByGame.get(game.id)))
+      .map((game) => toCatalogueGame(game, (badgesByGame.get(game.id) || []).sort(compareBadges)))
       .sort((left, right) => {
         const difference =
           sort === "experience"
@@ -189,7 +190,7 @@ async function fetchGamesPageUncached({
       .order("id", { ascending: true });
   } else {
     query = query
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: sort !== "created-oldest" })
       .order("id", { ascending: true });
   }
 
@@ -219,7 +220,7 @@ async function fetchGamesPageUncached({
 
   return {
     games: gameRows.map((game) =>
-      toCatalogueGame(game, badgesByGame.get(game.id)),
+      toCatalogueGame(game, (badgesByGame.get(game.id) || []).sort(compareBadges)),
     ),
     count: count || 0,
   };
@@ -303,7 +304,7 @@ export function useGame(gameId?: number) {
         if (queryError || badgeError || !data) {
           throw new Error("This game could not be found.");
         }
-        return toCatalogueGame(data as GameRow, (badgeData || []) as BadgeRow[]);
+        return toCatalogueGame(data as GameRow, ((badgeData || []) as BadgeRow[]).sort(compareBadges));
       },
       { cacheIf: (game) => Boolean(game.isPublished) },
     ).then(

@@ -4,6 +4,7 @@ import {
   FiAward,
   FiChevronDown,
   FiClock,
+  FiEdit3,
   FiHeart,
   FiMonitor,
   FiLayers,
@@ -48,8 +49,8 @@ const difficulties = [
     "bg-[#fdcb58]",
   ],
   ["Hard", "You have become good at the game.", "bg-[#f4900c]"],
-  ["Extreme", "Challenge to experienced players", "bg-[#dd2e44]"],
-  ["Supreme", "Requires extreme dedication .", "bg-[#aa8ed6]"],
+  ["Extreme", "Challenge to experienced players.", "bg-[#dd2e44]"],
+  ["Supreme", "Requires extreme dedication.", "bg-[#aa8ed6]"],
   [
     "Inhuman",
     "only the best of the best can play it, it's above skill.",
@@ -613,9 +614,14 @@ function Homepage() {
                 <p className="text-accent-cold text-sm font-medium">
                   Luki Badge Hub
                 </p>
-                <h1 className="text-font-primary mt-2 font-serif text-3xl sm:text-4xl">
-                  Welcome back, {username}.
-                </h1>
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <h1 className="text-font-primary font-serif text-3xl sm:text-4xl">
+                    Welcome back, {username}.
+                  </h1>
+                  {!profile?.hide_homepage_username_edit && <Link to="/settings?tab=profile" className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors">
+                    <FiEdit3 className="h-4 w-4" /> Edit username
+                  </Link>}
+                </div>
                 <p className="text-font-secondary mt-2 max-w-2xl leading-relaxed">
                   Keep building your library, take on new challenges, and make
                   every badge count.

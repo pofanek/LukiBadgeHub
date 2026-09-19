@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -9,16 +9,18 @@ import {
   FiChevronDown,
   FiExternalLink,
   FiGrid,
+  FiHeart,
   FiList,
   FiSearch,
   FiSend,
   FiX,
 } from "react-icons/fi";
-import { FaDiscord, FaSteam, FaStar, FaThumbtack, FaTrophy } from "react-icons/fa";
+import { FaDiscord, FaHeart, FaSteam, FaStar, FaThumbtack, FaTrophy } from "react-icons/fa";
 import { hollow, hollowthumb, userchomik } from "../../assets";
 import {
   BADGE_DIFFICULTIES,
   BADGE_DIFFICULTY_DETAILS,
+  BADGE_TIERS,
   DISCORD_URL,
   getBadgeDifficultyLabel,
   getBadgeExperience,
@@ -31,6 +33,7 @@ import { useAuthUser } from "../../hooks/useAuthUser";
 import { useGame } from "../../hooks/useGames";
 import { invalidateLeaderboardCache } from "../../hooks/useLeaderboard";
 import { usePinnedBadge } from "../../hooks/usePinnedBadge";
+import { useUserProfile } from "../../hooks/useUserProfile";
 import { supabase } from "../../utils/supabase";
 import { mediaUrl } from "../../utils/media";
 import { invalidateCachedQueries } from "../../utils/queryCache";
@@ -56,6 +59,7 @@ export type GameAchievement = {
   iconUrl?: string;
   locked?: boolean;
   developerNote?: string;
+  displayOrder?: number;
 };
 
 export type RecentPlayer = {
@@ -371,6 +375,9 @@ function FeedbackToast({
 
 export function GameDetailTemplate({ game }: TemplateProps) {
   const { user } = useAuthUser();
+  const { profile } = useUserProfile(user?.id);
+  const [commentCount, setCommentCount] = useState(0);
+  const [badgeCreators, setBadgeCreators] = useState<{ id: string; username: string; avatar_path: string | null }[]>([]);
   const { pinnedBadgeId, setPinnedBadge, isSaving: isPinSaving } =
     usePinnedBadge(user?.id);
   const navigate = useNavigate();
@@ -408,6 +415,22 @@ export function GameDetailTemplate({ game }: TemplateProps) {
       );
     });
   }, [searchParams]);
+  useEffect(() => {
+    let active = true;
+    supabase.from("game_badge_creators").select("profile_id").eq("game_id", game.id).then(async ({ data, error }) => {
+      if (!active || error || !data?.length) { if (active) setBadgeCreators([]); return; }
+      const { data: profiles } = await supabase.from("user_profiles").select("id, username, avatar_path").in("id", data.map((creator) => creator.profile_id));
+      if (active) setBadgeCreators((profiles || []) as { id: string; username: string; avatar_path: string | null }[]);
+    });
+    return () => { active = false; };
+  }, [game.id]);
+  useEffect(() => {
+    let active = true;
+    supabase.from("game_comments").select("id", { count: "exact", head: true }).eq("game_id", game.id).then(({ count }) => {
+      if (active) setCommentCount(count || 0);
+    });
+    return () => { active = false; };
+  }, [game.id]);
   useEffect(() => {
     if (!claimNotice && !claimError) return;
     const timer = window.setTimeout(() => {
@@ -552,12 +575,6 @@ export function GameDetailTemplate({ game }: TemplateProps) {
   );
   const visibleAchievements = useMemo(
     () => {
-      const difficultyOrder = new Map(
-        progressGame.difficulties.map((difficulty, index) => [
-          difficulty.id,
-          index,
-        ]),
-      );
       return progressGame.achievements
         .filter((achievement) => {
           const matchesQuery =
@@ -575,15 +592,14 @@ export function GameDetailTemplate({ game }: TemplateProps) {
         })
         .sort((left, right) =>
           sort === "difficulty"
-            ? difficultyOrder.get(left.difficultyId)! -
-                difficultyOrder.get(right.difficultyId)! ||
-              left.name.localeCompare(right.name)
+            ? BADGE_DIFFICULTIES.indexOf(left.difficultyId) - BADGE_DIFFICULTIES.indexOf(right.difficultyId) ||
+              BADGE_TIERS.indexOf(left.tier || "low") - BADGE_TIERS.indexOf(right.tier || "low") ||
+              (left.displayOrder || 0) - (right.displayOrder || 0)
             : left.name.localeCompare(right.name),
         );
     },
     [
       progressGame.achievements,
-      progressGame.difficulties,
       query,
       selectedDifficulties,
       status,
@@ -787,11 +803,11 @@ export function GameDetailTemplate({ game }: TemplateProps) {
                 active={activeTab === "comments"}
                 onClick={() => setActiveTab("comments")}
               >
-                Comments (0)
+                Comments ({commentCount})
               </Tab>
             </div>
             {activeTab === "comments" ? (
-              <Comments canComment={Boolean(user)} />
+              <Comments gameId={game.id} userId={user?.id} role={profile?.role} onCountChange={setCommentCount} />
             ) : (
               <div className="mt-4 grid gap-4 lg:grid-cols-[12rem_minmax(0,1fr)]">
                 <Filters
@@ -875,7 +891,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
             )}
           </div>
           <aside className="space-y-3 xl:sticky xl:top-20 xl:h-fit">
-            <GameInfo game={progressGame} />
+            <GameInfo game={progressGame} badgeCreators={badgeCreators} />
             <Progress current={progressExp} total={totalExp} />
             <BadgeProgress current={obtained} total={achievementTotal} />
             {progressGame.recentPlayers.length > 0 && (
@@ -1076,37 +1092,49 @@ function Tab({
     </button>
   );
 }
-function Comments({ canComment }: { canComment: boolean }) {
-  return (
-    <section className="border-border bg-surface/75 mt-4 rounded-xl border p-4 sm:p-5">
-      <h2 className="text-font-primary font-serif text-xl">Comments</h2>
-      {canComment ? (
-        <div className="mt-4">
-          <label className="sr-only" htmlFor="game-comment">
-            Add a comment
-          </label>
-          <textarea
-            id="game-comment"
-            rows={4}
-            maxLength={500}
-            placeholder="Share your thoughts about this game..."
-            className="border-border bg-surface-soft text-font-primary placeholder:text-font-muted focus:border-accent-cold w-full resize-none rounded-lg border px-3 py-2.5 text-sm outline-none"
-          />
-          <div className="mt-3 flex justify-end">
-            <button
-              type="button"
-              className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium"
-            >
-              <FiSend />
-              Send comment
-            </button>
-          </div>
-        </div>
-      ) : (
-        <p className="text-font-muted mt-3 text-sm">Coming Soon.</p>
-      )}
-    </section>
-  );
+type GameComment = { id: number; author_id: string; body: string; is_pinned: boolean; created_at: string };
+function Comments({ gameId, userId, role, onCountChange }: { gameId: number; userId?: string; role?: string; onCountChange: (count: number) => void }) {
+  const [comments, setComments] = useState<GameComment[]>([]);
+  const [profiles, setProfiles] = useState<Record<string, { username: string; avatar_path: string | null }>>({});
+  const [likes, setLikes] = useState<{ comment_id: number; profile_id: string }[]>([]);
+  const [body, setBody] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const canComment = role === "Supporter" || role === "Moderator" || role === "Admin" || role === "Owner";
+  const canPin = role === "Owner";
+  const loadComments = useCallback(async () => {
+    const { data, error } = await supabase.from("game_comments").select("id, author_id, body, is_pinned, created_at").eq("game_id", gameId);
+    if (error) return;
+    const next = (data || []) as GameComment[];
+    setComments(next);
+    onCountChange(next.length);
+    const authorIds = [...new Set(next.map((comment) => comment.author_id))];
+    const commentIds = next.map((comment) => comment.id);
+    const [profileResult, likesResult] = await Promise.all([authorIds.length ? supabase.from("user_profiles").select("id, username, avatar_path").in("id", authorIds) : Promise.resolve({ data: [] as { id: string; username: string; avatar_path: string | null }[] }), commentIds.length ? supabase.from("game_comment_likes").select("comment_id, profile_id").in("comment_id", commentIds) : Promise.resolve({ data: [] as { comment_id: number; profile_id: string }[] })]);
+    setProfiles(Object.fromEntries((profileResult.data || []).map((profile) => [profile.id, { username: profile.username, avatar_path: profile.avatar_path }])));
+    setLikes((likesResult.data || []) as { comment_id: number; profile_id: string }[]);
+  }, [gameId, onCountChange]);
+  useEffect(() => { queueMicrotask(() => { void loadComments(); }); }, [loadComments]);
+  const sendComment = async () => {
+    if (!userId || !body.trim()) return;
+    setIsSaving(true);
+    const { error } = await supabase.from("game_comments").insert({ game_id: gameId, author_id: userId, body: body.trim() });
+    setIsSaving(false);
+    if (!error) { setBody(""); void loadComments(); }
+  };
+  const toggleLike = async (commentId: number) => {
+    if (!userId) return;
+    const liked = likes.some((like) => like.comment_id === commentId && like.profile_id === userId);
+    const { error } = liked ? await supabase.from("game_comment_likes").delete().eq("comment_id", commentId).eq("profile_id", userId) : await supabase.from("game_comment_likes").insert({ comment_id: commentId, profile_id: userId });
+    if (!error) void loadComments();
+  };
+  const pinComment = async (comment: GameComment) => {
+    if (!canPin) return;
+    if (!comment.is_pinned) await supabase.from("game_comments").update({ is_pinned: false }).eq("game_id", gameId).eq("is_pinned", true);
+    const { error } = await supabase.from("game_comments").update({ is_pinned: !comment.is_pinned }).eq("id", comment.id);
+    if (!error) void loadComments();
+  };
+  const displayed = [...comments].sort((left, right) => Number(right.is_pinned) - Number(left.is_pinned) || likes.filter((like) => like.comment_id === right.id).length - likes.filter((like) => like.comment_id === left.id).length || right.created_at.localeCompare(left.created_at));
+  return <section className="border-border bg-surface/75 mt-4 rounded-xl border p-4 sm:p-5"><h2 className="text-font-primary font-serif text-xl">Comments</h2>{canComment ? <div className="mt-4"><label className="sr-only" htmlFor="game-comment">Add a comment</label><textarea id="game-comment" rows={4} maxLength={2000} value={body} onChange={(event) => setBody(event.target.value)} placeholder="Share your thoughts about this game..." className="border-border bg-surface-soft text-font-primary placeholder:text-font-muted focus:border-accent-cold w-full resize-none rounded-lg border px-3 py-2.5 text-sm outline-none" /><div className="mt-3 flex items-center justify-between gap-3"><span className="text-font-muted text-xs">{body.length}/2000</span><button type="button" onClick={() => void sendComment()} disabled={!body.trim() || isSaving} className="border-border bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50"><FiSend />{isSaving ? "Sending..." : "Send comment"}</button></div></div> : <p className="text-font-muted mt-3 text-sm">Comments are available for <Link to="/support" className="text-accent-cold hover:text-hover underline">Supporters</Link>, Moderators, and Admins only.</p>}{displayed.length ? <ol className="divide-border mt-5 divide-y">{displayed.map((comment) => { const count = likes.filter((like) => like.comment_id === comment.id).length; const liked = Boolean(userId && likes.some((like) => like.comment_id === comment.id && like.profile_id === userId)); const author = profiles[comment.author_id]; const profilePath = author ? `/profile/${encodeURIComponent(author.username)}` : "#"; return <li key={comment.id} className="py-4 first:pt-0 last:pb-0"><div className="flex items-start justify-between gap-3"><Link to={profilePath} className="text-font-primary hover:text-hover flex items-center gap-2 text-sm font-medium"><img src={mediaUrl(author?.avatar_path) || userchomik} alt="" className="bg-surface-raised h-7 w-7 rounded-full object-cover" />{author?.username || "Unknown player"}</Link>{comment.is_pinned && <span className="text-accent-cold mr-auto text-xs">Pinned</span>}{canPin && <button type="button" onClick={() => void pinComment(comment)} className="text-font-muted hover:text-font-primary text-xs">{comment.is_pinned ? "Unpin" : "Pin"}</button>}</div><p className="text-font-secondary mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed"><LinkifiedText value={comment.body} /></p><div className="mt-3"><button type="button" onClick={() => void toggleLike(comment.id)} disabled={!userId} className={`inline-flex items-center gap-1.5 text-xs disabled:opacity-50 ${liked ? "text-accent-cold" : "text-font-muted hover:text-font-primary"}`}>{liked ? <FaHeart className="fill-current" /> : <FiHeart />}{count} {count === 1 ? "like" : "likes"}</button></div></li>; })}</ol> : <p className="text-font-muted mt-5 text-sm">No comments yet.</p>}</section>;
 }
 function Filters({
   game,
@@ -1507,9 +1535,9 @@ function AchievementCard({
           </div>
           <p
             title={achievement.description}
-            className={`text-font-muted mt-1 text-xs leading-relaxed ${list ? "truncate" : "line-clamp-2 h-10"}`}
+            className={`text-font-muted mt-1 whitespace-pre-wrap text-xs leading-relaxed ${list ? "truncate" : "line-clamp-2 h-10"}`}
           >
-            {achievement.description}
+            <LinkifiedText value={achievement.description} />
           </p>
         </div>
       </div>
@@ -1517,7 +1545,7 @@ function AchievementCard({
         className={
           list
             ? "relative top-0.5 ml-auto shrink-0 max-sm:ml-0"
-            : "mt-auto mb-3"
+            : "mt-auto py-1"
         }
       >
         {canSelfClaim ? (
@@ -1584,7 +1612,7 @@ function AchievementCard({
                 </button>
               </div>
               <p className="text-font-secondary mt-4 break-words text-base leading-relaxed">
-                {achievement.developerNote}
+                <LinkifiedText value={achievement.developerNote} />
               </p>
             </div>
           </div>,
@@ -1680,8 +1708,8 @@ function AchievementDetailsModal({
             <FiX className="h-5 w-5" />
           </button>
         </div>
-        <p className="text-font-secondary mt-5 text-base leading-relaxed break-words">
-          {achievement.description}
+        <p className="text-font-secondary mt-5 whitespace-pre-wrap text-base leading-relaxed break-words">
+          <LinkifiedText value={achievement.description} />
         </p>
         {claimed && (
           <button
@@ -1735,22 +1763,17 @@ function AchievementDetailsModal({
             </span>
           </div>
         </div>
-        {achievement.developerNote && (
-          <div className="border-border mt-5 border-t pt-4">
-            <p className="text-font-primary text-sm font-medium">
-              Additional note
-            </p>
-            <p className="text-font-secondary mt-1 text-sm leading-relaxed break-words">
-              {achievement.developerNote}
-            </p>
-          </div>
-        )}
+        {achievement.developerNote && <details className="border-border mt-5 border-t pt-4"><summary className="text-font-primary cursor-pointer text-sm font-bold">Additional note</summary><p className="text-font-secondary mt-3 whitespace-pre-wrap text-sm leading-relaxed break-words"><LinkifiedText value={achievement.developerNote} /></p></details>}
       </div>
     </div>,
     document.body,
   );
 }
-function GameInfo({ game }: { game: GameDetailData }) {
+function LinkifiedText({ value }: { value: string }) {
+  return <>{value.split(/(https?:\/\/[^\s]+)/g).map((part, index) => /^https?:\/\//.test(part) ? <a key={index} href={part} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()} className="text-accent-cold hover:text-hover underline break-all">{part}</a> : part)}</>;
+}
+
+function GameInfo({ game, badgeCreators }: { game: GameDetailData; badgeCreators: { id: string; username: string; avatar_path: string | null }[] }) {
   return (
     <section className="border-border bg-surface/75 rounded-xl border p-3">
       <h2 className="text-font-primary font-serif text-lg">Game info</h2>
@@ -1775,6 +1798,7 @@ function GameInfo({ game }: { game: GameDetailData }) {
           </a>
         </div>
       )}
+      {badgeCreators.length > 0 && <div className="border-border mt-4 border-t pt-3"><p className="text-font-muted text-xs">Badge creators</p><div className="mt-3 space-y-3">{badgeCreators.map((creator) => <Link key={creator.id} to={`/profile/${encodeURIComponent(creator.username)}`} className="hover:bg-surface-raised focus-visible:ring-accent-cold grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-3 rounded-md p-1.5 -m-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"><img src={mediaUrl(creator.avatar_path) || userchomik} alt="" className="bg-surface-raised h-10 w-10 rounded-full object-cover" /><p className="text-font-primary truncate text-sm font-medium">{creator.username}</p></Link>)}</div></div>}
     </section>
   );
 }
@@ -1900,6 +1924,7 @@ function toGameDetailData(game: CatalogueGame): GameDetailData {
       exp: getBadgeExperience(badge.difficulty, badge.tier),
       iconUrl: mediaUrl(badge.icon_path) || BADGE_DIFFICULTY_DETAILS[badge.difficulty].icon,
       developerNote: badge.additional_note || undefined,
+      displayOrder: badge.display_order,
     })),
     difficulties: demoGame.difficulties.map((difficulty) => ({
       ...difficulty,

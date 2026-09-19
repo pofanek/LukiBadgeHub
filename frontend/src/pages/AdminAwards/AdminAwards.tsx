@@ -182,6 +182,16 @@ export default function AdminAwards({ embedded = false }: { embedded?: boolean }
     setNotice(`${selectedBadge.name} awarded to ${selectedUser.username}.`);
   };
 
+  const removeBadge = async () => {
+    if (!selectedUser || !selectedGame || !selectedBadge) return;
+    setError(""); setNotice(""); setIsAwarding(true);
+    const { error: removeError } = await supabase.from("user_badges").delete().eq("user_id", selectedUser.id).eq("badge_id", selectedBadge.id);
+    setIsAwarding(false);
+    if (removeError) return setError("The badge could not be removed. Please try again.");
+    invalidateLeaderboardCache(); invalidateCachedQueries(`game-players:${selectedGame.id}:`);
+    setNotice(`${selectedBadge.name} removed from ${selectedUser.username}.`);
+  };
+
   return (
     <section className={embedded ? "mt-12" : "min-h-[calc(100vh-4rem)] w-full flex-1 py-8 sm:py-10"}>
       <div className={embedded ? "" : "mx-auto w-full max-w-5xl px-3 sm:px-7 lg:px-10"}>
@@ -192,15 +202,16 @@ export default function AdminAwards({ embedded = false }: { embedded?: boolean }
             <p className="text-font-secondary mt-2 max-w-2xl">Award an existing Extreme, Supreme, or Inhuman badge from a selected game.</p>
           </header>
         </div>
-        <div className="mt-5 grid items-start gap-4 lg:grid-cols-3">
-          <section className="border-border bg-surface/75 rounded-xl border p-5">
+        <h2 className="text-font-primary mt-6 font-serif text-2xl">Awarding badges</h2>
+        <div className="mt-4 grid items-stretch gap-4 lg:grid-cols-3">
+          <section className="border-border bg-surface/75 min-h-64 rounded-xl border p-5">
             <h2 className="text-font-primary font-serif text-2xl">1. Select player</h2>
             <label className="relative mt-4 block"><span className="sr-only">Search users</span><FiSearch className="text-font-muted pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" /><input value={userQuery} onChange={(event) => { setUserQuery(event.target.value); setSelectedUser(null); setUserResults([]); }} placeholder="Search by username" className={`${inputClass} pl-9`} /></label>
             {userQuery.trim().length > 0 && userQuery.trim().length < 2 && <p className="text-font-muted mt-2 text-xs">Enter at least 2 characters.</p>}
             {userQuery.trim().length >= 2 && !selectedUser && userResults.length > 0 && <div className="border-border bg-surface mt-2 overflow-hidden rounded-lg border p-1.5">{userResults.map((result) => <button key={result.id} type="button" onClick={() => { setSelectedUser(result); setUserQuery(result.username); setUserResults([]); }} className="text-font-secondary hover:bg-surface-soft hover:text-font-primary flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-sm"><span>{result.username}</span><span className="text-font-muted text-xs">{result.role}</span></button>)}</div>}
             {selectedUser && <p className="text-font-primary mt-4 rounded-lg bg-brand-tertiary/50 px-3 py-2 text-sm"><FiCheck className="text-accent-cold mr-2 inline" />{selectedUser.username} selected</p>}
           </section>
-          <section className="border-border bg-surface/75 rounded-xl border p-5">
+          <section className="border-border bg-surface/75 min-h-64 rounded-xl border p-5">
             <h2 className="text-font-primary font-serif text-2xl">2. Select game</h2>
             <div className="relative mt-4" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setIsGameSearchOpen(false); }}>
               <label className="relative block"><span className="sr-only">Search games</span><FiSearch className="text-font-muted pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" /><input value={gameQuery} onFocus={() => setIsGameSearchOpen(true)} onChange={(event) => { setGameQuery(event.target.value); if (selectedGame) { setSelectedGame(null); setBadges([]); setSelectedBadgeId(null); } }} placeholder="Search games" className={`${inputClass} pl-9`} /></label>
@@ -208,12 +219,13 @@ export default function AdminAwards({ embedded = false }: { embedded?: boolean }
             </div>
             {isLoadingGames ? <p className="text-font-muted mt-3 text-sm">Loading games...</p> : selectedGame && <p className="text-font-primary mt-4 rounded-lg bg-brand-tertiary/50 px-3 py-2 text-sm"><FiCheck className="text-accent-cold mr-2 inline" />{selectedGame.name} selected</p>}
           </section>
-        <section className="border-border bg-surface/75 rounded-xl border p-5">
+        <section className="border-border bg-surface/75 min-h-64 rounded-xl border p-5">
           <h2 className="text-font-primary font-serif text-2xl">3. Select badge</h2>
           {!selectedGame ? <p className="text-font-muted mt-3 text-sm">Select a game to see its special badges.</p> : isLoadingBadges ? <p className="text-font-muted mt-3 text-sm">Loading badges...</p> : awardableBadges.length === 0 ? <p className="text-font-muted mt-3 text-sm">This game has no Extreme, Supreme, or Inhuman badges.</p> : <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{awardableBadges.map((badge) => <button key={badge.id} type="button" onClick={() => setSelectedBadgeId(badge.id)} className={`border-border bg-surface-soft hover:border-accent-cold flex items-center gap-3 rounded-lg border p-3 text-left ${selectedBadgeId === badge.id ? "border-accent-cold ring-accent-cold/30 ring-2" : ""}`}><img src={badgeIconUrl(badge)} alt="" className="bg-surface-raised h-11 w-11 rounded-full object-cover" /><span><span className="text-font-primary block text-sm font-medium">{badge.name}</span><span className="text-font-muted mt-1 block text-xs">{getBadgeTierLabel(badge.tier)} {getBadgeDifficultyLabel(badge.difficulty)}</span></span></button>)}</div>}
           <button type="button" onClick={awardBadge} disabled={!selectedUser || !selectedGame || !selectedBadge || isAwarding} className="bg-brand-secondary text-font-primary hover:bg-brand-primary mt-5 inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"><FiAward />{isAwarding ? "Awarding..." : "Award badge"}</button>
         </section>
         </div>
+        <section className="border-border bg-surface/75 mt-6 rounded-xl border p-5"><h2 className="text-font-primary font-serif text-2xl">Removing badges</h2><p className="text-font-secondary mt-1 text-sm">Use the same selected player, game, and badge above to remove an incorrectly awarded special badge.</p><button type="button" onClick={removeBadge} disabled={!selectedUser || !selectedGame || !selectedBadge || isAwarding} className="border-border text-font-primary hover:bg-effect-glass mt-4 inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"><FiX />{isAwarding ? "Removing..." : "Remove selected badge"}</button></section>
       </div>
       {(notice || error) && <FeedbackToast message={error || notice} error={Boolean(error)} onDismiss={() => { setNotice(""); setError(""); }} />}
     </section>

@@ -15,6 +15,7 @@ import {
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   BADGE_DIFFICULTIES,
+  compareBadges,
   BADGE_DIFFICULTY_DETAILS,
   BADGE_TIERS,
   getBadgeDifficultyLabel,
@@ -242,6 +243,10 @@ function AdminGames() {
   const [isFeaturedGamesLoading, setIsFeaturedGamesLoading] = useState(true);
   const [savingFeaturedSlot, setSavingFeaturedSlot] = useState<number | null>(null);
   const [badgeSearchTerm, setBadgeSearchTerm] = useState("");
+  const [draggedBadgeId, setDraggedBadgeId] = useState<number | null>(null);
+  const [creatorQuery, setCreatorQuery] = useState("");
+  const [creatorMatches, setCreatorMatches] = useState<{ id: string; username: string }[]>([]);
+  const [selectedCreators, setSelectedCreators] = useState<{ id: string; username: string }[]>([]);
   const [form, setForm] = useState<GameForm>(emptyForm);
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -311,11 +316,7 @@ function AdminGames() {
             .includes(query),
         );
 
-    return [...matchingBadges].sort(
-      (left, right) =>
-        BADGE_DIFFICULTIES.indexOf(left.difficulty) -
-        BADGE_DIFFICULTIES.indexOf(right.difficulty),
-    );
+    return [...matchingBadges].sort(compareBadges);
   }, [badges, badgeSearchTerm]);
 
   const dismissFeedback = () => {
@@ -508,6 +509,26 @@ function AdminGames() {
   }, [selectedGame]);
 
   useEffect(() => {
+    if (!isLeaderboardOwner || !selectedGame) return;
+    let active = true;
+    supabase.from("game_badge_creators").select("profile_id").eq("game_id", selectedGame.id).then(async ({ data }) => {
+      const ids = (data || []).map((creator) => creator.profile_id);
+      if (!ids.length) { if (active) setSelectedCreators([]); return; }
+      const { data: profiles } = await supabase.from("user_profiles").select("id, username").in("id", ids).order("username");
+      if (active) setSelectedCreators((profiles || []) as { id: string; username: string }[]);
+    });
+    return () => { active = false; };
+  }, [isLeaderboardOwner, selectedGame]);
+
+  useEffect(() => {
+    const query = creatorQuery.trim().replace(/[%_]/g, "");
+    if (!isLeaderboardOwner || query.length < 2) { setCreatorMatches([]); return; }
+    let active = true;
+    const timer = window.setTimeout(() => { supabase.from("user_profiles").select("id, username").ilike("username", `%${query}%`).order("username").limit(8).then(({ data }) => { if (active) setCreatorMatches((data || []) as { id: string; username: string }[]); }); }, 250);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [creatorQuery, isLeaderboardOwner]);
+
+  useEffect(() => {
     queueMicrotask(() => {
       if (selectedBadge) setBadgeForm(badgeDrafts[selectedBadge.id] || formFromBadge(selectedBadge));
       else setBadgeForm(emptyBadgeForm);
@@ -520,6 +541,34 @@ function AdminGames() {
     if (selectedBadgeId) {
       setBadgeDrafts((drafts) => ({ ...drafts, [selectedBadgeId]: next }));
     }
+  };
+
+  const reorderBadge = (targetBadgeId: number) => {
+    if (!draggedBadgeId || draggedBadgeId === targetBadgeId) return;
+    const source = badges.find((badge) => badge.id === draggedBadgeId);
+    const target = badges.find((badge) => badge.id === targetBadgeId);
+    if (!source || !target || source.difficulty !== target.difficulty || source.tier !== target.tier) return;
+    const group = badges.filter((badge) => badge.difficulty === source.difficulty && badge.tier === source.tier).sort(compareBadges);
+    const sourceIndex = group.findIndex((badge) => badge.id === source.id);
+    const targetIndex = group.findIndex((badge) => badge.id === target.id);
+    group.splice(sourceIndex, 1);
+    group.splice(targetIndex, 0, source);
+    const orderById = new Map(group.map((badge, index) => [badge.id, index]));
+    setBadges((current) => current.map((badge) => orderById.has(badge.id) ? { ...badge, display_order: orderById.get(badge.id)! } : badge));
+  };
+
+  const addCreator = async (creator: { id: string; username: string }) => {
+    if (!selectedGame || selectedCreators.some((item) => item.id === creator.id)) return;
+    const { error } = await supabase.from("game_badge_creators").insert({ game_id: selectedGame.id, profile_id: creator.id });
+    if (error) return setError("Badge creator could not be added.");
+    setSelectedCreators((current) => [...current, creator]);
+    setCreatorQuery(""); setCreatorMatches([]);
+  };
+  const removeCreator = async (creatorId: string) => {
+    if (!selectedGame) return;
+    const { error } = await supabase.from("game_badge_creators").delete().eq("game_id", selectedGame.id).eq("profile_id", creatorId);
+    if (error) return setError("Badge creator could not be removed.");
+    setSelectedCreators((current) => current.filter((creator) => creator.id !== creatorId));
   };
 
   const createGame = async () => {
@@ -760,6 +809,7 @@ function AdminGames() {
             additional_note: draft.additionalNote.trim() || null,
             difficulty: draft.difficulty,
             tier: draft.tier,
+            display_order: badge.display_order,
             icon_path: draft.difficulty === "inhuman" ? badge.icon_path : null,
           })
           .eq("id", badge.id)
@@ -1188,6 +1238,7 @@ function AdminGames() {
                   className={`${inputClass} resize-none`}
                 />
               </Field>
+              {isLeaderboardOwner && <section className="border-border border-t pt-7"><h2 className="text-font-primary font-serif text-2xl">Badge creators</h2><p className="text-font-muted mt-1 text-sm">Select every community member who created badges for this game.</p><label className="relative mt-4 block"><span className="sr-only">Find a badge creator</span><FiSearch className="text-font-muted pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" /><input value={creatorQuery} onChange={(event) => setCreatorQuery(event.target.value)} placeholder="Search usernames" className={`${inputClass} pl-9`} /></label>{creatorMatches.length > 0 && <div className="border-border bg-surface mt-2 rounded-lg border p-1.5">{creatorMatches.map((creator) => <button key={creator.id} type="button" onClick={() => void addCreator(creator)} disabled={selectedCreators.some((item) => item.id === creator.id)} className="text-font-secondary hover:bg-surface-soft hover:text-font-primary flex w-full rounded-md px-2.5 py-2 text-left text-sm disabled:opacity-50">{creator.username}</button>)}</div>}<div className="mt-3 flex flex-wrap gap-2">{selectedCreators.length ? selectedCreators.map((creator) => <span key={creator.id} className="border-border bg-surface-soft text-font-primary inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm">{creator.username}<button type="button" onClick={() => void removeCreator(creator.id)} className="text-font-muted hover:text-font-primary" aria-label={`Remove ${creator.username}`}><FiX /></button></span>) : <p className="text-font-muted text-sm">No badge creators selected.</p>}</div></section>}
               <section className="border-border mt-4 border-t pt-8">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -1236,10 +1287,26 @@ function AdminGames() {
                             <button
                               key={displayedBadge.id}
                               type="button"
+                              draggable={!badgeSearchTerm}
+                              onDragStart={(event) => {
+                                setDraggedBadgeId(displayedBadge.id);
+                                event.dataTransfer.effectAllowed = "move";
+                              }}
+                              onDragEnd={() => setDraggedBadgeId(null)}
+                              onDragOver={(event) => {
+                                const source = badges.find((item) => item.id === draggedBadgeId);
+                                if (source?.difficulty === displayedBadge.difficulty && source.tier === displayedBadge.tier) event.preventDefault();
+                              }}
+                              onDrop={(event) => {
+                                event.preventDefault();
+                                reorderBadge(displayedBadge.id);
+                                setDraggedBadgeId(null);
+                              }}
                               onClick={() =>
                                 setSelectedBadgeId(displayedBadge.id)
                               }
-                              className={`border-border bg-surface-soft hover:border-accent-cold flex min-w-0 items-center gap-3 rounded-lg border p-3 text-left ${selectedBadgeId === displayedBadge.id ? "border-accent-cold ring-accent-cold/30 ring-2" : ""}`}
+                              title={badgeSearchTerm ? "Clear search to reorder badges." : "Drag to reorder badges within this difficulty and tier."}
+                              className={`border-border bg-surface-soft hover:border-accent-cold flex min-w-0 items-center gap-3 rounded-lg border p-3 text-left ${selectedBadgeId === displayedBadge.id ? "border-accent-cold ring-accent-cold/30 ring-2" : ""} ${draggedBadgeId === displayedBadge.id ? "opacity-50" : ""}`}
                             >
                               <img
                                 src={badgeIconUrl(displayedBadge) || undefined}

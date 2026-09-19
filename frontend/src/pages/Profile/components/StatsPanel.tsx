@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiAward, FiBookOpen, FiChevronDown, FiTrendingUp, FiX } from "react-icons/fi";
+import { Link } from "react-router-dom";
 import { LoadingIndicator } from "../../../components";
+import { PinnedBadgeDialog } from "./ProfileHeader";
 import {
   BADGE_DIFFICULTIES,
+  BADGE_TIERS,
   BADGE_DIFFICULTY_DETAILS,
   getBadgeExperience,
   getBadgeTierLabel,
@@ -23,12 +26,22 @@ type StatsData = {
   bestRank: { best_rank: number; achieved_at: string } | null;
 };
 
-function StatsPanel({ profileId }: { profileId: string }) {
+function StatsPanel({
+  profileId,
+  profileName,
+}: {
+  profileId: string;
+  profileName: string;
+}) {
   const { games, isLoading: isGamesLoading } = useGames();
   const [data, setData] = useState<StatsData | null>(null);
   const [error, setError] = useState("");
   const [selectedDifficulty, setSelectedDifficulty] = useState<BadgeDifficultyId | null>(null);
   const [expandedBadgeId, setExpandedBadgeId] = useState<number | null>(null);
+  const [selectedHardestBadge, setSelectedHardestBadge] = useState<{
+    badge: BadgeRow;
+    game: CatalogueGame;
+  } | null>(null);
 
   useEffect(() => {
     let isCurrent = true;
@@ -110,6 +123,11 @@ function StatsPanel({ profileId }: { profileId: string }) {
         total + getBadgeExperience(badge.difficulty, badge.tier),
       0,
     );
+    const gameProgress = claimedGames.map((game) => {
+      const earned = game.badges.filter((badge) => claimedBadgeIds.has(badge.id));
+      const experience = earned.reduce((total, badge) => total + getBadgeExperience(badge.difficulty, badge.tier), 0);
+      return { game, earned: earned.length, total: game.badges.length, experience };
+    });
     return {
       earnedBadges,
       earnedBadgeDetails,
@@ -121,6 +139,9 @@ function StatsPanel({ profileId }: { profileId: string }) {
         ).length;
         return { id, earned };
       }),
+      hardestBadges: [...earnedBadgeDetails].sort(({ badge: left }, { badge: right }) => BADGE_DIFFICULTIES.indexOf(right.difficulty) - BADGE_DIFFICULTIES.indexOf(left.difficulty) || BADGE_TIERS.indexOf(right.tier) - BADGE_TIERS.indexOf(left.tier)).slice(0, 5),
+      topExperienceGames: [...gameProgress].sort((left, right) => right.experience - left.experience || left.game.title.localeCompare(right.game.title)).slice(0, 3),
+      topCompletionGames: [...gameProgress].filter(({ total }) => total > 0).sort((left, right) => right.earned / right.total - left.earned / left.total || right.earned - left.earned || left.game.title.localeCompare(right.game.title)).slice(0, 3),
     };
   }, [data, games]);
 
@@ -189,6 +210,52 @@ function StatsPanel({ profileId }: { profileId: string }) {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <section className="border-border bg-surface/75 rounded-xl border p-5 sm:p-6">
+        <div>
+          <h2 className="text-font-primary font-serif text-2xl">
+            Hardest badges earned
+          </h2>
+          <p className="text-font-muted mt-1 text-sm">
+            The five highest-difficulty badges on this profile.
+          </p>
+        </div>
+        {stats.hardestBadges.length ? (
+          <ol className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {stats.hardestBadges.map(({ badge, game }) => {
+              const difficulty = BADGE_DIFFICULTY_DETAILS[badge.difficulty];
+              return (
+                <li key={badge.id} className="min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedHardestBadge({ badge, game })}
+                    className="border-border bg-surface-soft hover:border-accent-cold hover:bg-effect-glass focus-visible:ring-accent-cold flex h-full w-full flex-col items-center rounded-lg border p-3 text-center transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                  >
+                    <img
+                      src={mediaUrl(badge.icon_path) || difficulty.icon}
+                      alt=""
+                      className="bg-surface-raised h-16 w-16 rounded-full object-cover"
+                    />
+                    <span className="text-font-primary mt-3 w-full truncate text-sm font-medium">
+                      {badge.name}
+                    </span>
+                    <span className="text-font-muted mt-1 w-full truncate text-xs">
+                      {game.title}
+                    </span>
+                    <span
+                      className="mt-2 text-xs"
+                      style={{ color: difficulty.color }}
+                    >
+                      {getBadgeTierLabel(badge.tier)} {difficulty.label}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        ) : (
+          <p className="text-font-muted mt-4 text-sm">No badges earned yet.</p>
+        )}
+      </section>
+      <section className="border-border bg-surface/75 rounded-xl border p-5 sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-font-primary font-serif text-3xl sm:text-4xl">
@@ -239,6 +306,23 @@ function StatsPanel({ profileId }: { profileId: string }) {
         </dl>
       </section>
 
+      <section className="border-border bg-surface/75 rounded-xl border p-5 sm:p-6">
+        <h2 className="text-font-primary font-serif text-2xl">Top games</h2>
+        <div className="mt-5 grid gap-6 lg:grid-cols-2">
+          <GameStatList
+            title="Most EXP earned"
+            entries={stats.topExperienceGames}
+            value={(entry) => `${entry.experience.toLocaleString()} EXP`}
+          />
+          <GameStatList
+            title="Highest badge completion"
+            entries={stats.topCompletionGames}
+            value={(entry) =>
+              `${entry.earned} / ${entry.total} badges · ${Math.round((entry.earned / entry.total) * 100)}%`
+            }
+          />
+        </div>
+      </section>
       <section className="border-border bg-surface/75 rounded-xl border p-5 sm:p-6">
         <div>
           <h2 className="text-font-primary font-serif text-2xl">
@@ -338,6 +422,50 @@ function StatsPanel({ profileId }: { profileId: string }) {
           </div>
         </div>,
         document.body,
+      )}
+      {selectedHardestBadge && (
+        <PinnedBadgeDialog
+          profileName={profileName}
+          badge={selectedHardestBadge.badge}
+          gameTitle={selectedHardestBadge.game.title}
+          onClose={() => setSelectedHardestBadge(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function GameStatList({ title, entries, value }: { title: string; entries: { game: CatalogueGame; earned: number; total: number; experience: number }[]; value: (entry: { game: CatalogueGame; earned: number; total: number; experience: number }) => string }) {
+  return (
+    <div>
+      <h3 className="text-font-primary text-sm font-medium">{title}</h3>
+      {entries.length ? (
+        <ol className="mt-3 space-y-2">
+          {entries.map((entry) => (
+            <li key={entry.game.id}>
+              <Link
+                to={`/games/${entry.game.id}`}
+                className="border-border bg-surface-soft hover:border-accent-cold hover:bg-effect-glass focus-visible:ring-accent-cold flex items-center gap-3 rounded-lg border p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-10 w-16 shrink-0 rounded bg-cover bg-center"
+                  style={{ backgroundImage: `url(${entry.game.bannerUrl})` }}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="text-font-primary block truncate text-sm font-medium">
+                    {entry.game.title}
+                  </span>
+                  <span className="text-font-muted mt-0.5 block text-xs">
+                    {value(entry)}
+                  </span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="text-font-muted mt-3 text-sm">No game progress yet.</p>
       )}
     </div>
   );

@@ -14,6 +14,7 @@ export {
   BADGE_DIFFICULTIES,
   BADGE_TIERS,
   BADGE_DIFFICULTY_DETAILS,
+  compareBadges,
   getBadgeDifficultyLabel,
   getBadgeExperience,
   getBadgeTierLabel,

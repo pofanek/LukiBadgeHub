@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { FaInstagram, FaSteam, FaThumbtack, FaYoutube } from "react-icons/fa";
 import {
   FiAlertCircle,
@@ -14,7 +15,10 @@ import { userchomik } from "../../../assets";
 import { RoleBadge } from "../../../components/UI";
 import {
   BADGE_DIFFICULTY_DETAILS,
+  getBadgeExperience,
   getBadgeDifficultyLabel,
+  getBadgeTierLabel,
+  type BadgeRow,
 } from "../../../constants";
 import { getCountry } from "../../../constants/countries";
 import { usePinnedBadge } from "../../../hooks/usePinnedBadge";
@@ -66,6 +70,7 @@ function ProfileHeader({
 }: ProfileHeaderProps) {
   const navigate = useNavigate();
   const [followError, setFollowError] = useState("");
+  const [isPinnedBadgeOpen, setIsPinnedBadgeOpen] = useState(false);
   const links = useSocialLinks(profile.id);
   const {
     level,
@@ -113,7 +118,7 @@ function ProfileHeader({
       <div className="relative md:min-h-[33rem] lg:h-[23rem] lg:min-h-0">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-0 left-1/2 -z-10 h-full w-screen -translate-x-1/2 [mask-image:linear-gradient(to_bottom,#000_0%,#000_26%,transparent_100%)] bg-cover bg-center [-webkit-mask-image:linear-gradient(to_bottom,#000_0%,#000_26%,transparent_100%)]"
+          className="pointer-events-none absolute top-0 left-1/2 -z-10 h-full w-screen -translate-x-1/2 [mask-image:linear-gradient(to_bottom,#000_0%,#000_48%,transparent_100%)] bg-cover bg-center [-webkit-mask-image:linear-gradient(to_bottom,#000_0%,#000_48%,transparent_100%)]"
           style={
             profile.banner_url
               ? { backgroundImage: `url(${profile.banner_url})` }
@@ -122,7 +127,7 @@ function ProfileHeader({
         />
         <div
           aria-hidden="true"
-          className="from-surface-soft/70 via-surface-overlay/80 to-primary pointer-events-none absolute top-0 left-1/2 -z-10 h-full w-screen -translate-x-1/2 bg-linear-to-b via-[48%]"
+          className="from-surface-soft/70 via-surface-overlay/80 to-primary pointer-events-none absolute top-0 left-1/2 -z-10 h-full w-screen -translate-x-1/2 bg-linear-to-b via-[76%]"
         />
 
         <div className="relative grid grid-cols-[7rem_minmax(0,1fr)] gap-5 gap-x-4 p-4 max-md:gap-y-2 md:absolute md:inset-x-0 md:top-auto md:bottom-10 md:gap-x-6 md:p-6 lg:grid-cols-[7rem_minmax(0,1fr)_auto] lg:gap-7 lg:p-7">
@@ -290,7 +295,7 @@ function ProfileHeader({
 
               <div className="flex justify-center">
                 {!isPinnedBadgeLoading && pinnedBadge && (
-                  <div className="border-border bg-surface/60 mt-4 w-fit max-w-full rounded-xl border p-3">
+                  <button type="button" onClick={() => setIsPinnedBadgeOpen(true)} className="border-border bg-surface/60 hover:border-accent-cold mt-4 w-fit max-w-full rounded-xl border p-3 text-left transition-colors" aria-label={`View ${pinnedBadge.badge.name} details`}>
                     <div className="flex items-center gap-3">
                       <img
                         src={
@@ -325,7 +330,7 @@ function ProfileHeader({
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 )}
               </div>
               {isOwnProfile && !profile.hide_pinned_badge_edit && pinnedBadge && (
@@ -365,8 +370,18 @@ function ProfileHeader({
           </div>
         </div>
       )}
+      {isPinnedBadgeOpen && pinnedBadge && <PinnedBadgeDialog profileName={profile.username} badge={pinnedBadge.badge} gameTitle={pinnedBadge.game.title} onClose={() => setIsPinnedBadgeOpen(false)} />}
     </header>
   );
+}
+
+function LinkifiedText({ value }: { value: string }) {
+  return <>{value.split(/(https?:\/\/[^\s]+)/g).map((part, index) => /^https?:\/\//.test(part) ? <a key={index} href={part} target="_blank" rel="noreferrer" className="text-accent-cold hover:text-hover underline break-all">{part}</a> : part)}</>;
+}
+
+export function PinnedBadgeDialog({ profileName, badge, gameTitle, onClose }: { profileName: string; badge: BadgeRow; gameTitle: string; onClose: () => void }) {
+  const difficulty = BADGE_DIFFICULTY_DETAILS[badge.difficulty];
+  return createPortal(<div role="presentation" onClick={onClose} className="bg-surface-overlay/80 fixed inset-0 z-50 flex items-center justify-center p-4"><div role="dialog" aria-modal="true" aria-label={`${badge.name} details`} onClick={(event) => event.stopPropagation()} className="border-border bg-surface-raised max-h-[calc(100vh-2rem)] w-full max-w-3xl overflow-y-auto rounded-xl border p-5 shadow-black sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-sm" style={{ color: difficulty.color }}><i className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: difficulty.color }} />{getBadgeTierLabel(badge.tier)} {difficulty.label}</p><h3 className="text-font-primary mt-1 font-serif text-2xl">{badge.name}</h3><p className="text-font-muted mt-1 text-sm">{gameTitle}</p></div><button type="button" onClick={onClose} aria-label="Close badge details" className="text-font-muted hover:text-font-primary rounded p-1"><FiX className="h-5 w-5" /></button></div><p className="text-font-secondary mt-5 whitespace-pre-wrap break-words text-base leading-relaxed"><LinkifiedText value={badge.description} /></p><div className="border-border mt-5 flex items-center justify-between gap-3 border-t pt-4"><span className="text-font-secondary inline-flex items-center gap-2 text-sm"><span className="border-accent-cold bg-brand-tertiary text-font-primary flex h-4 w-4 shrink-0 items-center justify-center rounded border">✓</span><span>Completed by {profileName}</span></span><span className="text-font-secondary text-sm">{getBadgeExperience(badge.difficulty, badge.tier).toLocaleString()} EXP</span></div>{badge.additional_note && <details className="border-border mt-5 border-t pt-4"><summary className="text-font-primary cursor-pointer text-sm font-bold">Additional note</summary><p className="text-font-secondary mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed"><LinkifiedText value={badge.additional_note} /></p></details>}</div></div>, document.body);
 }
 
 export default ProfileHeader;

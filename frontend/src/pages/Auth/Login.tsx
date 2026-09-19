@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { FiAlertCircle, FiCheckCircle, FiX } from "react-icons/fi";
 import {
   EmailInput,
   PasswordInput,
@@ -17,6 +18,7 @@ const Login = () => {
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showResend, setShowResend] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -57,7 +59,7 @@ const Login = () => {
     if (resendError) {
       setError(resendError.message);
     } else {
-      setError("Verification email sent! Check your inbox.");
+      setNotice("Verification email sent. Check your inbox.");
       setShowResend(false);
     }
   };
@@ -81,10 +83,16 @@ const Login = () => {
     });
     if (error) setError(error.message);
   };
+  useEffect(() => {
+    if (!error && !notice) return;
+    const timer = window.setTimeout(() => { setError(null); setNotice(null); }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [error, notice]);
+  const dismiss = () => { setError(null); setNotice(null); };
   return (
     <FocusContent>
       <form
-        className="bg-surface-overlay/40 mx-20 mt-15 mb-15 flex h-145 max-w-110 min-w-85 flex-1 flex-col items-center justify-center gap-6 rounded-xl px-5 shadow-black outline-none"
+        className="bg-surface-overlay/40 mx-3 my-8 flex min-h-145 max-w-110 min-w-0 flex-1 flex-col items-center justify-center gap-6 rounded-xl px-5 py-10 shadow-black outline-none sm:mx-20 sm:my-15 sm:min-w-85"
         onSubmit={handleLogin}
       >
         <h1 className="text-font-primary font-serif text-5xl">Log In</h1>
@@ -126,11 +134,14 @@ const Login = () => {
           Didn't get the email? Resend link
         </button>
       )}
-      {error && (
-        <p className="text-destructive font-sans text-lg">ERROR: {error}</p>
-      )}
+      {(error || notice) && <AuthToast message={error || notice || ""} error={Boolean(error)} onDismiss={dismiss} />}
     </FocusContent>
   );
 };
+
+function AuthToast({ message, error, onDismiss }: { message: string; error: boolean; onDismiss: () => void }) {
+  const Icon = error ? FiAlertCircle : FiCheckCircle;
+  return <div className="fixed bottom-4 left-1/2 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2" role={error ? "alert" : "status"} aria-live="polite"><div className={`border-surface-raised flex items-start gap-3 rounded-xl border px-4 py-3 shadow-black ${error ? "bg-destructive-background text-font-primary" : "bg-surface text-font-primary"}`}><Icon className={`mt-0.5 h-5 w-5 shrink-0 ${error ? "text-destructive" : "text-accent-cold"}`} /><p className="min-w-0 flex-1 text-sm leading-relaxed">{message}</p><button type="button" onClick={onDismiss} className="text-font-secondary hover:text-font-primary -mr-1 rounded p-1" aria-label="Dismiss notification"><FiX className="h-4 w-4" /></button></div></div>;
+}
 
 export default Login;

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiCheck, FiChevronDown } from "react-icons/fi";
+import { FaMedal } from "react-icons/fa";
 import { LoadingIndicator } from "../../../components";
+import { PinnedBadgeDialog } from "./ProfileHeader";
 import {
   BADGE_DIFFICULTY_DETAILS,
   getBadgeExperience,
@@ -38,33 +40,35 @@ type LibraryGame = {
 function GameArt({ game }: { game: CatalogueGame }) {
   return (
     <div
-      className="flex h-20 w-48 shrink-0 items-end rounded-lg bg-cover bg-center p-2"
+      aria-label={game.title}
+      className="h-20 w-48 shrink-0 rounded-lg bg-cover bg-center"
       style={{ backgroundImage: `url(${game.bannerUrl})` }}
-    >
-      <span className="text-font-primary font-serif text-sm leading-none">
-        {game.title}
-      </span>
-    </div>
+    />
   );
 }
 
 function DifficultyRows({
   gameId,
+  gameTitle,
   difficulties,
   earnedBadges,
   expandedDifficulty,
   onToggleDifficulty,
+  onSelectBadge,
 }: {
   gameId: number;
+  gameTitle: string;
   difficulties: Difficulty[];
   earnedBadges: BadgeRow[];
   expandedDifficulty: BadgeDifficultyId | null;
   onToggleDifficulty: (difficulty: BadgeDifficultyId) => void;
+  onSelectBadge: (badge: BadgeRow, gameTitle: string) => void;
 }) {
   return (
     <div className="space-y-2">
       {difficulties.map(({ label, earned, total }) => {
         const percent = total ? Math.round((earned / total) * 100) : 0;
+        const isComplete = total > 0 && earned === total;
         const difficultyColor =
           BADGE_DIFFICULTY_DETAILS[label.toLowerCase() as BadgeDifficultyId]
             ?.color;
@@ -95,7 +99,7 @@ function DifficultyRows({
               </span>
               <div className="bg-surface-raised h-2 overflow-hidden rounded-full">
                 <div
-                  className="bg-accent-cold h-full rounded-full"
+                  className={`h-full rounded-full ${isComplete ? "bg-linear-to-r from-[#78b159] via-[#fdcb58] to-[#aa8ed6]" : "bg-accent-cold"}`}
                   style={{ width: `${percent}%` }}
                 />
               </div>
@@ -109,8 +113,9 @@ function DifficultyRows({
                   <ul className="divide-border divide-y">
                     {claimedBadges.map((badge) => (
                       <li key={badge.id}>
-                        <Link
-                          to={`/games/${gameId}?difficulty=${badge.difficulty}&badge=${badge.id}`}
+                        <button
+                          type="button"
+                          onClick={() => onSelectBadge(badge, gameTitle)}
                           className="hover:bg-effect-glass focus-visible:ring-accent-cold flex w-full items-center justify-between gap-3 rounded px-2 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
                         >
                           <span className="min-w-0 flex-1">
@@ -133,7 +138,7 @@ function DifficultyRows({
                               {getBadgeExperience(badge.difficulty, badge.tier).toLocaleString()} EXP
                             </span>
                           </span>
-                        </Link>
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -228,9 +233,11 @@ function LibrarySortSelect({
 
 function GamesPanel({
   profileId,
+  profileName,
   isOwnProfile,
 }: {
   profileId: string;
+  profileName: string;
   isOwnProfile: boolean;
 }) {
   const pageSize = PROFILE_GAMES_PAGE_SIZE;
@@ -249,6 +256,10 @@ function GamesPanel({
   const [expandedGame, setExpandedGame] = useState<number | null>(null);
   const [expandedDifficulty, setExpandedDifficulty] =
     useState<BadgeDifficultyId | null>(null);
+  const [selectedBadge, setSelectedBadge] = useState<{
+    badge: BadgeRow;
+    gameTitle: string;
+  } | null>(null);
 
   useEffect(() => {
     let isCurrent = true;
@@ -483,6 +494,7 @@ function GamesPanel({
       <LibrarySortSelect value={sort} onChange={setSort} />
       {games.map(({ game, experience, progress, total, difficulties, earnedBadges }) => {
         const isExpanded = expandedGame === game.id;
+        const isComplete = total > 0 && progress === total;
         return (
           <article
             key={game.id}
@@ -528,7 +540,7 @@ function GamesPanel({
                       </span>
                       <div className="bg-surface-raised h-2 flex-1 overflow-hidden rounded-full">
                         <div
-                          className="bg-accent-cold h-full rounded-full"
+                          className={`h-full rounded-full ${isComplete ? "bg-linear-to-r from-[#78b159] via-[#fdcb58] to-[#aa8ed6]" : "bg-accent-cold"}`}
                           style={{
                             width: `${total ? (progress / total) * 100 : 0}%`,
                           }}
@@ -537,6 +549,7 @@ function GamesPanel({
                       <span className="text-font-secondary shrink-0 text-xs">
                         {progress} of {total}
                       </span>
+                      {isComplete && <FaMedal aria-label="All badges completed" className="h-9 w-9 shrink-0 text-accent-cold drop-shadow-[0_0_8px_rgba(61,142,240,0.45)]" />}
                     </div>
                   </div>
                   <FiChevronDown
@@ -549,6 +562,7 @@ function GamesPanel({
               <div className="border-border bg-surface-soft/50 border-t p-4">
                 <DifficultyRows
                   gameId={game.id}
+                  gameTitle={game.title}
                   difficulties={difficulties}
                   earnedBadges={earnedBadges}
                   expandedDifficulty={expandedDifficulty}
@@ -557,6 +571,9 @@ function GamesPanel({
                       current === difficulty ? null : difficulty,
                     );
                   }}
+                  onSelectBadge={(badge, gameTitle) =>
+                    setSelectedBadge({ badge, gameTitle })
+                  }
                 />
               </div>
             )}
@@ -572,6 +589,14 @@ function GamesPanel({
         >
           {isLoadingMore ? "Loading..." : "Show more"}
         </button>
+      )}
+      {selectedBadge && (
+        <PinnedBadgeDialog
+          profileName={profileName}
+          badge={selectedBadge.badge}
+          gameTitle={selectedBadge.gameTitle}
+          onClose={() => setSelectedBadge(null)}
+        />
       )}
     </div>
   );

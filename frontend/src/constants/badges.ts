@@ -22,7 +22,16 @@ export type BadgeRow = {
   difficulty: BadgeDifficultyId;
   tier: BadgeTier;
   icon_path: string | null;
+  display_order: number;
 };
+
+export function compareBadges(left: BadgeRow, right: BadgeRow) {
+  const difficultyDifference = BADGE_DIFFICULTIES.indexOf(left.difficulty) - BADGE_DIFFICULTIES.indexOf(right.difficulty);
+  if (difficultyDifference) return difficultyDifference;
+  const tierDifference = BADGE_TIERS.indexOf(left.tier) - BADGE_TIERS.indexOf(right.tier);
+  if (tierDifference) return tierDifference;
+  return left.display_order - right.display_order || left.id - right.id;
+}
 
 export const BADGE_DIFFICULTY_DETAILS: Record<
   BadgeDifficultyId,

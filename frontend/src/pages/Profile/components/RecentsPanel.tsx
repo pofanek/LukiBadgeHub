@@ -157,19 +157,19 @@ function RecentsPanel({
               className="focus-visible:ring-accent-cold flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:ring-2 focus-visible:outline-none max-sm:gap-2"
             >
               <div
-                className="border-border flex h-20 w-48 shrink-0 items-end rounded-lg border bg-cover bg-center p-2 max-sm:h-14 max-sm:w-20 max-sm:p-1.5"
+                aria-label={game.title}
+                className="h-20 w-48 shrink-0 rounded-lg bg-cover bg-center max-sm:h-14 max-sm:w-20"
                 style={{ backgroundImage: `url(${game.bannerUrl})` }}
-              >
-                <span className="text-font-primary font-serif text-sm leading-none max-sm:text-xs">
-                  {game.title}
-                </span>
-              </div>
+              />
               <img
                 src={badgeIconUrl(badge)}
                 alt=""
                 className="bg-surface-raised h-14 w-14 shrink-0 rounded-full object-cover max-sm:h-11 max-sm:w-11"
               />
               <div className="min-w-0 flex-1">
+                <p className="text-font-secondary truncate text-xs">
+                  {game.title}
+                </p>
                 <p className="text-font-primary truncate text-sm font-medium">
                   {badge.name}
                 </p>

@@ -15,7 +15,7 @@ import { fetchGamesPage } from "../../hooks/useGames";
 import { useGamesPageSize } from "../../hooks/useGamesPageSize";
 import { supabase } from "../../utils/supabase";
 
-type SortOption = "name" | "release" | "experience" | "badges";
+type SortOption = "name" | "release" | "experience" | "badges" | "created" | "created-oldest";
 
 const DIFFICULTY_COLORS: Record<string, string> = {
   Easy: "bg-[#78b159]",
@@ -27,10 +27,12 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 };
 
 const SORT_LABELS: Record<SortOption, string> = {
-  name: "Name",
-  release: "release date",
+  "created-oldest": "Date added (newest)",
+  created: "Date added (oldest)",
   experience: "Potential EXP gain",
   badges: "Badge count",
+  name: "Name",
+  release: "release date",
 };
 
 const EMPTY_GAME_IDS: number[] = [];
@@ -55,8 +57,8 @@ function Games() {
   const query = searchParams.get("q") || "";
   const genre = searchParams.get("genre") || "all";
   const scope = searchParams.get("scope") === "library" ? "library" : "all";
-  const sort = (searchParams.get("sort") || "release") as SortOption;
-  const selectedSort = Object.hasOwn(SORT_LABELS, sort) ? sort : "release";
+  const sort = (searchParams.get("sort") || "created-oldest") as SortOption;
+  const selectedSort = Object.hasOwn(SORT_LABELS, sort) ? sort : "created-oldest";
   const page = Math.max(Number(searchParams.get("page")) || 1, 1);
   const activeLibraryIds = user ? libraryIds : EMPTY_GAME_IDS;
   const libraryFilterKey =
@@ -189,7 +191,7 @@ function Games() {
   const updateFilters = (updates: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([key, value]) => {
-      if (!value || value === "all" || (key === "sort" && value === "release"))
+      if (!value || value === "all" || (key === "sort" && value === "created-oldest"))
         next.delete(key);
       else next.set(key, value);
     });

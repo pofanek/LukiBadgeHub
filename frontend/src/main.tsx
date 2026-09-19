@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./index.css";
 import { MainLayout, EmptyLayout } from "./layouts/";
+import { AuthUserProvider } from "./hooks/useAuthUser";
 
 const About = lazy(() => import("./pages/About/About"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback/AuthCallback"));
@@ -65,8 +66,10 @@ const router = createBrowserRouter([
 ]);
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Suspense fallback={<main className="text-font-secondary flex min-h-screen items-center justify-center">Loading page...</main>}>
-      <RouterProvider router={router} />
-    </Suspense>
+    <AuthUserProvider>
+      <Suspense fallback={<main className="text-font-secondary flex min-h-screen items-center justify-center">Loading page...</main>}>
+        <RouterProvider router={router} />
+      </Suspense>
+    </AuthUserProvider>
   </StrictMode>,
 );

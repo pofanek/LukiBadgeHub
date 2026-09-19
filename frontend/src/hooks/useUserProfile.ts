@@ -13,6 +13,7 @@ export type UserProfile = {
   banner_path: string | null;
   pinned_badge_id: number | null;
   hide_pinned_badge_edit: boolean;
+  hide_homepage_username_edit: boolean;
   username_changed_at: string | null;
   role: UserRole;
   avatar_url: string | null;
@@ -29,6 +30,7 @@ export type ProfileChanges = Pick<
   | "banner_path"
   | "pinned_badge_id"
   | "hide_pinned_badge_edit"
+  | "hide_homepage_username_edit"
 >;
 const profileEvent = "luki-profile-updated";
 
@@ -59,7 +61,7 @@ export async function saveUserProfile(
     .update(changes)
     .eq("id", userId)
     .select(
-      "id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, hide_pinned_badge_edit, username_changed_at, role",
+      "id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, hide_pinned_badge_edit, hide_homepage_username_edit, username_changed_at, role",
     )
     .single();
   if (error) throw error;
@@ -89,7 +91,7 @@ export function useUserProfile(userId?: string) {
     supabase
       .from("user_profiles")
       .select(
-        "id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, hide_pinned_badge_edit, username_changed_at, role",
+        "id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, hide_pinned_badge_edit, hide_homepage_username_edit, username_changed_at, role",
       )
       .eq("id", userId)
       .maybeSingle()
@@ -128,7 +130,7 @@ export function useUserProfileByUsername(username?: string) {
 
     const loadProfile = async () => {
       const profileQuery =
-        "id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, hide_pinned_badge_edit, username_changed_at, role";
+        "id, username, bio, country_code, avatar_path, banner_path, pinned_badge_id, hide_pinned_badge_edit, hide_homepage_username_edit, username_changed_at, role";
       const normalizedUsername = caseInsensitiveUsername(username);
       const { data: currentProfile, error: currentError } = await supabase
         .from("user_profiles")

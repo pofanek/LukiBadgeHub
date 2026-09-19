@@ -96,13 +96,19 @@ function Profile() {
               {activeTab === "games" && (
                 <GamesPanel
                   profileId={profile.id}
+                  profileName={profile.username}
                   isOwnProfile={user?.id === profile.id}
                 />
               )}
               {activeTab === "mutuals" && (
                 <MutualsPanel profileId={profile.id} viewerId={user?.id} />
               )}
-              {activeTab === "stats" && <StatsPanel profileId={profile.id} />}
+              {activeTab === "stats" && (
+                <StatsPanel
+                  profileId={profile.id}
+                  profileName={profile.username}
+                />
+              )}
               {activeTab === "recents" && (
                 <RecentsPanel
                   profileId={profile.id}
