@@ -52,6 +52,125 @@ export async function deleteR2Object(config: R2Config, path: string) {
   }
 }
 
+export type R2ObjectMetadata = {
+  contentType: string | null;
+  contentLength: number;
+};
+
+export async function headR2Object(
+  config: R2Config,
+  path: string,
+): Promise<R2ObjectMetadata | null> {
+  const response = await r2Client(config).fetch(
+    new Request(r2ObjectUrl(config, path), { method: "HEAD" }),
+  );
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error("The uploaded media could not be verified.");
+
+  const contentLength = Number(response.headers.get("content-length"));
+  if (!Number.isSafeInteger(contentLength) || contentLength < 0) {
+    throw new Error("The uploaded media could not be verified.");
+  }
+
+  return {
+    contentLength,
+    contentType: response.headers.get("content-type"),
+  };
+}
+
+export async function readR2ObjectRange(
+  config: R2Config,
+  path: string,
+  start: number,
+  end: number,
+) {
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start) {
+    throw new Error("The uploaded media could not be verified.");
+  }
+  const response = await r2Client(config).fetch(
+    new Request(r2ObjectUrl(config, path), {
+      method: "GET",
+      headers: { Range: `bytes=${start}-${end}` },
+    }),
+  );
+  if (!response.ok && response.status !== 206) {
+    throw new Error("The uploaded media could not be verified.");
+  }
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+export async function readR2ObjectPrefix(
+  config: R2Config,
+  path: string,
+  byteLength = 32,
+) {
+  return readR2ObjectRange(config, path, 0, byteLength - 1);
+}
+
+export async function readR2Object(
+  config: R2Config,
+  path: string,
+  maxBytes: number,
+) {
+  const response = await r2Client(config).fetch(
+    new Request(r2ObjectUrl(config, path), { method: "GET" }),
+  );
+  if (!response.ok || !response.body) {
+    throw new Error("The uploaded media could not be verified.");
+  }
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (Number.isSafeInteger(declaredLength) && declaredLength > maxBytes) {
+    await response.body.cancel();
+    throw new Error("The uploaded media exceeds the allowed size.");
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      length += value.length;
+      if (length > maxBytes) {
+        await reader.cancel();
+        throw new Error("The uploaded media exceeds the allowed size.");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return bytes;
+}
+
+export async function putR2Object(
+  config: R2Config,
+  path: string,
+  bytes: Uint8Array,
+  contentType: string,
+  cacheControl: string,
+) {
+  const response = await r2Client(config).fetch(
+    new Request(r2ObjectUrl(config, path), {
+      method: "PUT",
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": cacheControl,
+      },
+      body: bytes,
+    }),
+  );
+  if (!response.ok) throw new Error("The uploaded media could not be activated.");
+}
+
 function decodeXml(value: string) {
   return value
     .replace(/&amp;/g, "&")

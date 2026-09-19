@@ -12,11 +12,11 @@ import { PasswordRequirements, FocusContent, LoadingIndicator, Turnstile } from 
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { useGames } from "../../hooks/useGames";
 import { usePinnedBadge } from "../../hooks/usePinnedBadge";
-import { saveUserProfile, useUserProfile } from "../../hooks/useUserProfile";
+import { publishUserProfile, saveUserProfile, useUserProfile } from "../../hooks/useUserProfile";
 import { publishSocialLinks, type SocialPlatform, useSocialLinks } from "../../hooks/useSocialLinks";
 import { passwordIsValid } from "../../utils/password";
 import { supabase } from "../../utils/supabase";
-import { deleteMedia, uploadMedia } from "../../utils/media";
+import { mediaUrl, uploadMedia } from "../../utils/media";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { CountrySelect, ImageCropDialog } from "./components";
 import { useNotifications, type NotificationPreferences } from "../../hooks/notificationsContext";
@@ -324,15 +324,14 @@ function Settings() {
       file,
     });
     const field = cropTarget.kind === "avatar" ? "avatar_path" : "banner_path";
-    const previousPath = profile[field];
-    try {
-      await saveUserProfile(user.id, { [field]: path });
-      await deleteMedia(previousPath).catch(() => undefined);
-      setCropTarget(null); setNotice(`${cropTarget.kind === "avatar" ? "Avatar" : "Banner"} updated.`);
-    } catch (reason) {
-      await deleteMedia(path).catch(() => undefined);
-      throw new Error(settingsError(reason, "The image could not be saved."));
-    }
+    const updatedProfile = { ...profile, [field]: path };
+    publishUserProfile({
+      ...updatedProfile,
+      avatar_url: mediaUrl(updatedProfile.avatar_path),
+      banner_url: mediaUrl(updatedProfile.banner_path),
+    });
+    setCropTarget(null);
+    setNotice(`${cropTarget.kind === "avatar" ? "Avatar" : "Banner"} updated.`);
   };
   const validUrl = (value: string) => { try { const url = new URL(value); return url.protocol === "http:" || url.protocol === "https:"; } catch { return false; } };
   const saveSocial = async (platform: SocialPlatform) => {

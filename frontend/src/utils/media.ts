@@ -17,11 +17,17 @@ type UploadOptions = {
   file: File;
   gameId?: number;
   badgeId?: number;
+  badgeDifficulty?: string;
+  badgeTier?: string;
 };
 
 type SignedUpload = {
-  path: string;
+  uploadId: string;
   uploadUrl: string;
+};
+
+type ConfirmedUpload = {
+  path: string;
 };
 
 export function getFunctionErrorMessage(error: unknown, fallback: string) {
@@ -44,17 +50,27 @@ export function mediaUrl(path: string | null | undefined) {
   return `${publicMediaBaseUrl}/${encodedPath}`;
 }
 
-export async function uploadMedia({ target, file, gameId, badgeId }: UploadOptions) {
+export async function uploadMedia({
+  target,
+  file,
+  gameId,
+  badgeId,
+  badgeDifficulty,
+  badgeTier,
+}: UploadOptions) {
   const { data, error } = await supabase.functions.invoke("media", {
     body: {
       action: "sign-upload",
       target,
       contentType: file.type,
+      contentLength: file.size,
       gameId,
       badgeId,
+      badgeDifficulty,
+      badgeTier,
     },
   });
-  if (error || !data?.path || !data?.uploadUrl) {
+  if (error || !data?.uploadId || !data?.uploadUrl) {
     throw new Error(await getFunctionErrorMessage(error, "The image could not be uploaded."));
   }
 
@@ -70,13 +86,15 @@ export async function uploadMedia({ target, file, gameId, badgeId }: UploadOptio
   if (!uploadResponse.ok) {
     throw new Error("The image could not be uploaded.");
   }
-  return signedUpload.path;
-}
 
-export async function deleteMedia(path: string | null | undefined) {
-  if (!path || path.startsWith("http://") || path.startsWith("https://")) return;
-  const { error } = await supabase.functions.invoke("media", {
-    body: { action: "delete", path },
+  const { data: confirmation, error: confirmationError } = await supabase.functions.invoke("media", {
+    body: {
+      action: "confirm-upload",
+      uploadId: signedUpload.uploadId,
+    },
   });
-  if (error) throw new Error(await getFunctionErrorMessage(error, "The image could not be removed."));
+  if (confirmationError || !confirmation?.path) {
+    throw new Error(await getFunctionErrorMessage(confirmationError, "The image could not be verified."));
+  }
+  return (confirmation as ConfirmedUpload).path;
 }

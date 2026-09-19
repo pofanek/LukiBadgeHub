@@ -31,7 +31,7 @@ import { useGamesPageSize } from "../../hooks/useGamesPageSize";
 import { invalidateLeaderboardCache } from "../../hooks/useLeaderboard";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { supabase } from "../../utils/supabase";
-import { deleteMedia, mediaUrl, uploadMedia } from "../../utils/media";
+import { mediaUrl, uploadMedia } from "../../utils/media";
 import { invalidateCachedQueries } from "../../utils/queryCache";
 import { ImageCropDialog } from "../Settings/components";
 import AdminAwards from "../AdminAwards/AdminAwards";
@@ -683,23 +683,13 @@ function AdminGames() {
         gameId: selectedGame.id,
       });
       const column = target === "cover" ? "cover_path" : "banner_path";
-      const previousPath = selectedGame[column];
-      const { data, error: updateError } = await supabase
-        .from("games")
-        .update({
-          [column]: path,
-          ...(target === "cover" ? { cover_position: "center" } : {}),
-        })
-        .eq("id", selectedGame.id)
-        .select(GAME_FIELDS)
-        .single();
-      if (updateError || !data) {
-        await deleteMedia(path).catch(() => undefined);
-        throw new Error("The image uploaded, but the game artwork could not be saved.");
-      }
-      await deleteMedia(previousPath).catch(() => undefined);
+      const updatedGame = {
+        ...selectedGame,
+        [column]: path,
+        ...(target === "cover" ? { cover_position: "center" } : {}),
+      } as GameRow;
       setGames((current) =>
-        current.map((game) => game.id === selectedGame.id ? (data as GameRow) : game),
+        current.map((game) => game.id === selectedGame.id ? updatedGame : game),
       );
       invalidateCatalogueCache();
       setNotice(`${target === "cover" ? "Cover" : "Banner"} image updated.`);
@@ -816,25 +806,17 @@ function AdminGames() {
         file,
         gameId: selectedGame.id,
         badgeId: selectedBadge.id,
+        badgeDifficulty: badgeForm.difficulty,
+        badgeTier: badgeForm.tier,
       });
-      const { data, error: updateError } = await supabase
-        .from("game_badges")
-        .update({
-          difficulty: badgeForm.difficulty,
-          tier: badgeForm.tier,
-          icon_path: path,
-        })
-        .eq("id", selectedBadge.id)
-        .select("*")
-        .single();
-      if (updateError || !data) {
-        await deleteMedia(path).catch(() => undefined);
-        setError("The icon uploaded, but could not be attached to the badge.");
-        return;
-      }
-      await deleteMedia(selectedBadge.icon_path).catch(() => undefined);
+      const updatedBadge = {
+        ...selectedBadge,
+        difficulty: badgeForm.difficulty,
+        tier: badgeForm.tier,
+        icon_path: path,
+      } as BadgeRow;
       setBadges((current) =>
-        current.map((badge) => badge.id === selectedBadge.id ? (data as BadgeRow) : badge),
+        current.map((badge) => badge.id === selectedBadge.id ? updatedBadge : badge),
       );
       invalidateCatalogueCache();
       invalidateLeaderboardCache();

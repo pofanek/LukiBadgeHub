@@ -14,6 +14,7 @@ Provide the four public variables listed in `frontend/.env.example`. `VITE_SUPAB
 4. Enable Turnstile in Supabase Auth and configure its secret in the Dashboard. Enable leaked-password protection in Supabase Auth before production launch.
 5. Set Auth Site URL and redirect URLs to `https://www.lukibadgehub.com` and `https://www.lukibadgehub.com/auth/callback`; preserve localhost callbacks for development.
 6. Restrict R2 bucket write access to signed uploads, use the public media hostname only for reads, and allow the production origin in R2 CORS for signed PUT requests.
+7. Configure the `media_cleanup_project_url` and `media_cleanup_service_role_key` secrets in Supabase Vault, then schedule `select private.invoke_media_cleanup();` with Supabase Cron hourly. The `media` function deletes stale pending uploads, invalid uploads, replacement leftovers, and paths queued after a media reference is cleared. Keep the service-role key in Vault only; it must not be added to a frontend environment variable or committed file.
 
 ## Release and rollback
 
