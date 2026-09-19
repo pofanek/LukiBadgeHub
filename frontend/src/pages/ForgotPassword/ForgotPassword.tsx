@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FiAlertCircle, FiCheckCircle, FiX } from "react-icons/fi";
 import { supabase } from "../../utils/supabase";
 import { Turnstile } from "../../components/UI";
 
@@ -11,17 +12,21 @@ function ForgotPassword() {
   const [captchaReset, setCaptchaReset] = useState(0);
   const navigate = useNavigate();
 
-  const handleSubmit = async () => {
-    if (!captchaToken) return;
+  const dismissFeedback = () => {
     setError("");
     setMessage("");
+  };
+
+  const handleSubmit = async () => {
+    if (!captchaToken) return;
+    dismissFeedback();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
       captchaToken,
     });
     setCaptchaToken(null); setCaptchaReset((value) => value + 1);
     if (error) setError(error.message);
-    else setMessage("Sprawdź maila!");
+    else setMessage("Password reset email sent. Check your inbox.");
   };
 
   return (
@@ -48,17 +53,6 @@ function ForgotPassword() {
           />
           <Turnstile key={captchaReset} onTokenChange={setCaptchaToken} />
 
-          {error && (
-            <p className="text-center font-sans text-sm text-red-400">
-              {error}
-            </p>
-          )}
-          {message && (
-            <p className="text-center font-sans text-sm text-green-400">
-              {message}
-            </p>
-          )}
-
           <button
             onClick={handleSubmit}
             disabled={!captchaToken}
@@ -74,6 +68,32 @@ function ForgotPassword() {
           </button>
         </div>
       </div>
+      {(message || error) && (
+        <div
+          className="fixed bottom-4 left-1/2 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2"
+          role={error ? "alert" : "status"}
+          aria-live="polite"
+        >
+          <div className={`border-surface-raised flex items-start gap-3 rounded-xl border px-4 py-3 shadow-black ${error ? "bg-destructive-background text-font-primary" : "bg-surface text-font-primary"}`}>
+            {error ? (
+              <FiAlertCircle className="text-destructive mt-0.5 h-5 w-5 shrink-0" />
+            ) : (
+              <FiCheckCircle className="text-accent-cold mt-0.5 h-5 w-5 shrink-0" />
+            )}
+            <p className="min-w-0 flex-1 text-sm leading-relaxed">
+              {error || message}
+            </p>
+            <button
+              type="button"
+              onClick={dismissFeedback}
+              className="text-font-secondary hover:text-font-primary -mr-1 rounded p-1"
+              aria-label="Dismiss notification"
+            >
+              <FiX className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

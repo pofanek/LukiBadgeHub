@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ResetPassword from "./ResetPassword";
 
@@ -8,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   exchangeCodeForSession: vi.fn(),
   getSession: vi.fn(),
   onAuthStateChange: vi.fn(),
+  rpc: vi.fn(),
   setSession: vi.fn(),
   updateUser: vi.fn(),
 }));
@@ -21,6 +23,7 @@ vi.mock("../../utils/supabase", () => ({
       setSession: mocks.setSession,
       updateUser: mocks.updateUser,
     },
+    rpc: mocks.rpc,
   },
 }));
 
@@ -63,5 +66,23 @@ describe("ResetPassword", () => {
       access_token: "access-token",
       refresh_token: "refresh-token",
     });
+  });
+
+  it("shows a success notification after the password is changed", async () => {
+    window.history.replaceState({}, "", "/reset-password?code=recovery-code");
+    mocks.exchangeCodeForSession.mockResolvedValue({ error: null });
+    mocks.updateUser.mockResolvedValue({ error: null });
+    mocks.rpc.mockResolvedValue({ data: true, error: null });
+    mocks.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+    const user = userEvent.setup();
+
+    render(<BrowserRouter><ResetPassword /></BrowserRouter>);
+
+    await user.type(await screen.findByPlaceholderText("New password"), "NewPassword1");
+    await user.click(screen.getByRole("button", { name: "Save password" }));
+
+    expect(await screen.findByText("Password changed successfully.")).toBeVisible();
   });
 });

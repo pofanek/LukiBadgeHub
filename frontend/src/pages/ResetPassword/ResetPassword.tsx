@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { FiCheckCircle, FiX } from "react-icons/fi";
 import { supabase } from "../../utils/supabase";
 import { PasswordRequirements } from "../../components/UI";
 import { passwordIsValid } from "../../utils/password";
@@ -10,6 +11,7 @@ function ResetPassword() {
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const recoveryExchangeRef = useRef<Promise<boolean> | null>(null);
   const navigate = useNavigate();
 
@@ -116,6 +118,7 @@ function ResetPassword() {
 
     setNewPassword("");
     setIsSaved(true);
+    setShowSuccessToast(true);
   };
 
   return (
@@ -178,6 +181,28 @@ function ResetPassword() {
           </button>
         </div>
       </div>
+      {showSuccessToast && (
+        <div
+          className="fixed bottom-4 left-1/2 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="border-surface-raised bg-surface text-font-primary flex items-start gap-3 rounded-xl border px-4 py-3 shadow-black">
+            <FiCheckCircle className="text-accent-cold mt-0.5 h-5 w-5 shrink-0" />
+            <p className="min-w-0 flex-1 text-sm leading-relaxed">
+              Password changed successfully.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowSuccessToast(false)}
+              className="text-font-secondary hover:text-font-primary -mr-1 rounded p-1"
+              aria-label="Dismiss notification"
+            >
+              <FiX className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
