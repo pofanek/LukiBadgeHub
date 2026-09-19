@@ -14,16 +14,48 @@ function ResetPassword() {
 
   useEffect(() => {
     let active = true;
-    const recoveryLink = new URLSearchParams(window.location.hash.slice(1)).get("type") === "recovery";
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get("code");
+    const hashParams = new URLSearchParams(url.hash.slice(1));
+    const recoveryLink =
+      url.searchParams.get("type") === "recovery" ||
+      hashParams.get("type") === "recovery";
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setReady(true);
     });
 
-    if (recoveryLink) {
-      void supabase.auth.getSession().then(({ data }) => {
-        if (active && data.session) setReady(true);
-      });
-    }
+    const establishRecoverySession = async () => {
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (!active) return;
+
+        if (exchangeError) {
+          setError("This password recovery link is invalid or has expired. Request a new one.");
+          return;
+        }
+
+        window.history.replaceState({}, document.title, url.pathname);
+        setReady(true);
+        return;
+      }
+
+      if (!recoveryLink) {
+        setError("This password recovery link is invalid or has expired. Request a new one.");
+        return;
+      }
+
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (!active) return;
+
+      if (sessionError || !data.session) {
+        setError("This password recovery link is invalid or has expired. Request a new one.");
+        return;
+      }
+
+      setReady(true);
+    };
+
+    void establishRecoverySession();
 
     return () => {
       active = false;
