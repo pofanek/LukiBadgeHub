@@ -2,7 +2,7 @@ import { FiAward, FiBell, FiCheck, FiShield, FiTrash2, FiUserPlus, FiUsers } fro
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { FocusContent, LoadingIndicator } from "../../components";
 import { useAuthUser } from "../../hooks/useAuthUser";
-import { useNotifications, type AppNotification } from "../../hooks/useNotifications";
+import { useNotifications, type AppNotification } from "../../hooks/notificationsContext";
 
 function relativeTime(value: string) {
   const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
@@ -67,7 +67,7 @@ function Notifications() {
               {notifications.map((notification) => <li key={notification.id} className={`border-border flex gap-3 border-b p-3 last:border-b-0 sm:p-4 ${notification.read_at ? "" : "bg-brand-tertiary/25"}`}>
                 <span className="text-accent-cold bg-surface-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"><NotificationIcon notification={notification} /></span>
                 <button type="button" onClick={() => void openNotification(notification)} className="min-w-0 flex-1 text-left"><span className="flex items-center gap-2"><span className="text-font-primary truncate text-sm font-semibold sm:text-base">{notification.title}</span>{!notification.read_at && <span aria-label="Unread" className="bg-accent-cold h-2 w-2 shrink-0 rounded-full" />}</span><span className="text-font-secondary mt-1 block text-sm leading-relaxed">{notification.body}</span><span className="text-font-muted mt-2 block text-xs">{relativeTime(notification.created_at)}</span></button>
-                <div className="flex shrink-0 items-start gap-1"><button type="button" onClick={() => void markRead(notification.id, Boolean(notification.read_at) ? false : true)} className="text-font-muted hover:bg-surface-soft hover:text-font-primary rounded-lg p-2" aria-label={notification.read_at ? "Mark as unread" : "Mark as read"}><FiCheck className="h-4 w-4" /></button><button type="button" onClick={() => void deleteNotification(notification.id)} className="text-font-muted hover:bg-surface-soft hover:text-destructive rounded-lg p-2" aria-label="Delete notification"><FiTrash2 className="h-4 w-4" /></button></div>
+                <div className="flex shrink-0 items-start gap-1"><button type="button" onClick={() => void markRead(notification.id, !notification.read_at)} className="text-font-muted hover:bg-surface-soft hover:text-font-primary rounded-lg p-2" aria-label={notification.read_at ? "Mark as unread" : "Mark as read"}><FiCheck className="h-4 w-4" /></button><button type="button" onClick={() => void deleteNotification(notification.id)} className="text-font-muted hover:bg-surface-soft hover:text-destructive rounded-lg p-2" aria-label="Delete notification"><FiTrash2 className="h-4 w-4" /></button></div>
               </li>)}
             </ol>
             {hasMore && <div className="mt-5 text-center"><button type="button" onClick={() => void loadMore()} className="border-border text-font-secondary hover:bg-surface-soft hover:text-font-primary rounded-lg border px-4 py-2.5 text-sm font-medium">Load more</button></div>}

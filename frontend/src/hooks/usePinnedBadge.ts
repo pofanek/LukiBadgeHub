@@ -26,14 +26,19 @@ export function usePinnedBadge(profileId?: string) {
 
     window.addEventListener(pinnedBadgeChangeEvent, handlePinnedBadgeChange);
     if (!profileId) {
-      setPinnedBadgeId(null);
-      setIsLoading(false);
+      queueMicrotask(() => {
+        if (!isCurrent) return;
+        setPinnedBadgeId(null);
+        setIsLoading(false);
+      });
       return () => {
         isCurrent = false;
         window.removeEventListener(pinnedBadgeChangeEvent, handlePinnedBadgeChange);
       };
     }
-    setIsLoading(true);
+    queueMicrotask(() => {
+      if (isCurrent) setIsLoading(true);
+    });
 
     supabase
       .from("user_profiles")

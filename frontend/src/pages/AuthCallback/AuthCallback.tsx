@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FocusContent } from "../../components";
 import { supabase } from "../../utils/supabase";
@@ -6,7 +6,8 @@ import { supabase } from "../../utils/supabase";
 const AuthCallback = () => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const hashParams = new URLSearchParams(window.location.hash.slice(1));
+  const hash = window.location.hash;
+  const hashParams = useMemo(() => new URLSearchParams(hash.slice(1)), [hash]);
   const errorDescription = params.get("error_description") || hashParams.get("error_description");
   const pendingAccountDeletion = params.get("delete-email-verification") === "1" || window.localStorage.getItem("luki-pending-account-deletion") === "1";
   const pendingIdentityLink = window.sessionStorage.getItem("luki-post-login-path");
@@ -56,7 +57,7 @@ const AuthCallback = () => {
       }
     });
     return () => listener.subscription.unsubscribe();
-  }, [errorDescription, navigate, params, pendingAccountDeletion, pendingIdentityLink]);
+  }, [errorDescription, hashParams, navigate, params, pendingAccountDeletion, pendingIdentityLink]);
 
   return (
     <FocusContent>

@@ -34,7 +34,7 @@ function Profile() {
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (tab === "games" || tab === "mutuals" || tab === "stats" || tab === "recents") {
-      setActiveTab(tab);
+      queueMicrotask(() => setActiveTab(tab));
     }
   }, [searchParams]);
 

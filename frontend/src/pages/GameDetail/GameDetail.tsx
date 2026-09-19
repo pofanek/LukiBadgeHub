@@ -402,9 +402,11 @@ export function GameDetailTemplate({ game }: TemplateProps) {
   const [libraryError, setLibraryError] = useState("");
   useEffect(() => {
     const difficulty = searchParams.get("difficulty") as BadgeDifficultyId | null;
-    setSelectedDifficulties(
-      difficulty && BADGE_DIFFICULTIES.includes(difficulty) ? [difficulty] : [],
-    );
+    queueMicrotask(() => {
+      setSelectedDifficulties(
+        difficulty && BADGE_DIFFICULTIES.includes(difficulty) ? [difficulty] : [],
+      );
+    });
   }, [searchParams]);
   useEffect(() => {
     if (!claimNotice && !claimError) return;
@@ -604,7 +606,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
     );
     if (focusedIndex === -1) return;
     const focusedPage = Math.floor(focusedIndex / ACHIEVEMENTS_PER_PAGE) + 1;
-    if (page !== focusedPage) setPage(focusedPage);
+    if (page !== focusedPage) queueMicrotask(() => setPage(focusedPage));
   }, [focusedBadgeId, page, visibleAchievements]);
   useEffect(() => {
     if (!focusedBadgeId || !pageAchievements.some((achievement) => achievement.id === focusedBadgeId)) return;

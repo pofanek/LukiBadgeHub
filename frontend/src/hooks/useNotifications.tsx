@@ -1,40 +1,20 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 import { useAuthUser } from "./useAuthUser";
+import {
+  NotificationsContext,
+  type AppNotification,
+  type NotificationPreferences,
+  type NotificationType,
+} from "./notificationsContext";
 import { supabase } from "../utils/supabase";
 
 const pageSize = 25;
-
-export type NotificationType =
-  | "role_granted"
-  | "special_badge_awarded"
-  | "new_follower"
-  | "new_mutual"
-  | "legacy";
-
-export type AppNotification = {
-  id: number;
-  type: NotificationType;
-  title: string;
-  body: string;
-  action_path: string | null;
-  created_at: string;
-  read_at: string | null;
-};
-
-export type NotificationPreferences = {
-  role_granted_enabled: boolean;
-  special_badge_awarded_enabled: boolean;
-  new_follower_enabled: boolean;
-  new_mutual_enabled: boolean;
-};
 
 const defaultPreferences: NotificationPreferences = {
   role_granted_enabled: true,
@@ -42,22 +22,6 @@ const defaultPreferences: NotificationPreferences = {
   new_follower_enabled: true,
   new_mutual_enabled: true,
 };
-
-type NotificationsContextValue = {
-  notifications: AppNotification[];
-  preferences: NotificationPreferences;
-  unreadCount: number;
-  isLoading: boolean;
-  hasMore: boolean;
-  markRead: (id: number, read: boolean) => Promise<void>;
-  markAllRead: () => Promise<void>;
-  deleteNotification: (id: number) => Promise<void>;
-  clearRead: () => Promise<void>;
-  loadMore: () => Promise<void>;
-  updatePreferences: (changes: Partial<NotificationPreferences>) => Promise<void>;
-};
-
-const NotificationsContext = createContext<NotificationsContextValue | null>(null);
 
 function asNotification(data: Record<string, unknown>): AppNotification {
   return {
@@ -104,15 +68,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
     if (!user) {
-      setNotifications([]);
-      setPreferences(defaultPreferences);
-      setHasMore(false);
-      setIsLoading(false);
+      queueMicrotask(() => {
+        if (!active) return;
+        setNotifications([]);
+        setPreferences(defaultPreferences);
+        setHasMore(false);
+        setIsLoading(false);
+      });
       return;
     }
 
-    setIsLoading(true);
-    refresh()
+    queueMicrotask(() => {
+      if (active) setIsLoading(true);
+    });
+    void Promise.resolve()
+      .then(() => refresh())
       .catch(() => {
         if (active) setNotifications([]);
       })
@@ -226,10 +196,4 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   );
 
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
-}
-
-export function useNotifications() {
-  const context = useContext(NotificationsContext);
-  if (!context) throw new Error("useNotifications must be used within NotificationProvider.");
-  return context;
 }

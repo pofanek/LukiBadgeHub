@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FiAward, FiBell, FiSettings, FiShield, FiUserPlus, FiUsers } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
-import { useNotifications, type AppNotification } from "../../hooks/useNotifications";
+import { useNotifications, type AppNotification } from "../../hooks/notificationsContext";
 
 function relativeTime(value: string) {
   const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));

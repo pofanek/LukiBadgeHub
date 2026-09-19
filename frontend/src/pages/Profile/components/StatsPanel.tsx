@@ -32,8 +32,11 @@ function StatsPanel({ profileId }: { profileId: string }) {
 
   useEffect(() => {
     let isCurrent = true;
-    setData(null);
-    setError("");
+    queueMicrotask(() => {
+      if (!isCurrent) return;
+      setData(null);
+      setError("");
+    });
 
     Promise.all([
       supabase

@@ -445,20 +445,24 @@ function Homepage() {
   const { entries: leaderboardEntries, position: leaderboardPosition, isLoading: isLeaderboardLoading } = useLeaderboard("experience", null, 1, user?.id);
 
   useEffect(() => {
-    if (!user) {
-      setLibraryEntries([]);
-      return;
-    }
     let current = true;
-    setLibraryEntries(null);
-    supabase
-      .from("user_game_library")
-      .select("game_id, added_at")
-      .eq("user_id", user.id)
-      .order("added_at", { ascending: false })
-      .then(({ data }) => {
-        if (current) setLibraryEntries(data || []);
+    if (!user) {
+      queueMicrotask(() => {
+        if (current) setLibraryEntries([]);
       });
+    } else {
+      queueMicrotask(() => {
+        if (current) setLibraryEntries(null);
+      });
+      supabase
+        .from("user_game_library")
+        .select("game_id, added_at")
+        .eq("user_id", user.id)
+        .order("added_at", { ascending: false })
+        .then(({ data }) => {
+          if (current) setLibraryEntries(data || []);
+        });
+    }
     return () => {
       current = false;
     };
@@ -488,19 +492,23 @@ function Homepage() {
   }, []);
 
   useEffect(() => {
-    if (!user) {
-      setEarnedBadgeClaims([]);
-      return;
-    }
     let current = true;
-    setEarnedBadgeClaims(null);
-    supabase
-      .from("user_badges")
-      .select("badge_id, earned_at")
-      .eq("user_id", user.id)
-      .then(({ data }) => {
-        if (current) setEarnedBadgeClaims((data || []) as BadgeClaim[]);
+    if (!user) {
+      queueMicrotask(() => {
+        if (current) setEarnedBadgeClaims([]);
       });
+    } else {
+      queueMicrotask(() => {
+        if (current) setEarnedBadgeClaims(null);
+      });
+      supabase
+        .from("user_badges")
+        .select("badge_id, earned_at")
+        .eq("user_id", user.id)
+        .then(({ data }) => {
+          if (current) setEarnedBadgeClaims((data || []) as BadgeClaim[]);
+        });
+    }
     return () => {
       current = false;
     };

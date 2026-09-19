@@ -23,5 +23,5 @@ export function useAuthListener() {
     );
 
     return () => listener.subscription.unsubscribe();
-  }, [location.pathname, navigate]);
+  }, [location.pathname, location.search, navigate]);
 }

@@ -19,7 +19,7 @@ import { supabase } from "../../utils/supabase";
 import { deleteMedia, uploadMedia } from "../../utils/media";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { CountrySelect, ImageCropDialog } from "./components";
-import { useNotifications, type NotificationPreferences } from "../../hooks/useNotifications";
+import { useNotifications, type NotificationPreferences } from "../../hooks/notificationsContext";
 
 type SettingsTab = "profile" | "account" | "notifications";
 type CropTarget = { file: File; kind: "avatar" | "banner" };

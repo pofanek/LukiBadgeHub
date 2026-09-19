@@ -1,7 +1,7 @@
 type SubmitProps = {
   label?: string;
   cooldown?: number;
-  disabled?: any;
+  disabled?: boolean;
   className?: string;
 };
 
