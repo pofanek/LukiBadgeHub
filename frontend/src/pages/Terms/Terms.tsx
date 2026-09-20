@@ -50,10 +50,10 @@ function Terms() {
                   The data controller is Pofanek, operator of Luki Badge Hub. For
                   privacy requests, email{" "}
                   <a
-                    href="mailto:pofanekk@gmail.com"
+                    href="mailto:dartmonkey15987@gmail.com"
                     className="text-accent-cold hover:text-hover font-medium"
                   >
-                    pofanekk@gmail.com
+                    dartmonkey15987@gmail.com
                   </a>
                   .
                 </p>

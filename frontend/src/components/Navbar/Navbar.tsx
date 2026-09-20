@@ -118,7 +118,7 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
                   to="/settings"
                   aria-label="Settings"
                   title="Settings"
-                  className="text-font-secondary hover:text-font-primary hover:bg-effect-glass ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-cold"
+                  className="text-font-secondary hover:text-font-primary hover:bg-effect-glass ml-1 hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-cold sm:flex"
                 >
                   <FiSettings className="h-5 w-5" aria-hidden="true" />
                 </Link>
