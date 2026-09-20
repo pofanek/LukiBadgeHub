@@ -616,7 +616,7 @@ function Homepage() {
           backgroundImage: "url('/bg.png')",
         }}
       >
-        <div className="mx-auto w-full max-w-6xl space-y-12 px-3 sm:px-7 lg:space-y-16">
+        <div className="mx-auto w-full max-w-6xl space-y-12 px-3 sm:px-7 lg:space-y-16 xl:max-w-7xl">
           {user ? (
             <>
               <section className="border-border bg-surface/75 rounded-xl border p-5 sm:p-6">

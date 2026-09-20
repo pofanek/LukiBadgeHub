@@ -8,7 +8,7 @@ function Support() {
   return (
     <FocusContent>
       <section className="w-full self-stretch py-8 sm:py-10 lg:py-12">
-        <div className="mx-auto w-full max-w-2xl px-3 sm:px-7">
+        <div className="mx-auto w-full max-w-2xl px-3 sm:px-7 xl:max-w-7xl">
           <div className="border-border bg-surface/75 rounded-xl border p-6 text-center sm:p-8">
             <FiHeart className="text-accent-cold mx-auto h-7 w-7" />
             <h1 className="text-font-primary mt-4 font-serif text-3xl sm:text-4xl">

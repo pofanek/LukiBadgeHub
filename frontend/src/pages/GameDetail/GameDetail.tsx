@@ -774,7 +774,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
 
   return (
     <section className="bg-primary w-full self-stretch pb-10">
-      <div className="mx-auto w-full max-w-6xl px-3 sm:px-7">
+      <div className="mx-auto w-full max-w-6xl px-3 sm:px-7 xl:max-w-7xl">
         <GameHero
           game={progressGame}
           isInLibrary={displayedInLibrary}

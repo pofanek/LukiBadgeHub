@@ -39,7 +39,7 @@ function Updates() {
   return (
     <FocusContent>
       <section className="w-full self-stretch py-8 sm:py-10 lg:py-12">
-        <div className="mx-auto w-full max-w-4xl px-3 sm:px-7 lg:px-10">
+        <div className="mx-auto w-full max-w-4xl px-3 sm:px-7 lg:px-10 xl:max-w-7xl">
           <header className="border-border border-b pb-6">
             <div className="text-accent-cold flex items-center gap-2 text-sm font-medium">
               <FiClock className="h-4 w-4" />

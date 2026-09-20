@@ -4,7 +4,7 @@ function Terms() {
   return (
     <FocusContent>
       <section className="w-full self-stretch py-8 sm:py-10 lg:py-12">
-        <div className="mx-auto w-full max-w-4xl px-3 sm:px-7">
+        <div className="mx-auto w-full max-w-4xl px-3 sm:px-7 xl:max-w-7xl">
           <header className="border-border border-b pb-6 sm:pb-8">
             <h1 className="text-font-primary font-serif text-4xl sm:text-5xl">
               Terms &amp; Privacy

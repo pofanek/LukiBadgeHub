@@ -75,7 +75,7 @@ const Contact = () => {
       <form
         onSubmit={handleSubmit}
         autoComplete="off"
-        className="bg-surface-soft mx-40 mt-10 mb-10 flex h-auto flex-1 flex-col gap-4 rounded-xl p-5 shadow-black md:max-w-200"
+        className="bg-surface-soft mx-40 mt-10 mb-10 flex h-auto flex-1 flex-col gap-4 rounded-xl p-5 shadow-black md:max-w-200 xl:mx-auto xl:w-full xl:max-w-240"
       >
         <ContactLabel text="Contact Us" />
         <ContactLabel

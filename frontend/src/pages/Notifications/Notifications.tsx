@@ -49,7 +49,7 @@ function Notifications() {
   return (
     <FocusContent>
       <section className="w-full self-stretch py-8 sm:py-10 lg:py-12">
-        <div className="mx-auto w-full max-w-4xl px-3 sm:px-7">
+        <div className="mx-auto w-full max-w-4xl px-3 sm:px-7 xl:max-w-7xl">
           <header className="border-border flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h1 className="text-font-primary font-serif text-4xl sm:text-5xl">Notifications</h1>

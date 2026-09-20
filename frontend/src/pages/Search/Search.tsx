@@ -17,7 +17,7 @@ function Search() {
   return (
     <FocusContent>
       <section className="w-full self-stretch py-8 sm:py-10 lg:py-12">
-        <div className="mx-auto w-full max-w-6xl px-3 sm:px-7 lg:px-10">
+        <div className="mx-auto w-full max-w-6xl px-3 sm:px-7 lg:px-10 xl:max-w-7xl">
           <header className="border-border border-b pb-6">
             <p className="text-accent-cold text-sm font-medium">Search</p>
             <h1 className="text-font-primary mt-1 font-serif text-4xl sm:text-5xl">

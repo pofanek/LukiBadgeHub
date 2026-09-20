@@ -22,7 +22,7 @@ function About() {
   return (
     <FocusContent>
       <section className="w-full self-stretch py-8 sm:py-10 lg:py-12">
-        <div className="mx-auto w-full max-w-5xl px-3 sm:px-7">
+        <div className="mx-auto w-full max-w-5xl px-3 sm:px-7 xl:max-w-7xl">
           <div className="border-border bg-surface/75 overflow-hidden rounded-xl border">
             <div className="grid lg:grid-cols-[minmax(0,1.45fr)_minmax(15rem,0.55fr)]">
               <div className="p-6 sm:p-8 lg:p-10">

@@ -113,7 +113,7 @@ function MutualsPanel({ profileId, viewerId }: { profileId: string; viewerId?: s
 
   if (isLoading) return <p className="text-font-secondary py-12 text-center">Loading people...</p>;
 
-  return <div className="mx-auto max-w-2xl">
+  return <div className="mx-auto max-w-2xl xl:max-w-7xl">
     <div className="border-border mb-4 flex justify-center border-b">{categories.map((category) => <button key={category} type="button" onClick={() => selectCategory(category)} className={`relative px-4 py-3 text-sm ${activeCategory === category ? "text-font-primary" : "text-font-muted"}`}>{category} ({categoryCount(profileId, relationships, category)}){activeCategory === category && <span className="bg-accent-cold absolute right-3 bottom-0 left-3 h-0.5" />}</button>)}</div>
     {error && <p role="alert" className="text-destructive mb-4 text-sm">{error}</p>}
     <div className="border-border bg-surface/75 divide-border overflow-hidden rounded-xl border divide-y">

@@ -194,7 +194,7 @@ export default function AdminAwards({ embedded = false }: { embedded?: boolean }
 
   return (
     <section className={embedded ? "mt-12" : "min-h-[calc(100vh-4rem)] w-full flex-1 py-8 sm:py-10"}>
-      <div className={embedded ? "" : "mx-auto w-full max-w-5xl px-3 sm:px-7 lg:px-10"}>
+      <div className={embedded ? "" : "mx-auto w-full max-w-5xl px-3 sm:px-7 lg:px-10 xl:max-w-7xl"}>
         <div className="border-border border-b pb-6">
           <header className="border-accent-cold/30 bg-brand-tertiary/35 w-fit max-w-full rounded-xl border p-4 sm:p-5">
             <p className="text-accent-cold text-sm font-medium">CMS</p>

@@ -474,7 +474,7 @@ function Settings() {
     setNotice(`${providerLabel(identity.provider)} sign-in removed.`);
   };
 
-  return <section className="flex-1"><div className="min-h-full w-full py-7 sm:py-10 lg:py-12"><div className="mx-auto w-full max-w-5xl px-3 sm:px-7">
+  return <section className="flex-1"><div className="min-h-full w-full py-7 sm:py-10 lg:py-12"><div className="mx-auto w-full max-w-5xl px-3 sm:px-7 xl:max-w-7xl">
     <header className="mb-6 sm:mb-8"><h1 className="text-font-primary font-serif text-4xl sm:text-5xl">Settings</h1><p className="text-font-secondary mt-2 max-w-xl leading-relaxed">Manage how your profile appears and how you sign in to Luki Badge Hub.</p></header>
     <nav aria-label="Settings sections" className="border-border mb-5 overflow-x-auto border-b sm:mb-6"><div className="flex min-w-max gap-1 sm:gap-4">{tabs.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => selectTab(id)} className={`relative flex items-center gap-2 px-3 py-3.5 text-sm font-medium whitespace-nowrap sm:px-4 sm:text-base ${activeTab === id ? "text-font-primary" : "text-font-muted hover:text-font-secondary"}`}><Icon className="h-4 w-4" />{label}<span className={`bg-accent-cold absolute right-3 bottom-0 left-3 h-0.5 ${activeTab === id ? "scale-x-100" : "scale-x-0"}`} /></button>)}</div></nav>
     {activeTab === "profile" && <div className="space-y-4">

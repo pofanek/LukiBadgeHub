@@ -208,7 +208,7 @@ function StatsPanel({
     : new Map();
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6 xl:max-w-7xl">
       <section className="border-border bg-surface/75 rounded-xl border p-5 sm:p-6">
         <div>
           <h2 className="text-font-primary font-serif text-2xl">
