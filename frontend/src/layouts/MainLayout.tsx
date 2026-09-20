@@ -14,7 +14,10 @@ function MainLayout() {
     /^\/games\/[^/]+$/.test(location.pathname);
   return (
     <NotificationProvider>
-      <div className="flex min-h-screen flex-col">
+      <div
+        className="bg-primary flex min-h-screen flex-col bg-cover bg-fixed bg-center bg-no-repeat"
+        style={{ backgroundImage: "var(--bg-image)" }}
+      >
         <Navbar activeTab={location.pathname} titleOnly={titleOnly} />
         <main className="flex flex-1">
           <Outlet />

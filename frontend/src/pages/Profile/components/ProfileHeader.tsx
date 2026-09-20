@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { FaInstagram, FaSteam, FaThumbtack, FaYoutube } from "react-icons/fa";
+import { FaGamepad, FaSteam, FaStopwatch, FaThumbtack, FaYoutube } from "react-icons/fa";
 import {
   FiAlertCircle,
   FiEdit3,
@@ -9,7 +9,6 @@ import {
   FiX,
 } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
-import { SiBluesky } from "react-icons/si";
 import { userchomik } from "../../../assets";
 import { CountryFlag, RoleBadge } from "../../../components";
 import {
@@ -30,8 +29,8 @@ import { mediaUrl } from "../../../utils/media";
 const socialLinks = [
   { label: "Steam", icon: FaSteam },
   { label: "YouTube", icon: FaYoutube },
-  { label: "Instagram", icon: FaInstagram },
-  { label: "Bluesky", icon: SiBluesky },
+  { label: "Backloggd", icon: FaGamepad },
+  { label: "Speedrun.com", icon: FaStopwatch },
 ];
 
 const LEVEL_RING_COLORS = [
@@ -143,8 +142,8 @@ function ProfileHeader({
                     label.toLowerCase() as
                       | "steam"
                       | "youtube"
-                      | "instagram"
-                      | "bluesky",
+                      | "backloggd"
+                      | "speedrun",
                   ),
                 )
                 .map(({ label, icon: Icon }) => (
@@ -154,8 +153,8 @@ function ProfileHeader({
                       label.toLowerCase() as
                         | "steam"
                         | "youtube"
-                        | "instagram"
-                        | "bluesky",
+                        | "backloggd"
+                        | "speedrun",
                     )}
                     aria-label={label}
                     target="_blank"
@@ -194,7 +193,7 @@ function ProfileHeader({
             </div>
           </div>
 
-          <div className="min-w-0 self-start sm:pt-1 md:pr-72">
+          <div className="min-w-0 self-start sm:pt-1 md:pr-72 lg:pr-0">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex min-w-0 items-center gap-2">
                 <h1 className="text-font-primary font-serif text-3xl leading-none break-words sm:text-4xl">

@@ -610,12 +610,7 @@ function Homepage() {
 
   return (
     <FocusContent>
-      <div
-        className="w-full self-stretch bg-cover bg-fixed bg-center bg-no-repeat py-8 sm:py-10 lg:py-12"
-        style={{
-          backgroundImage: "url('/bg.png')",
-        }}
-      >
+      <div className="w-full self-stretch py-8 sm:py-10 lg:py-12">
         <div className="mx-auto w-full max-w-6xl space-y-12 px-3 sm:px-7 lg:space-y-16 xl:max-w-7xl">
           {user ? (
             <>

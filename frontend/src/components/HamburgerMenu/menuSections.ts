@@ -5,6 +5,7 @@ import {
   FiLogOut,
   FiAward,
   FiCoffee,
+  FiEdit3,
 } from "react-icons/fi";
 import { IoGameControllerOutline } from "react-icons/io5";
 import { RiDiscordLine } from "react-icons/ri";
@@ -15,6 +16,7 @@ export type MenuItem = {
   pathTo: string;
   isLink?: boolean;
   icon: IconType;
+  requiresCmsAccess?: boolean;
 };
 
 export const MENU_SECTIONS: MenuItem[][] = [
@@ -26,6 +28,7 @@ export const MENU_SECTIONS: MenuItem[][] = [
     { label: "Profile", pathTo: "/profile", icon: FiUser },
     { label: "Notifications", pathTo: "/notifications", icon: FiBell },
     { label: "Settings", pathTo: "/settings", icon: FiSettings },
+    { label: "CMS panel", pathTo: "/admin", icon: FiEdit3, requiresCmsAccess: true },
     { label: "Logout", pathTo: "/logout", icon: FiLogOut },
   ],
   [

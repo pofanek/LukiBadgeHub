@@ -103,6 +103,7 @@ function Profile() {
                 <StatsPanel
                   profileId={profile.id}
                   profileName={profile.username}
+                  isOwnProfile={user?.id === profile.id}
                 />
               )}
               {activeTab === "recents" && (

@@ -1,6 +1,6 @@
 begin;
 
-select plan(8);
+select plan(12);
 
 insert into auth.users (id, email) values
   ('a1111111-1111-1111-1111-111111111111', 'comment-user@example.com'),
@@ -14,7 +14,9 @@ insert into public.user_profiles (id, username, country_code, role) values
 on conflict (id) do update set role = excluded.role, username = excluded.username;
 
 insert into public.games (name, description, is_published)
-values ('Comment and creator test game', '', true);
+values
+  ('Comment and creator test game', '', true),
+  ('Unassigned creator test game', '', true);
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'a1111111-1111-1111-1111-111111111111', true);
@@ -41,6 +43,27 @@ select lives_ok(
 select lives_ok(
   $$update public.game_comments set is_pinned = true where body = 'Supporter comment'$$,
   'owner can pin a comment'
+);
+
+select set_config('request.jwt.claim.sub', 'a2222222-2222-2222-2222-222222222222', true);
+select lives_ok(
+  $$update public.games set description = 'Updated by assigned badge creator' where name = 'Comment and creator test game'$$,
+  'badge creators can update their assigned games'
+);
+select results_eq(
+  $$with updated as (update public.games set description = 'Not allowed' where name = 'Unassigned creator test game' returning id) select id from updated$$,
+  array[]::bigint[],
+  'badge creators cannot update unassigned games'
+);
+select lives_ok(
+  $$insert into public.game_badges (game_id, name, description, difficulty, tier) values ((select id from public.games where name = 'Comment and creator test game'), 'Creator badge', '', 'easy', 'low')$$,
+  'badge creators can create badges for assigned games'
+);
+select throws_ok(
+  $$insert into public.game_badges (game_id, name, description, difficulty, tier) values ((select id from public.games where name = 'Unassigned creator test game'), 'Unassigned badge', '', 'easy', 'low')$$,
+  '42501',
+  null,
+  'badge creators cannot create badges for unassigned games'
 );
 
 set local role anon;

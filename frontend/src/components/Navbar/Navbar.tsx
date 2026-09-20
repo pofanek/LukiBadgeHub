@@ -9,13 +9,16 @@ import {
   Login,
   NavbarButtonRightPanel,
 } from "./";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FiSettings } from "react-icons/fi";
+import { MdOutlinePalette } from "react-icons/md";
 import { Link } from "react-router-dom";
 import NotificationsMenu from "./NotificationsMenu";
 import { supabase } from "../../utils/supabase";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { useUserProfile } from "../../hooks/useUserProfile";
+import { useCmsAccess } from "../../hooks/useCmsAccess";
+import { ThemeControls } from "../ThemeControls";
 type NavbarProps = {
   activeTab?: "Home" | "Games" | "Rankings" | "Login" | string;
   titleOnly?: boolean;
@@ -24,8 +27,11 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchbarOpen, setSearchbarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenu] = useState(false);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const themeMenuRef = useRef<HTMLDivElement>(null);
   const { user } = useAuthUser();
   const { profile } = useUserProfile(user?.id);
+  const { canAccessCms } = useCmsAccess(user?.id, profile?.role);
   const profilePath =
     user && profile
       ? `/profile/${encodeURIComponent(profile.username)}`
@@ -36,6 +42,17 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
     setProfileMenu(false);
     setMenuOpen(false);
   };
+
+  useEffect(() => {
+    const closeThemeMenu = (event: PointerEvent) => {
+      if (themeMenuRef.current && !themeMenuRef.current.contains(event.target as Node)) {
+        setThemeMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", closeThemeMenu);
+    return () => document.removeEventListener("pointerdown", closeThemeMenu);
+  }, []);
+
   return (
     <>
       {titleOnly ? (
@@ -74,6 +91,28 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
                 />
               </div>
               <NotificationsMenu />
+              <div ref={themeMenuRef} className="relative ml-1">
+                <button
+                  type="button"
+                  onClick={() => setThemeMenuOpen((open) => !open)}
+                  aria-label="Change theme"
+                  aria-expanded={themeMenuOpen}
+                  aria-haspopup="dialog"
+                  title="Change theme"
+                  className="text-font-secondary hover:text-font-primary hover:bg-effect-glass flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-cold"
+                >
+                  <MdOutlinePalette className="h-5 w-5" aria-hidden="true" />
+                </button>
+                {themeMenuOpen && (
+                  <div
+                    role="dialog"
+                    aria-label="Theme color"
+                    className="border-border bg-surface-overlay absolute top-full right-0 z-50 mt-2 w-72 max-w-[calc(100vw-1rem)] rounded-lg border p-3 shadow-black"
+                  >
+                    <ThemeControls />
+                  </div>
+                )}
+              </div>
               {user && (
                 <Link
                   to="/settings"
@@ -99,6 +138,7 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
                   onLogout={handleLogout}
                   setProfileMenu={setProfileMenu}
                   profileMenuOpen={profileMenuOpen}
+                  canAccessCms={canAccessCms}
                   className={`${profileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
                 />
               </div>
@@ -109,6 +149,7 @@ const Navbar = ({ activeTab = "", titleOnly = false }: NavbarProps) => {
               value={menuOpen}
               setter={setMenuOpen}
               isLoggedIn={Boolean(user)}
+              canAccessCms={canAccessCms}
               profilePath={profilePath}
               onLogout={handleLogout}
             />

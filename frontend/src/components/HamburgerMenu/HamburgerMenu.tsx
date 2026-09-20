@@ -6,6 +6,7 @@ type HamburgerMenuProps = {
   value: boolean;
   setter: React.Dispatch<React.SetStateAction<boolean>>;
   isLoggedIn: boolean;
+  canAccessCms: boolean;
   profilePath: string;
   onLogout: () => Promise<void>;
 };
@@ -14,12 +15,16 @@ const HamburgerMenu = ({
   value,
   setter,
   isLoggedIn,
+  canAccessCms,
   profilePath,
   onLogout,
 }: HamburgerMenuProps) => {
-  const visibleSections = isLoggedIn
+  const loggedInSections = isLoggedIn
     ? MENU_SECTIONS
     : MENU_SECTIONS.filter((_, i) => i !== 1); // hide index 1 - account related
+  const visibleSections = loggedInSections
+    .map((section) => section.filter((item) => !item.requiresCmsAccess || canAccessCms))
+    .filter((section) => section.length > 0);
   return (
     <>
       <div
@@ -38,7 +43,7 @@ const HamburgerMenu = ({
           <div className="mb-4" />
 
           {visibleSections.map((section, sectionIndex) => {
-            const globalOffset = MENU_SECTIONS.slice(0, sectionIndex).reduce(
+            const globalOffset = visibleSections.slice(0, sectionIndex).reduce(
               (acc, s) => acc + s.length,
               0,
             );

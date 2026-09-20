@@ -5,6 +5,7 @@ import "flag-icons/css/flag-icons.min.css";
 import "./index.css";
 import { MainLayout, EmptyLayout } from "./layouts/";
 import { AuthUserProvider } from "./hooks/useAuthUser";
+import { ThemeProvider } from "./hooks/useTheme";
 
 const About = lazy(() => import("./pages/About/About"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback/AuthCallback"));
@@ -67,10 +68,12 @@ const router = createBrowserRouter([
 ]);
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <AuthUserProvider>
-      <Suspense fallback={<main className="text-font-secondary flex min-h-screen items-center justify-center">Loading page...</main>}>
-        <RouterProvider router={router} />
-      </Suspense>
-    </AuthUserProvider>
+    <ThemeProvider>
+      <AuthUserProvider>
+        <Suspense fallback={<main className="text-font-secondary flex min-h-screen items-center justify-center">Loading page...</main>}>
+          <RouterProvider router={router} />
+        </Suspense>
+      </AuthUserProvider>
+    </ThemeProvider>
   </StrictMode>,
 );

@@ -100,9 +100,10 @@ function isServiceRoleRequest(request: Request, serviceRoleKey: string) {
   return request.headers.get("Authorization") === `Bearer ${serviceRoleKey}`;
 }
 
-async function requireCmsRole(
+async function requireGameMediaAccess(
   admin: ReturnType<typeof createClient>,
   userId: string,
+  gameId: number,
 ) {
   const { data, error } = await admin
     .from("user_profiles")
@@ -110,7 +111,16 @@ async function requireCmsRole(
     .eq("id", userId)
     .maybeSingle();
   if (error) throw error;
-  if (!data || !cmsRoles.has(data.role)) {
+  if (data && cmsRoles.has(data.role)) return;
+
+  const { data: creator, error: creatorError } = await admin
+    .from("game_badge_creators")
+    .select("game_id")
+    .eq("game_id", gameId)
+    .eq("profile_id", userId)
+    .maybeSingle();
+  if (creatorError) throw creatorError;
+  if (!creator) {
     throw new HttpError("You do not have permission to manage game media.", 403);
   }
 }
@@ -125,7 +135,7 @@ async function assertUploadResource(
   if (!Number.isSafeInteger(body.gameId) || !body.gameId || body.gameId < 1) {
     throw new HttpError("A valid game is required.", 400);
   }
-  await requireCmsRole(admin, userId);
+  await requireGameMediaAccess(admin, userId, body.gameId);
   const { data: game, error: gameError } = await admin.from("games").select("id").eq("id", body.gameId).maybeSingle();
   if (gameError) throw gameError;
   if (!game) throw new HttpError("The game could not be found.", 404);

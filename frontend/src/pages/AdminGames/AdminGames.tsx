@@ -31,6 +31,7 @@ import { GAME_FIELDS, invalidateCatalogueCache } from "../../hooks/useGames";
 import { useGamesPageSize } from "../../hooks/useGamesPageSize";
 import { invalidateLeaderboardCache } from "../../hooks/useLeaderboard";
 import { useUserProfile } from "../../hooks/useUserProfile";
+import { useCmsAccess } from "../../hooks/useCmsAccess";
 import { supabase } from "../../utils/supabase";
 import { mediaUrl, uploadMedia } from "../../utils/media";
 import { invalidateCachedQueries } from "../../utils/queryCache";
@@ -222,6 +223,13 @@ function AdminGames() {
   const navigate = useNavigate();
   const { user, isLoading: isAuthLoading } = useAuthUser();
   const { profile, isLoading: isProfileLoading } = useUserProfile(user?.id);
+  const {
+    creatorGameIds,
+    isLoading: isCmsAccessLoading,
+    isAdmin,
+    canEditAssignedGames,
+    canAccessCms,
+  } = useCmsAccess(user?.id, profile?.role);
   const pageSize = useGamesPageSize();
   const [games, setGames] = useState<GameRow[]>([]);
   const [badges, setBadges] = useState<BadgeRow[]>([]);
@@ -261,9 +269,8 @@ function AdminGames() {
   const hydratedGameId = useRef<number | null>(null);
   const previousPageSize = useRef(pageSize);
 
-  const isAdmin = profile?.role === "Admin" || profile?.role === "Owner";
-  const canAwardSpecialBadges = isAdmin || profile?.role === "Moderator";
   const isLeaderboardOwner = profile?.role === "Owner";
+  const canEditSelectedGame = isAdmin || creatorGameIds.includes(Number(id));
   const selectedGame = useMemo(
     () => games.find((game) => game.id === Number(id)) || null,
     [games, id],
@@ -393,7 +400,7 @@ function AdminGames() {
   }, [id, isLeaderboardOwner]);
 
   useEffect(() => {
-    if (!isAdmin || id) return;
+    if (!(isAdmin || canEditAssignedGames) || id || (!isAdmin && isCmsAccessLoading)) return;
     let active = true;
     queueMicrotask(() => {
       if (active) {
@@ -407,6 +414,7 @@ function AdminGames() {
       .select(GAME_FIELDS, { count: "exact" })
       .order("created_at", { ascending: false })
       .order("id", { ascending: true });
+    if (!isAdmin) query = query.in("id", creatorGameIds);
     if (search) {
       query = query.or(
         `name.ilike.%${search}%,developer.ilike.%${search}%,publisher.ilike.%${search}%,genres.cs.{${search}}`,
@@ -429,10 +437,10 @@ function AdminGames() {
     return () => {
       active = false;
     };
-  }, [gamePage, id, isAdmin, pageSize, searchTerm]);
+  }, [canEditAssignedGames, creatorGameIds, gamePage, id, isAdmin, isCmsAccessLoading, pageSize, searchTerm]);
 
   useEffect(() => {
-    if (!isAdmin || !id) return;
+    if (!id || !canEditSelectedGame || (!isAdmin && isCmsAccessLoading)) return;
     let active = true;
     queueMicrotask(() => {
       if (active) {
@@ -458,7 +466,7 @@ function AdminGames() {
     return () => {
       active = false;
     };
-  }, [id, isAdmin]);
+  }, [canEditSelectedGame, id, isAdmin, isCmsAccessLoading]);
 
   useEffect(() => {
     if (!selectedGame || hydratedGameId.current === selectedGame.id) return;
@@ -879,7 +887,7 @@ function AdminGames() {
     }
   };
 
-  if (isAuthLoading || isProfileLoading) {
+  if (isAuthLoading || isProfileLoading || isCmsAccessLoading) {
     return (
       <div className="bg-primary text-font-secondary min-h-96 py-20 text-center">
         Loading CMS...
@@ -887,11 +895,11 @@ function AdminGames() {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
-  if (!canAwardSpecialBadges) {
+  if (!canAccessCms) {
     return (
       <section className="flex min-h-[calc(100vh-4rem)] w-full flex-1 items-center justify-center px-4 py-10 text-center">
         <p className="text-font-primary max-w-md font-serif text-2xl leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]">
-          This page is available to Admins and Moderators only.
+          This page is available to CMS users and assigned badge creators only.
         </p>
       </section>
     );
@@ -900,8 +908,18 @@ function AdminGames() {
   const inputClass =
     "border-border bg-surface-soft text-font-primary placeholder:text-font-muted focus:border-accent-cold w-full rounded-lg border px-3 py-2.5 text-sm outline-none";
 
-  if (!isAdmin) {
+  if (!isAdmin && !canEditAssignedGames) {
     return <AdminAwards />;
+  }
+
+  if (id && !canEditSelectedGame) {
+    return (
+      <section className="flex min-h-[calc(100vh-4rem)] w-full flex-1 items-center justify-center px-4 py-10 text-center">
+        <p className="text-font-primary max-w-md font-serif text-2xl leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]">
+          You can only edit games where you are listed as a badge creator.
+        </p>
+      </section>
+    );
   }
 
   if (!id) {
@@ -910,12 +928,12 @@ function AdminGames() {
         <div className="w-full px-3 sm:px-7 lg:px-10">
           <header className="border-border flex flex-wrap items-end justify-between gap-4 border-b pb-6">
             <div className="border-accent-cold/30 bg-brand-tertiary/35 rounded-xl border p-4 sm:p-5">
-              <p className="text-accent-cold text-sm font-medium">Admin CMS</p>
+              <p className="text-accent-cold text-sm font-medium">{isAdmin ? "Admin CMS" : "Badge creator CMS"}</p>
               <h1 className="text-font-primary mt-1 font-serif text-4xl">
                 Games CMS
               </h1>
               <p className="text-font-secondary mt-2 max-w-2xl">
-                Create and maintain the games players can add to their library.
+                {isAdmin ? "Create and maintain the games players can add to their library." : "Manage the games where you are credited as a badge creator."}
               </p>
             </div>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
@@ -932,13 +950,15 @@ function AdminGames() {
                   className={`${inputClass} pl-9`}
                 />
               </label>
-              <button
-                type="button"
-                onClick={createGame}
-                className="bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium"
-              >
-                <FiPlus /> Add game
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={createGame}
+                  className="bg-brand-secondary text-font-primary hover:bg-brand-primary inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium"
+                >
+                  <FiPlus /> Add game
+                </button>
+              )}
             </div>
           </header>
           {isLoading ? (
@@ -1021,7 +1041,7 @@ function AdminGames() {
           <p className="text-font-muted mt-8 text-sm">
             Game deletion is intentionally available only in Supabase Dashboard.
           </p>
-          <AdminAwards embedded />
+          {(isAdmin || profile?.role === "Moderator") && <AdminAwards embedded />}
           {isLeaderboardOwner && (
             <section className="mt-12">
               <div className="border-border border-b pb-6">

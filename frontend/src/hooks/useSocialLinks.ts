@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabase";
 
-export type SocialPlatform = "steam" | "youtube" | "instagram" | "bluesky";
+export type SocialPlatform = "steam" | "youtube" | "backloggd" | "speedrun";
 export type SocialLink = { profile_id: string; platform: SocialPlatform; url: string };
 const socialEvent = "luki-social-links-updated";
 

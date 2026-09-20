@@ -8,6 +8,34 @@ textarea[placeholder="Tell people a little about yourself."] {
   resize: none;
 }
 
+.theme-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 0.75rem;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+.theme-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 2px solid var(--color-font-primary);
+  border-radius: 999px;
+  background: var(--color-accent-cold);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+.theme-range::-moz-range-thumb {
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 2px solid var(--color-font-primary);
+  border-radius: 999px;
+  background: var(--color-accent-cold);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
 .ResultLink {
   color: var(--color-font-secondary);
   display: flex;

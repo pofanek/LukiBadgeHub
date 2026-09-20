@@ -5,5 +5,6 @@ export * from "./Footer";
 export * from "./UI";
 export { default as CatalogueContributionCallout } from "./CatalogueContributionCallout";
 export { default as CountryFlag } from "./CountryFlag";
+export { ThemeControls } from "./ThemeControls";
 export * from "../pages/Homepage/components";
 export * from "../pages/Contact/components";

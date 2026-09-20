@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
-import { FiAlertCircle, FiBell, FiCamera, FiCheck, FiCheckCircle, FiChevronDown, FiEye, FiImage, FiLock, FiMail, FiSave, FiSearch, FiTrash2, FiUpload, FiX } from "react-icons/fi";
-import { FaDiscord, FaInstagram, FaSteam, FaYoutube } from "react-icons/fa";
+import { FiAlertCircle, FiBell, FiCamera, FiCheck, FiCheckCircle, FiChevronDown, FiImage, FiLock, FiMail, FiSave, FiSearch, FiTrash2, FiUpload, FiX } from "react-icons/fi";
+import { MdOutlinePalette } from "react-icons/md";
+import { FaDiscord, FaGamepad, FaSteam, FaStopwatch, FaYoutube } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
-import { SiBluesky } from "react-icons/si";
 import type { IconType } from "react-icons";
 import type { UserIdentity } from "@supabase/supabase-js";
 import { userchomik } from "../../assets";
 import { getBadgeDifficultyLabel } from "../../constants";
-import { PasswordRequirements, FocusContent, LoadingIndicator, Turnstile } from "../../components";
+import { PasswordRequirements, FocusContent, LoadingIndicator, ThemeControls, Turnstile } from "../../components";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { useGames } from "../../hooks/useGames";
 import { usePinnedBadge } from "../../hooks/usePinnedBadge";
@@ -21,15 +21,21 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 import { CountrySelect, ImageCropDialog } from "./components";
 import { useNotifications, type NotificationPreferences } from "../../hooks/notificationsContext";
 
-type SettingsTab = "profile" | "account" | "visibility" | "notifications";
+type SettingsTab = "profile" | "account" | "appearance" | "notifications";
 type CropTarget = { file: File; kind: "avatar" | "banner" };
-const tabs = [{ id: "profile", label: "Profile", icon: FiCamera }, { id: "account", label: "Account", icon: FiLock }, { id: "visibility", label: "Visibility", icon: FiEye }, { id: "notifications", label: "Notifications", icon: FiBell }] as const;
+const tabs = [{ id: "profile", label: "Profile", icon: FiCamera }, { id: "account", label: "Account", icon: FiLock }, { id: "appearance", label: "Appearance", icon: MdOutlinePalette }, { id: "notifications", label: "Notifications", icon: FiBell }] as const;
 const socialFields: { platform: SocialPlatform; label: string; placeholder: string; icon: typeof FaSteam }[] = [
   { platform: "steam", label: "Steam", placeholder: "Your Steam profile URL", icon: FaSteam },
   { platform: "youtube", label: "YouTube", placeholder: "Your YouTube channel URL", icon: FaYoutube },
-  { platform: "instagram", label: "Instagram", placeholder: "Your Instagram profile URL", icon: FaInstagram },
-  { platform: "bluesky", label: "Bluesky", placeholder: "Your Bluesky profile URL", icon: SiBluesky },
+  { platform: "backloggd", label: "Backloggd", placeholder: "Your Backloggd profile URL", icon: FaGamepad },
+  { platform: "speedrun", label: "Speedrun.com", placeholder: "Your Speedrun.com profile URL", icon: FaStopwatch },
 ];
+const socialDomains: Record<SocialPlatform, string> = {
+  steam: "steamcommunity.com",
+  youtube: "youtube.com",
+  backloggd: "backloggd.com",
+  speedrun: "speedrun.com",
+};
 const oauthProviders = [
   { provider: "google", label: "Google", icon: FcGoogle },
   { provider: "discord", label: "Discord", icon: FaDiscord },
@@ -130,7 +136,7 @@ function Settings() {
     searchParams.get("tab") === "notifications" ? "notifications" : "profile",
   );
   const [profileForm, setProfileForm] = useState({ username: "", bio: "", country_code: "unknown" });
-  const [socialValues, setSocialValues] = useState<Record<SocialPlatform, string>>({ steam: "", youtube: "", instagram: "", bluesky: "" });
+  const [socialValues, setSocialValues] = useState<Record<SocialPlatform, string>>({ steam: "", youtube: "", backloggd: "", speedrun: "" });
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -175,10 +181,13 @@ function Settings() {
 
   useEffect(() => {
     const requestedTab = searchParams.get("tab");
-    if (requestedTab === "notifications" || requestedTab === "profile" || requestedTab === "account" || requestedTab === "visibility") {
+    if (requestedTab === "visibility") {
+      setActiveTab("appearance");
+      setSearchParams({ tab: "appearance" }, { replace: true });
+    } else if (requestedTab === "notifications" || requestedTab === "profile" || requestedTab === "account" || requestedTab === "appearance") {
       setActiveTab(requestedTab);
     }
-  }, [searchParams]);
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!userId) return;
@@ -211,7 +220,7 @@ function Settings() {
     if (profile) setProfileForm({ username: profile.username, bio: profile.bio || "", country_code: profile.country_code });
   }, [profile]);
   useEffect(() => {
-    const nextValues: Record<SocialPlatform, string> = { steam: "", youtube: "", instagram: "", bluesky: "" };
+    const nextValues: Record<SocialPlatform, string> = { steam: "", youtube: "", backloggd: "", speedrun: "" };
     links.forEach((link) => { nextValues[link.platform] = link.url; });
     setSocialValues(nextValues);
   }, [links]);
@@ -355,11 +364,22 @@ function Settings() {
     setCropTarget(null);
     setNotice(`${cropTarget.kind === "avatar" ? "Avatar" : "Banner"} updated.`);
   };
-  const validUrl = (value: string) => { try { const url = new URL(value); return url.protocol === "http:" || url.protocol === "https:"; } catch { return false; } };
+  const validSocialUrl = (value: string, platform: SocialPlatform) => {
+    try {
+      const url = new URL(value);
+      const domain = socialDomains[platform];
+      return (url.protocol === "http:" || url.protocol === "https:")
+        && (url.hostname === domain || url.hostname.endsWith(`.${domain}`));
+    } catch {
+      return false;
+    }
+  };
   const saveSocial = async (platform: SocialPlatform) => {
     clearFeedback();
     const value = socialValues[platform].trim();
-    if (value && !validUrl(value)) return setError("Social links must be complete http:// or https:// URLs.");
+    if (value && !validSocialUrl(value, platform)) {
+      return setError(`Enter a complete ${socialDomains[platform]} URL for this link.`);
+    }
     const nextLinks = links.filter((link) => link.platform !== platform);
     const { error: socialError } = value
       ? await supabase.from("user_social_links").upsert({ profile_id: user.id, platform, url: value }, { onConflict: "profile_id,platform" })
@@ -489,7 +509,7 @@ function Settings() {
       <Section title={hasPassword ? "Password" : "Set password"} description={hasPassword ? "Enter your current password before choosing a new one." : "We’ll send a recovery link to your account email so you can add password sign-in without removing OAuth."}>{hasPassword ? <><label className="text-font-secondary block text-sm">Current password<Input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} className="mt-2" /></label><label className="text-font-secondary mt-4 block text-sm">New password<Input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="mt-2" /></label><PasswordRequirements password={newPassword} /><div className="mt-4"><Turnstile key={passwordChangeCaptchaReset} onTokenChange={setPasswordChangeCaptchaToken} /></div><button type="button" onClick={changePassword} disabled={!passwordChangeCaptchaToken} className="bg-brand-secondary text-font-primary mt-4 rounded-lg px-3 py-2.5 text-sm font-medium disabled:opacity-50">Change password</button></> : <><div className="mt-4"><Turnstile key={passwordSetupCaptchaReset} onTokenChange={setPasswordSetupCaptchaToken} /></div><button type="button" onClick={setPassword} disabled={!passwordSetupCaptchaToken} className="bg-brand-secondary text-font-primary mt-4 rounded-lg px-3 py-2.5 text-sm font-medium disabled:opacity-50">Send password setup link</button></>}</Section>
       <section className="border-destructive/40 bg-destructive-background/20 rounded-xl border p-4 sm:p-6"><h2 className="text-font-primary font-serif text-2xl">Delete account</h2><p className="text-font-secondary mt-1 max-w-xl text-sm leading-relaxed">This permanently removes your profile, social links, media, and future badge progress. It cannot be undone. To protect your account, you must enter your password, verify the deletion from your email, and make a final confirmation.</p>{!hasPassword && <Notice message="Set a password from the section above before deleting an OAuth-only account." error />}{deletionEmailSent && <Notice message="Verification email sent. Open its link within 15 minutes to unlock the final confirmation." />}<button type="button" onClick={() => { clearFeedback(); setShowDeleteDialog(true); }} disabled={!hasPassword || deletionBusy} className="border-destructive/50 text-destructive hover:bg-destructive-background mt-4 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50"><FiTrash2 className="mr-2 inline" />Delete account</button></section></div>}
     {activeTab === "notifications" && <Section title="In-app notifications" description="Choose the updates that appear in your notification inbox."><div className="space-y-3">{([{ key: "role_granted_enabled", title: "Role changes", description: "When you receive the Admin, Moderator, or Supporter role." }, { key: "special_badge_awarded_enabled", title: "Special badges", description: "When a moderator awards you an Extreme, Supreme, or Inhuman badge." }, { key: "new_follower_enabled", title: "New followers", description: "When another player starts following you." }, { key: "new_mutual_enabled", title: "New mutuals", description: "When a player follows you back." }] as const).map(({ key, title, description }) => <label key={key} className={`border-border bg-surface-soft/60 flex items-start gap-3 rounded-lg border p-3 ${notificationSaving === key ? "cursor-wait opacity-70" : "cursor-pointer"}`}><input type="checkbox" checked={notificationPreferences[key]} onChange={() => void updateNotificationPreference(key)} disabled={notificationSaving !== null} className="peer sr-only" /><span className={`border-border bg-surface-soft peer-focus-visible:ring-accent-cold mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors peer-focus-visible:ring-2 ${notificationPreferences[key] ? "border-accent-cold bg-brand-tertiary text-font-primary" : "hover:border-font-muted"}`}>{notificationPreferences[key] && <FiCheck className="h-3 w-3" />}</span><span><span className="text-font-primary block text-sm font-medium">{title}</span><span className="text-font-muted mt-0.5 block text-xs leading-relaxed">{description}</span></span></label>)}</div><p className="text-font-muted mt-4 text-xs leading-relaxed">These settings control notifications inside Luki Badge Hub. They do not send email or browser alerts.</p></Section>}
-    {activeTab === "visibility" && <div className="space-y-4"><Section title="Visibility" description="Choose which edit shortcuts appear on your public profile and homepage."><div className="space-y-3"><VisibilityOption checked={Boolean(profile?.hide_pinned_badge_edit)} disabled={isPinnedBadgeButtonSaving} onChange={(checked) => void updatePinnedBadgeButtonVisibility(checked)} title="Hide the pinned badge edit button" description="You can still change your pinned badge here in Settings." /><VisibilityOption checked={Boolean(profile?.hide_homepage_username_edit)} disabled={isHomepageUsernameButtonSaving} onChange={(checked) => void updateHomepageUsernameButtonVisibility(checked)} title="Hide the homepage username edit button" description="This hides the Edit username shortcut beside your welcome message." /></div></Section></div>}
+    {activeTab === "appearance" && <div className="space-y-4"><Section title="Theme color" description="Choose a preset or create a custom RGB theme. Changes apply instantly in this browser."><ThemeControls showRgbInputs /></Section><Section title="Profile shortcuts" description="Choose which edit shortcuts appear on your public profile and homepage."><div className="space-y-3"><VisibilityOption checked={Boolean(profile?.hide_pinned_badge_edit)} disabled={isPinnedBadgeButtonSaving} onChange={(checked) => void updatePinnedBadgeButtonVisibility(checked)} title="Hide the pinned badge edit button" description="You can still change your pinned badge here in Settings." /><VisibilityOption checked={Boolean(profile?.hide_homepage_username_edit)} disabled={isHomepageUsernameButtonSaving} onChange={(checked) => void updateHomepageUsernameButtonVisibility(checked)} title="Hide the homepage username edit button" description="This hides the Edit username shortcut beside your welcome message." /></div></Section></div>}
     {(notice || error) && <FeedbackToast message={error || notice} error={Boolean(error)} onDismiss={clearFeedback} />}
   </div></div>{cropTarget && <ImageCropDialog file={cropTarget.file} kind={cropTarget.kind} onCancel={() => setCropTarget(null)} onConfirm={saveImage} />}{showDeleteDialog && <ConfirmationDialog title="Confirm account deletion" onClose={() => !deletionBusy && setShowDeleteDialog(false)}><p className="text-font-secondary mt-3 text-sm leading-relaxed">This starts a permanent deletion request. We’ll email a verification link before anything is removed.</p>{!deletionEmailReady ? <><label className="text-font-secondary mt-4 block text-sm">Current password<Input type="password" autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} className="mt-2" /></label><label className="text-font-secondary mt-4 block text-sm">Type DELETE to continue<Input value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} className="mt-2" /></label><div className="mt-4"><Turnstile key={deletionCaptchaReset} onTokenChange={setDeletionCaptchaToken} /></div><button type="button" onClick={beginAccountDeletion} disabled={deletionBusy || !deletionCaptchaToken} className="border-destructive/50 text-destructive hover:bg-destructive-background mt-5 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50">{deletionBusy ? "Verifying..." : "Continue"}</button></> : <><p className="text-font-secondary mt-4 text-sm leading-relaxed">Complete one more security check to send the deletion verification email.</p><div className="mt-4"><Turnstile key={deletionCaptchaReset} onTokenChange={setDeletionCaptchaToken} /></div><button type="button" onClick={sendDeletionVerificationEmail} disabled={deletionBusy || !deletionCaptchaToken} className="border-destructive/50 text-destructive hover:bg-destructive-background mt-5 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50">{deletionBusy ? "Sending..." : "Send verification email"}</button></>}</ConfirmationDialog>}{showFinalDeleteDialog && <ConfirmationDialog title="Permanently delete account?" onClose={() => !deletionBusy && setShowFinalDeleteDialog(false)}><p className="text-font-secondary mt-3 text-sm leading-relaxed">Your email and password have been verified. This final action immediately deletes your account and cannot be undone.</p><button type="button" onClick={deleteAccount} disabled={deletionBusy} className="border-destructive/50 text-destructive hover:bg-destructive-background mt-5 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50">{deletionBusy ? "Deleting..." : "Delete account permanently"}</button></ConfirmationDialog>}</section>;
 }

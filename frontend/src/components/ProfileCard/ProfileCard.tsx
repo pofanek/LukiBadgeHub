@@ -11,13 +11,13 @@ type ProfileCardProps = {
   profile: UserProfile | null;
   profilePath: string;
   onLogout: () => Promise<void>;
+  canAccessCms?: boolean;
 };
 import { FiUser } from "react-icons/fi";
 import { FiSettings } from "react-icons/fi";
 import { FiBell } from "react-icons/fi";
 import { FiLogOut } from "react-icons/fi";
 import { FiEdit3 } from "react-icons/fi";
-import { FiAward } from "react-icons/fi";
 
 const ProfileCard = ({
   className = "",
@@ -27,6 +27,7 @@ const ProfileCard = ({
   profile,
   profilePath,
   onLogout,
+  canAccessCms = false,
 }: ProfileCardProps) => {
   if (!user) return null;
 
@@ -52,13 +53,8 @@ const ProfileCard = ({
         <ProfileItem pathTo="/settings" onClick={closeMenu} Icon={FiSettings}>
           Settings
         </ProfileItem>
-        {(profile?.role === "Admin" || profile?.role === "Owner") && (
+        {canAccessCms && (
           <ProfileItem pathTo="/admin" onClick={closeMenu} Icon={FiEdit3}>
-            CMS panel
-          </ProfileItem>
-        )}
-        {profile?.role === "Moderator" && (
-          <ProfileItem pathTo="/admin" onClick={closeMenu} Icon={FiAward}>
             CMS panel
           </ProfileItem>
         )}

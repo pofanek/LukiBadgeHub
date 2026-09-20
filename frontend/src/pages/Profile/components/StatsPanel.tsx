@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiAward, FiBookOpen, FiChevronDown, FiTrendingUp, FiX } from "react-icons/fi";
+import { FiAward, FiBookOpen, FiCheck, FiChevronDown, FiTrendingUp, FiX } from "react-icons/fi";
+import { FaHeart } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { LoadingIndicator } from "../../../components";
 import { PinnedBadgeDialog } from "./ProfileHeader";
@@ -22,6 +23,7 @@ import { mediaUrl } from "../../../utils/media";
 type StatsData = {
   claims: { badge_id: number }[];
   libraryIds: number[];
+  favoriteGameId: number | null;
   currentRank: number | null;
   bestRank: { best_rank: number; achieved_at: string } | null;
 };
@@ -29,9 +31,11 @@ type StatsData = {
 function StatsPanel({
   profileId,
   profileName,
+  isOwnProfile,
 }: {
   profileId: string;
   profileName: string;
+  isOwnProfile: boolean;
 }) {
   const { games, isLoading: isGamesLoading } = useGames();
   const [data, setData] = useState<StatsData | null>(null);
@@ -42,6 +46,8 @@ function StatsPanel({
     badge: BadgeRow;
     game: CatalogueGame;
   } | null>(null);
+  const [favoriteError, setFavoriteError] = useState("");
+  const [isFavoriteSaving, setIsFavoriteSaving] = useState(false);
 
   useEffect(() => {
     let isCurrent = true;
@@ -70,16 +76,22 @@ function StatsPanel({
         .select("best_rank, achieved_at")
         .eq("profile_id", profileId)
         .maybeSingle(),
-    ]).then(([claimsResult, libraryResult, currentRankResult, bestRankResult]) => {
+      supabase
+        .from("profile_favorite_games")
+        .select("game_id")
+        .eq("profile_id", profileId)
+        .maybeSingle(),
+    ]).then(([claimsResult, libraryResult, currentRankResult, bestRankResult, favoriteGameResult]) => {
       if (!isCurrent) return;
-      if (claimsResult.error || libraryResult.error || currentRankResult.error || bestRankResult.error) {
+      if (claimsResult.error || libraryResult.error || currentRankResult.error || bestRankResult.error || favoriteGameResult.error) {
         setError("Profile statistics could not be loaded.");
-        setData({ claims: [], libraryIds: [], currentRank: null, bestRank: null });
+        setData({ claims: [], libraryIds: [], favoriteGameId: null, currentRank: null, bestRank: null });
         return;
       }
       setData({
         claims: claimsResult.data || [],
         libraryIds: (libraryResult.data || []).map((entry) => entry.game_id),
+        favoriteGameId: favoriteGameResult.data?.game_id || null,
         currentRank: (currentRankResult.data || [])[0]?.player_rank || null,
         bestRank: bestRankResult.data,
       });
@@ -154,6 +166,37 @@ function StatsPanel({
   }
 
   if (error) return <p className="text-destructive text-sm">{error}</p>;
+
+  const libraryGames = games
+    .filter((game) => data.libraryIds.includes(game.id))
+    .sort((left, right) => left.title.localeCompare(right.title));
+  const favoriteGame = libraryGames.find((game) => game.id === data.favoriteGameId);
+
+  const saveFavoriteGame = async (gameId: number | null) => {
+    setFavoriteError("");
+    setIsFavoriteSaving(true);
+
+    const result = gameId === null
+      ? await supabase
+          .from("profile_favorite_games")
+          .delete()
+          .eq("profile_id", profileId)
+      : data.favoriteGameId === null
+        ? await supabase
+            .from("profile_favorite_games")
+            .insert({ profile_id: profileId, game_id: gameId })
+        : await supabase
+            .from("profile_favorite_games")
+            .update({ game_id: gameId })
+            .eq("profile_id", profileId);
+
+    if (result.error) {
+      setFavoriteError("Your favorite game could not be saved. Please try again.");
+    } else {
+      setData((current) => current && { ...current, favoriteGameId: gameId });
+    }
+    setIsFavoriteSaving(false);
+  };
 
   const overview = [
     {
@@ -322,6 +365,52 @@ function StatsPanel({
             }
           />
         </div>
+        <div className="border-border mt-6 border-t pt-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-font-primary flex items-center gap-2 text-sm font-medium">
+                <FaHeart className="text-accent-cold h-4 w-4" />
+                Favorite game
+              </h3>
+              <p className="text-font-muted mt-1 text-sm">
+                {isOwnProfile
+                  ? "Choose one game from your library to feature here."
+                  : favoriteGame
+                    ? `${profileName}'s featured game.`
+                    : "No favorite game selected yet."}
+              </p>
+            </div>
+            {isOwnProfile && (
+              <FavoriteGameSelect
+                value={data.favoriteGameId}
+                games={libraryGames}
+                onChange={saveFavoriteGame}
+                disabled={isFavoriteSaving}
+              />
+            )}
+          </div>
+          {favoriteError && <p className="text-destructive mt-3 text-sm" role="alert">{favoriteError}</p>}
+          {favoriteGame ? (
+            <Link
+              to={`/games/${favoriteGame.id}`}
+              className="border-border hover:border-accent-cold focus-visible:ring-accent-cold relative mt-4 flex min-h-44 overflow-hidden rounded-lg border transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            >
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url(${favoriteGame.bannerUrl})` }}
+              />
+              <span aria-hidden="true" className="bg-surface-overlay/75 absolute inset-0" />
+              <span className="relative flex min-w-0 flex-1 flex-col justify-end p-5">
+                <span className="text-font-primary block truncate font-serif text-2xl">{favoriteGame.title}</span>
+                <span className="text-font-secondary mt-1 block text-sm">View game badges and achievements</span>
+              </span>
+              <FaHeart className="text-accent-cold absolute top-4 right-4 h-5 w-5" aria-hidden="true" />
+            </Link>
+          ) : isOwnProfile && libraryGames.length === 0 ? (
+            <p className="text-font-muted mt-4 text-sm">Add a game to your library to choose a favorite.</p>
+          ) : null}
+        </div>
       </section>
       <section className="border-border bg-surface/75 rounded-xl border p-5 sm:p-6">
         <div>
@@ -430,6 +519,68 @@ function StatsPanel({
           gameTitle={selectedHardestBadge.game.title}
           onClose={() => setSelectedHardestBadge(null)}
         />
+      )}
+    </div>
+  );
+}
+
+function FavoriteGameSelect({
+  value,
+  games,
+  onChange,
+  disabled,
+}: {
+  value: number | null;
+  games: CatalogueGame[];
+  onChange: (gameId: number | null) => void;
+  disabled: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selectedGame = games.find((game) => game.id === value);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setIsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <div ref={containerRef} className="relative w-full sm:w-60">
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        disabled={disabled || games.length === 0}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className={`border-border bg-surface-soft text-font-primary focus:border-accent-cold flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm outline-none disabled:cursor-not-allowed disabled:opacity-60 ${isOpen ? "border-accent-cold" : ""}`}
+      >
+        <span className="truncate">{selectedGame?.title || "Choose a favorite game"}</span>
+        <FiChevronDown className={`text-font-muted ml-3 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+      {isOpen && (
+        <div role="listbox" aria-label="Favorite game" className="border-border bg-surface absolute z-20 mt-1.5 max-h-64 w-full overflow-y-auto rounded-xl border p-1.5 shadow-black">
+          <button type="button" role="option" aria-selected={value === null} onClick={() => { onChange(null); setIsOpen(false); }} className={`flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-sm ${value === null ? "bg-brand-tertiary text-font-primary" : "text-font-secondary hover:bg-surface-soft hover:text-font-primary"}`}>
+            <span className="truncate">No favorite game</span>
+            {value === null && <FiCheck className="h-4 w-4 shrink-0" />}
+          </button>
+          {games.map((game) => (
+            <button key={game.id} type="button" role="option" aria-selected={game.id === value} onClick={() => { onChange(game.id); setIsOpen(false); }} className={`flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-sm ${game.id === value ? "bg-brand-tertiary text-font-primary" : "text-font-secondary hover:bg-surface-soft hover:text-font-primary"}`}>
+              <span className="min-w-0 truncate">{game.title}</span>
+              {game.id === value && <FiCheck className="h-4 w-4 shrink-0" />}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

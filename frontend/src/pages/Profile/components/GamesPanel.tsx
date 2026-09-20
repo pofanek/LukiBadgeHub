@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiCheck, FiChevronDown } from "react-icons/fi";
 import { FaMedal } from "react-icons/fa";
+import { MdOutlinePushPin, MdPushPin } from "react-icons/md";
 import { LoadingIndicator } from "../../../components";
 import { PinnedBadgeDialog } from "./ProfileHeader";
 import {
@@ -243,6 +244,7 @@ function GamesPanel({
   const pageSize = PROFILE_GAMES_PAGE_SIZE;
   const [gameIds, setGameIds] = useState<number[] | null>(null);
   const [earnedBadgeIds, setEarnedBadgeIds] = useState<number[] | null>(null);
+  const [pinnedGameIds, setPinnedGameIds] = useState<number[]>([]);
   const [gameSortStats, setGameSortStats] = useState<
     Map<number, GameSortStats> | null
   >(null);
@@ -250,6 +252,7 @@ function GamesPanel({
   const [catalogueGames, setCatalogueGames] = useState<CatalogueGame[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [pinSavingGameId, setPinSavingGameId] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [nextPage, setNextPage] = useState(0);
   const [error, setError] = useState("");
@@ -275,13 +278,19 @@ function GamesPanel({
         .eq("user_id", profileId)
         .order("added_at", { ascending: false }),
       supabase.from("user_badges").select("badge_id").eq("user_id", profileId),
+      supabase
+        .from("profile_pinned_games")
+        .select("game_id")
+        .eq("profile_id", profileId)
+        .order("pinned_at", { ascending: false }),
     ]).then(
       async ([
         { data: libraryData, error: libraryError },
         { data: earnedData, error: earnedError },
+        { data: pinnedData, error: pinnedError },
       ]) => {
         if (!isCurrent) return;
-        if (libraryError || earnedError) {
+        if (libraryError || earnedError || pinnedError) {
           setError("Games could not be loaded.");
           setIsLoading(false);
           return;
@@ -342,6 +351,7 @@ function GamesPanel({
         });
         setGameIds(orderedGameIds);
         setEarnedBadgeIds(earnedIds);
+        setPinnedGameIds((pinnedData || []).map((item) => item.game_id));
         setGameSortStats(sortStats);
         setCatalogueGames([]);
         setNextPage(0);
@@ -356,9 +366,15 @@ function GamesPanel({
 
   const sortedGameIds = useMemo(() => {
     if (gameIds === null || gameSortStats === null) return null;
+    const pinnedGameIdSet = new Set(pinnedGameIds);
     return gameIds
       .map((gameId, index) => ({ gameId, index }))
       .sort((left, right) => {
+        const leftIsPinned = pinnedGameIdSet.has(left.gameId);
+        const rightIsPinned = pinnedGameIdSet.has(right.gameId);
+        if (leftIsPinned !== rightIsPinned) {
+          return leftIsPinned ? -1 : 1;
+        }
         const leftStats = gameSortStats.get(left.gameId) || {
           experience: 0,
           earned: 0,
@@ -384,7 +400,7 @@ function GamesPanel({
         return rightValue - leftValue || left.index - right.index;
       })
       .map(({ gameId }) => gameId);
-  }, [gameIds, gameSortStats, sort]);
+  }, [gameIds, gameSortStats, pinnedGameIds, sort]);
 
   const loadPage = useCallback(
     async (page: number, replace = false) => {
@@ -452,6 +468,37 @@ function GamesPanel({
     });
   }, [catalogueGames, earnedBadgeIds]);
 
+  const togglePinnedGame = async (gameId: number) => {
+    const wasPinned = pinnedGameIds.includes(gameId);
+    setError("");
+    setPinSavingGameId(gameId);
+    setPinnedGameIds((current) =>
+      wasPinned
+        ? current.filter((pinnedGameId) => pinnedGameId !== gameId)
+        : [gameId, ...current],
+    );
+
+    const { error: pinError } = wasPinned
+      ? await supabase
+          .from("profile_pinned_games")
+          .delete()
+          .eq("profile_id", profileId)
+          .eq("game_id", gameId)
+      : await supabase
+          .from("profile_pinned_games")
+          .insert({ profile_id: profileId, game_id: gameId });
+
+    if (pinError) {
+      setPinnedGameIds((current) =>
+        wasPinned
+          ? [gameId, ...current]
+          : current.filter((pinnedGameId) => pinnedGameId !== gameId),
+      );
+      setError("Game pin could not be updated.");
+    }
+    setPinSavingGameId(null);
+  };
+
   if (
     gameIds === null ||
     earnedBadgeIds === null ||
@@ -463,7 +510,8 @@ function GamesPanel({
         <LoadingIndicator label="Loading games..." />
       </div>
     );
-  if (error) return <p className="text-destructive text-sm">{error}</p>;
+  if (error && !games.length)
+    return <p className="text-destructive text-sm">{error}</p>;
 
   if (!games.length)
     return (
@@ -492,9 +540,11 @@ function GamesPanel({
   return (
     <div className="space-y-3">
       <LibrarySortSelect value={sort} onChange={setSort} />
+      {error && <p className="text-destructive text-sm" role="alert">{error}</p>}
       {games.map(({ game, experience, progress, total, difficulties, earnedBadges }) => {
         const isExpanded = expandedGame === game.id;
         const isComplete = total > 0 && progress === total;
+        const isPinned = pinnedGameIds.includes(game.id);
         return (
           <article
             key={game.id}
@@ -522,6 +572,12 @@ function GamesPanel({
                 >
                   {game.title}
                 </Link>
+                {isPinned && (
+                  <span className="text-accent-cold ml-2 inline-flex items-center gap-1 text-xs">
+                    <MdPushPin className="h-3.5 w-3.5" />
+                    Pinned
+                  </span>
+                )}
                 <button
                   type="button"
                   aria-expanded={isExpanded}
@@ -557,6 +613,21 @@ function GamesPanel({
                   />
                 </button>
               </div>
+              {isOwnProfile && (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void togglePinnedGame(game.id);
+                  }}
+                  disabled={pinSavingGameId === game.id}
+                  aria-label={isPinned ? `Unpin ${game.title}` : `Pin ${game.title}`}
+                  title={isPinned ? "Unpin game" : "Pin game"}
+                  className={`border-border hover:border-accent-cold flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors disabled:cursor-wait disabled:opacity-60 ${isPinned ? "bg-brand-tertiary text-accent-cold" : "text-font-muted hover:text-font-primary"}`}
+                >
+                  {isPinned ? <MdPushPin className="h-4 w-4" /> : <MdOutlinePushPin className="h-4 w-4" />}
+                </button>
+              )}
             </div>
             {isExpanded && (
               <div className="border-border bg-surface-soft/50 border-t p-4">
