@@ -8,8 +8,8 @@ import {
   FiSliders,
   FiX,
 } from "react-icons/fi";
-import { LoadingIndicator } from "../../components";
-import type { CatalogueGame } from "../../constants";
+import { CatalogueContributionCallout, LoadingIndicator } from "../../components";
+import { DISCORD_URL, type CatalogueGame } from "../../constants";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { fetchGamesPage } from "../../hooks/useGames";
 import { useGamesPageSize } from "../../hooks/useGamesPageSize";
@@ -336,6 +336,7 @@ function Games() {
                 updateFilters({ page: String(nextPage) })
               }
             />
+            <CatalogueContributionCallout variant="compact" className="mt-7" />
           </>
         ) : (
           <div className="border-border bg-surface/75 mt-6 rounded-xl border px-5 py-14 text-center">
@@ -346,13 +347,23 @@ function Games() {
             <p className="text-font-secondary mx-auto mt-2 max-w-md text-sm leading-relaxed">
               Try another title or clear your filters to see the full catalogue.
             </p>
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="bg-brand-secondary text-font-primary hover:bg-brand-primary mt-5 rounded-lg px-3 py-2 text-sm font-medium"
-            >
-              Reset filters
-            </button>
+            <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="bg-brand-secondary text-font-primary hover:bg-brand-primary rounded-lg px-3 py-2 text-sm font-medium"
+              >
+                Reset filters
+              </button>
+              <a
+                href={DISCORD_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="border-border text-font-primary hover:bg-effect-glass rounded-lg border px-3 py-2 text-sm font-medium"
+              >
+                Suggest a game on Discord
+              </a>
+            </div>
           </div>
         )}
       </div>

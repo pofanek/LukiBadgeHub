@@ -12,7 +12,11 @@ import {
   FiUserPlus,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
-import { FocusContent, LoadingIndicator } from "../../components";
+import {
+  CatalogueContributionCallout,
+  FocusContent,
+  LoadingIndicator,
+} from "../../components";
 import {
   getBadgeExperience,
   projectUpdates,
@@ -606,7 +610,12 @@ function Homepage() {
 
   return (
     <FocusContent>
-      <div className="w-full self-stretch py-8 sm:py-10 lg:py-12">
+      <div
+        className="w-full self-stretch bg-cover bg-fixed bg-center bg-no-repeat py-8 sm:py-10 lg:py-12"
+        style={{
+          backgroundImage: "url('/bg.png')",
+        }}
+      >
         <div className="mx-auto w-full max-w-6xl space-y-12 px-3 sm:px-7 lg:space-y-16">
           {user ? (
             <>
@@ -745,6 +754,7 @@ function Homepage() {
                 <DifficultyGuide />
               </section>
               {browseGames}
+              <CatalogueContributionCallout />
               <Leaderboards
                 entries={leaderboardEntries}
                 isLoading={isLeaderboardLoading}
@@ -757,6 +767,7 @@ function Homepage() {
               <ProjectIntro />
               <HowItWorks />
               {browseGames}
+              <CatalogueContributionCallout />
               <section className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
                 <DifficultyGuide />
                 <Leaderboards

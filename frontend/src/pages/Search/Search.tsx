@@ -2,7 +2,7 @@ import { Children } from "react";
 import { FiAward, FiSearch, FiUser } from "react-icons/fi";
 import { Link, useSearchParams } from "react-router-dom";
 import { hollowthumb, userchomik } from "../../assets";
-import { FocusContent, LoadingIndicator } from "../../components";
+import { CatalogueContributionCallout, FocusContent, LoadingIndicator } from "../../components";
 import { BADGE_DIFFICULTY_DETAILS } from "../../constants";
 import { useGlobalSearch } from "../../hooks/useGlobalSearch";
 import { mediaUrl } from "../../utils/media";
@@ -160,17 +160,20 @@ function ResultSection({
 
 function EmptySearch({ query }: { query?: string }) {
   return (
-    <div className="border-border bg-surface/75 mt-7 rounded-xl border px-5 py-14 text-center">
-      <FiSearch className="text-accent-cold mx-auto h-7 w-7" />
-      <h2 className="text-font-primary mt-4 font-serif text-2xl">
-        {query ? "Nothing matched that search" : "Start with a search"}
-      </h2>
-      <p className="text-font-secondary mx-auto mt-2 max-w-md text-sm leading-relaxed">
-        {query
-          ? "Try a different name or a shorter phrase."
-          : "Use the search field above to look for players, games, or badges."}
-      </p>
-    </div>
+    <>
+      <div className="border-border bg-surface/75 mt-7 rounded-xl border px-5 py-14 text-center">
+        <FiSearch className="text-accent-cold mx-auto h-7 w-7" />
+        <h2 className="text-font-primary mt-4 font-serif text-2xl">
+          {query ? "Nothing matched that search" : "Start with a search"}
+        </h2>
+        <p className="text-font-secondary mx-auto mt-2 max-w-md text-sm leading-relaxed">
+          {query
+            ? "Try a different name or a shorter phrase."
+            : "Use the search field above to look for players, games, or badges."}
+        </p>
+      </div>
+      {query && <CatalogueContributionCallout variant="compact" className="mt-5" />}
+    </>
   );
 }
 

@@ -3,5 +3,7 @@ export * from "./HamburgerMenu";
 export * from "./ProfileCard";
 export * from "./Footer";
 export * from "./UI";
+export { default as CatalogueContributionCallout } from "./CatalogueContributionCallout";
+export { default as CountryFlag } from "./CountryFlag";
 export * from "../pages/Homepage/components";
 export * from "../pages/Contact/components";

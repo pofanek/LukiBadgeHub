@@ -9,6 +9,7 @@ import {
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { FocusContent } from "../../components";
+import { DISCORD_URL } from "../../constants";
 
 const features = [
   [FiMonitor, "Rediscover games", "Return to games you already love with something new to do."],
@@ -77,7 +78,15 @@ function About() {
             <h2 className="text-font-primary font-serif text-2xl">Still growing</h2>
             <p className="text-font-secondary mt-2 max-w-2xl text-sm leading-relaxed">
               New games, badges, balance changes, and profile improvements are
-              added over time. See what has changed recently.
+              added over time. Can&apos;t find your game?{" "}
+              <a
+                href={DISCORD_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="text-accent-cold hover:text-hover underline"
+              >
+                Suggest it on Discord and help create its badges.
+              </a>
             </p>
             <Link
               to="/updates"

@@ -34,11 +34,17 @@ import { useGame } from "../../hooks/useGames";
 import { invalidateLeaderboardCache } from "../../hooks/useLeaderboard";
 import { usePinnedBadge } from "../../hooks/usePinnedBadge";
 import { useUserProfile } from "../../hooks/useUserProfile";
+import { LoadingIndicator } from "../../components";
 import { supabase } from "../../utils/supabase";
 import { mediaUrl } from "../../utils/media";
 import { invalidateCachedQueries } from "../../utils/queryCache";
 
 const ACHIEVEMENTS_PER_PAGE = 9;
+const SPECIAL_BADGE_DIFFICULTIES: BadgeDifficultyId[] = [
+  "extreme",
+  "supreme",
+  "inhuman",
+];
 
 export type Difficulty = {
   id: BadgeDifficultyId;
@@ -87,6 +93,14 @@ export type GameDetailData = {
   difficulties: Difficulty[];
   recentPlayers: RecentPlayer[];
 };
+
+type BadgeClaim = {
+  user_id: string;
+  badge_id: number;
+  earned_at: string;
+};
+
+type BadgeOwnerSort = "recent" | "difficulty";
 
 const demoGame: GameDetailData = {
   id: 1,
@@ -383,17 +397,17 @@ export function GameDetailTemplate({ game }: TemplateProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const focusedBadgeId = searchParams.get("badge");
-  const [badgeClaims, setBadgeClaims] = useState<
-    { user_id: string; badge_id: number; earned_at: string }[]
-  >([]);
+  const [badgeClaims, setBadgeClaims] = useState<BadgeClaim[]>([]);
+  const [isBadgeClaimsLoading, setIsBadgeClaimsLoading] = useState(true);
   const [playerProfiles, setPlayerProfiles] = useState<
     Record<string, { username: string; avatar_path: string | null }>
   >({});
+  const [badgeClaimsError, setBadgeClaimsError] = useState("");
   const [claimError, setClaimError] = useState("");
   const [claimNotice, setClaimNotice] = useState("");
-  const [activeTab, setActiveTab] = useState<"achievements" | "comments">(
-    "achievements",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "achievements" | "comments" | "badge-owners"
+  >("achievements");
   const [query, setQuery] = useState("");
   const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>(
     [],
@@ -450,11 +464,17 @@ export function GameDetailTemplate({ game }: TemplateProps) {
         if (!active) return;
         setBadgeClaims([]);
         setPlayerProfiles({});
+        setIsBadgeClaimsLoading(false);
       });
       return () => {
         active = false;
       };
     }
+    queueMicrotask(() => {
+      if (!active) return;
+      setIsBadgeClaimsLoading(true);
+      setBadgeClaimsError("");
+    });
     supabase
       .from("user_badges")
       .select("user_id, badge_id, earned_at")
@@ -462,18 +482,17 @@ export function GameDetailTemplate({ game }: TemplateProps) {
       .then(async ({ data, error: queryError }) => {
         if (!active) return;
         if (queryError) {
+          setBadgeClaimsError("Badge owners could not be loaded.");
           setClaimError("Badge progress could not be loaded.");
+          setIsBadgeClaimsLoading(false);
           return;
         }
-        const claims = (data || []) as {
-          user_id: string;
-          badge_id: number;
-          earned_at: string;
-        }[];
+        const claims = (data || []) as BadgeClaim[];
         setBadgeClaims(claims);
         const playerIds = [...new Set(claims.map((claim) => claim.user_id))];
         if (!playerIds.length) {
           setPlayerProfiles({});
+          setIsBadgeClaimsLoading(false);
           return;
         }
         const { data: profiles } = await supabase
@@ -489,6 +508,7 @@ export function GameDetailTemplate({ game }: TemplateProps) {
             ]),
           ),
         );
+        setIsBadgeClaimsLoading(false);
       });
     return () => {
       active = false;
@@ -555,6 +575,13 @@ export function GameDetailTemplate({ game }: TemplateProps) {
     return { ...game, achievements, difficulties, recentPlayers: players };
   }, [badgeClaims, earnedBadgeIds, game, playerProfiles]);
   const displayedInLibrary = user ? isInLibrary : false;
+  const hasSpecialBadges = game.achievements.some((achievement) =>
+    SPECIAL_BADGE_DIFFICULTIES.includes(achievement.difficultyId),
+  );
+  const displayedTab =
+    activeTab === "badge-owners" && !hasSpecialBadges
+      ? "achievements"
+      : activeTab;
   const totalExp = progressGame.difficulties.reduce(
     (sum, tier) => sum + tier.totalExp,
     0,
@@ -794,20 +821,37 @@ export function GameDetailTemplate({ game }: TemplateProps) {
             </section>
             <div className="border-border mt-5 flex border-b" role="tablist">
               <Tab
-                active={activeTab === "achievements"}
+                active={displayedTab === "achievements"}
                 onClick={() => setActiveTab("achievements")}
               >
                 Badges
               </Tab>
               <Tab
-                active={activeTab === "comments"}
+                active={displayedTab === "comments"}
                 onClick={() => setActiveTab("comments")}
               >
                 Comments ({commentCount})
               </Tab>
+              {hasSpecialBadges && (
+                <Tab
+                  active={displayedTab === "badge-owners"}
+                  onClick={() => setActiveTab("badge-owners")}
+                >
+                  Badge owners
+                </Tab>
+              )}
             </div>
-            {activeTab === "comments" ? (
+            {displayedTab === "comments" ? (
               <Comments gameId={game.id} userId={user?.id} role={profile?.role} onCountChange={setCommentCount} />
+            ) : displayedTab === "badge-owners" ? (
+              <BadgeOwners
+                achievements={progressGame.achievements}
+                claims={badgeClaims}
+                profiles={playerProfiles}
+                isLoading={isBadgeClaimsLoading}
+                error={badgeClaimsError}
+                gameTitle={game.title}
+              />
             ) : (
               <div className="mt-4 grid gap-4 lg:grid-cols-[12rem_minmax(0,1fr)]">
                 <Filters
@@ -1092,6 +1136,324 @@ function Tab({
     </button>
   );
 }
+
+function BadgeOwners({
+  achievements,
+  claims,
+  profiles,
+  isLoading,
+  error,
+  gameTitle,
+}: {
+  achievements: GameAchievement[];
+  claims: BadgeClaim[];
+  profiles: Record<string, { username: string; avatar_path: string | null }>;
+  isLoading: boolean;
+  error: string;
+  gameTitle: string;
+}) {
+  const [sort, setSort] = useState<BadgeOwnerSort>("recent");
+  const [selectedBadge, setSelectedBadge] = useState<{
+    badge: GameAchievement;
+    profileName: string;
+  } | null>(null);
+  const entries = useMemo(() => {
+    const badges = new Map(
+      achievements.map((achievement) => [Number(achievement.id), achievement]),
+    );
+    const difficultyOrder: BadgeDifficultyId[] = [
+      "inhuman",
+      "supreme",
+      "extreme",
+    ];
+
+    return claims
+      .flatMap((claim) => {
+        const badge = badges.get(claim.badge_id);
+        if (
+          !badge ||
+          !SPECIAL_BADGE_DIFFICULTIES.includes(badge.difficultyId)
+        ) {
+          return [];
+        }
+        return [{ claim, badge, profile: profiles[claim.user_id] }];
+      })
+      .sort((left, right) => {
+        if (sort === "difficulty") {
+          const difficultyDifference =
+            difficultyOrder.indexOf(left.badge.difficultyId) -
+            difficultyOrder.indexOf(right.badge.difficultyId);
+          if (difficultyDifference) return difficultyDifference;
+        }
+        return right.claim.earned_at.localeCompare(left.claim.earned_at);
+      });
+  }, [achievements, claims, profiles, sort]);
+
+  if (isLoading) {
+    return (
+      <div className="py-12">
+        <LoadingIndicator label="Loading badge owners..." />
+      </div>
+    );
+  }
+
+  return (
+    <section className="mt-4">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-font-primary font-serif text-xl">Badge owners</h2>
+          <p className="text-font-secondary mt-1 text-sm">
+            Completed Extreme, Supreme, and Inhuman challenges.
+          </p>
+        </div>
+        <OwnerSortSelect value={sort} onChange={setSort} />
+      </div>
+      {error ? (
+        <p role="alert" className="text-destructive text-sm">
+          Badge owners could not be loaded.
+        </p>
+      ) : entries.length ? (
+        <ol className="border-border bg-surface/75 divide-border overflow-hidden rounded-xl border divide-y">
+          {entries.map(({ claim, badge, profile }) => {
+            const difficulty = BADGE_DIFFICULTY_DETAILS[badge.difficultyId];
+            const profilePath = profile
+              ? `/profile/${encodeURIComponent(profile.username)}`
+              : undefined;
+            return (
+              <li
+                key={`${claim.user_id}-${claim.badge_id}`}
+                className="flex min-w-0 flex-col gap-3 p-3 sm:flex-row sm:items-center"
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedBadge({
+                      badge,
+                      profileName: profile?.username || "Unknown player",
+                    })
+                  }
+                  aria-label={`View ${badge.name} details`}
+                  className="hover:bg-effect-glass focus-visible:ring-accent-cold flex min-w-0 flex-1 items-center gap-3 rounded-lg p-1 text-left outline-none focus-visible:ring-2"
+                >
+                  <img
+                    src={badge.iconUrl || difficulty.icon}
+                    alt=""
+                    className="bg-surface-raised h-12 w-12 shrink-0 rounded-full object-cover"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-font-primary truncate text-sm font-medium">
+                      {badge.name}
+                    </p>
+                    <p className="mt-1 text-xs" style={{ color: difficulty.color }}>
+                      <i
+                        className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: difficulty.color }}
+                      />
+                      {getBadgeTierLabel(badge.tier || "low")} {difficulty.label}
+                    </p>
+                  </div>
+                </button>
+                <div className="flex min-w-0 items-center justify-between gap-3 sm:w-72 sm:justify-start">
+                  {profile && profilePath ? (
+                    <Link
+                      to={profilePath}
+                      className="text-font-primary hover:text-hover flex min-w-0 items-center gap-2 text-sm font-medium"
+                    >
+                      <img
+                        src={mediaUrl(profile.avatar_path) || userchomik}
+                        alt=""
+                        className="bg-surface-raised h-8 w-8 shrink-0 rounded-full object-cover"
+                      />
+                      <span className="truncate">{profile.username}</span>
+                    </Link>
+                  ) : (
+                    <span className="text-font-secondary flex min-w-0 items-center gap-2 text-sm">
+                      <img
+                        src={userchomik}
+                        alt=""
+                        className="bg-surface-raised h-8 w-8 shrink-0 rounded-full object-cover"
+                      />
+                      <span className="truncate">Unknown player</span>
+                    </span>
+                  )}
+                  <time
+                    dateTime={claim.earned_at}
+                    className="text-font-muted shrink-0 text-xs"
+                  >
+                    {new Intl.DateTimeFormat(undefined, {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    }).format(new Date(claim.earned_at))}
+                  </time>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <div className="border-border bg-surface/75 rounded-xl border px-5 py-12 text-center">
+          <FaTrophy className="text-accent-cold mx-auto h-7 w-7" />
+          <h2 className="text-font-primary mt-3 font-serif text-2xl">
+            No badge owners yet
+          </h2>
+          <p className="text-font-secondary mt-2 text-sm">
+            Be the first to complete one of this game&apos;s special challenges.
+          </p>
+        </div>
+      )}
+      {selectedBadge && (
+        <BadgeOwnerDetailsDialog
+          badge={selectedBadge.badge}
+          profileName={selectedBadge.profileName}
+          gameTitle={gameTitle}
+          onClose={() => setSelectedBadge(null)}
+        />
+      )}
+    </section>
+  );
+}
+
+function BadgeOwnerDetailsDialog({
+  badge,
+  profileName,
+  gameTitle,
+  onClose,
+}: {
+  badge: GameAchievement;
+  profileName: string;
+  gameTitle: string;
+  onClose: () => void;
+}) {
+  const difficulty = BADGE_DIFFICULTY_DETAILS[badge.difficultyId];
+
+  return createPortal(
+    <div
+      role="presentation"
+      onClick={onClose}
+      className="bg-surface-overlay/80 fixed inset-0 z-50 flex items-center justify-center p-4"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${badge.name} details`}
+        onClick={(event) => event.stopPropagation()}
+        className="border-border bg-surface-raised max-h-[calc(100vh-2rem)] w-full max-w-3xl overflow-y-auto rounded-xl border p-5 shadow-black sm:p-6"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm" style={{ color: difficulty.color }}>
+              <i
+                className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: difficulty.color }}
+              />
+              {getBadgeTierLabel(badge.tier || "low")} {difficulty.label}
+            </p>
+            <h3 className="text-font-primary mt-1 font-serif text-2xl">
+              {badge.name}
+            </h3>
+            <p className="text-font-muted mt-1 text-sm">{gameTitle}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close badge details"
+            className="text-font-muted hover:text-font-primary rounded p-1"
+          >
+            <FiX className="h-5 w-5" />
+          </button>
+        </div>
+        <p className="text-font-secondary mt-5 whitespace-pre-wrap break-words text-base leading-relaxed">
+          <LinkifiedText value={badge.description} />
+        </p>
+        <div className="border-border mt-5 flex items-center justify-between gap-3 border-t pt-4">
+          <span className="text-font-secondary inline-flex items-center gap-2 text-sm">
+            <span className="border-accent-cold bg-brand-tertiary text-font-primary flex h-4 w-4 shrink-0 items-center justify-center rounded border">
+              ✓
+            </span>
+            <span>Completed by {profileName}</span>
+          </span>
+          <span className="text-font-secondary text-sm">
+            {badge.exp.toLocaleString()} EXP
+          </span>
+        </div>
+        {badge.developerNote && (
+          <details className="border-border mt-5 border-t pt-4">
+            <summary className="text-font-primary cursor-pointer text-sm font-bold">
+              Additional note
+            </summary>
+            <p className="text-font-secondary mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed">
+              <LinkifiedText value={badge.developerNote} />
+            </p>
+          </details>
+        )}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+function OwnerSortSelect({
+  value,
+  onChange,
+}: {
+  value: BadgeOwnerSort;
+  onChange: (value: BadgeOwnerSort) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const options: { value: BadgeOwnerSort; label: string }[] = [
+    { value: "recent", label: "Newest first" },
+    { value: "difficulty", label: "By difficulty" },
+  ];
+  const selected = options.find((option) => option.value === value)!;
+
+  return (
+    <div
+      className="relative w-44"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setIsOpen(false);
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className={`border-border bg-surface-soft text-font-primary focus:border-accent-cold flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm outline-none ${isOpen ? "border-accent-cold" : ""}`}
+      >
+        <span className="truncate">{selected.label}</span>
+        <FiChevronDown
+          className={`text-font-muted ml-3 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+      {isOpen && (
+        <div
+          role="listbox"
+          aria-label="Sort badge owners"
+          className="border-border bg-surface absolute z-20 mt-1.5 w-full rounded-xl border p-1.5 shadow-black"
+        >
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="option"
+              aria-selected={option.value === value}
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+              className={`flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-sm ${option.value === value ? "bg-brand-tertiary text-font-primary" : "text-font-secondary hover:bg-surface-soft hover:text-font-primary"}`}
+            >
+              {option.label}
+              {option.value === value && <FiCheck className="h-4 w-4 shrink-0" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 type GameComment = { id: number; author_id: string; body: string; is_pinned: boolean; created_at: string };
 function Comments({ gameId, userId, role, onCountChange }: { gameId: number; userId?: string; role?: string; onCountChange: (count: number) => void }) {
   const [comments, setComments] = useState<GameComment[]>([]);

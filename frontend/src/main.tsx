@@ -1,6 +1,7 @@
 import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import "flag-icons/css/flag-icons.min.css";
 import "./index.css";
 import { MainLayout, EmptyLayout } from "./layouts/";
 import { AuthUserProvider } from "./hooks/useAuthUser";

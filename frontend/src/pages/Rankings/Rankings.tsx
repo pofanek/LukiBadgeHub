@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from "react-router-dom";
-import { FiAward, FiGlobe } from "react-icons/fi";
+import { FiAward } from "react-icons/fi";
 import { FaCrown } from "react-icons/fa6";
-import { FocusContent, LoadingIndicator } from "../../components";
+import { CountryFlag, FocusContent, LoadingIndicator } from "../../components";
 import { BADGE_DIFFICULTY_DETAILS, type BadgeDifficultyId } from "../../constants";
 import { getCountry } from "../../constants/countries";
 import { useAuthUser } from "../../hooks/useAuthUser";
@@ -127,12 +127,7 @@ function RankingRow({ entry, scoreLabel, board }: { entry: import("../../hooks/u
   const avatar = avatarUrl(entry.avatar_path);
   const country = getCountry(entry.country_code);
   const profilePath = `/profile/${encodeURIComponent(entry.username)}`;
-  return <li className="flex items-center gap-2 px-3 py-3 sm:px-5"><span className="text-accent-cold flex w-16 shrink-0 items-center justify-end gap-1 text-sm font-medium"><span>#{entry.player_rank}</span><CountryFlag country={country} className="px-1" /></span><Link to={profilePath} aria-label={`View ${entry.username}'s profile`} className="shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cold">{avatar ? <img src={avatar} alt="" className="border-border h-10 w-10 rounded-full border object-cover" /> : <span className="bg-brand-tertiary text-font-primary flex h-10 w-10 items-center justify-center rounded-full font-medium">{entry.username[0]?.toUpperCase()}</span>}</Link><div className="min-w-0 flex-1 ml-1"><Link to={profilePath} className="text-font-primary hover:text-hover block truncate font-medium">{entry.username}</Link><p className="text-font-muted mt-0.5 text-xs">{board === "experience" ? `${entry.earned_badges} badges earned` : `${entry.earned_experience.toLocaleString()} EXP earned`}</p></div><span className="text-font-primary ml-1 shrink-0 text-sm font-bold">{scoreLabel}</span></li>;
-}
-
-function CountryFlag({ country, className = "" }: { country: ReturnType<typeof getCountry>; className?: string }) {
-  if (country.flag) return <span aria-label={country.name} role="img" title={country.name} className={className}>{country.flag}</span>;
-  return <span aria-label="Country not set" title="Country not set" className={`border-border bg-surface-raised text-font-secondary inline-flex h-4 w-5 items-center justify-center rounded-sm border ${className}`}><FiGlobe className="h-3 w-3" /></span>;
+  return <li className="flex items-center gap-2 px-3 py-3 sm:px-5"><span className="text-accent-cold flex w-16 shrink-0 items-center justify-end gap-1 text-sm font-medium"><span>#{entry.player_rank}</span><CountryFlag country={country} className="mx-1" /></span><Link to={profilePath} aria-label={`View ${entry.username}'s profile`} className="shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cold">{avatar ? <img src={avatar} alt="" className="border-border h-10 w-10 rounded-full border object-cover" /> : <span className="bg-brand-tertiary text-font-primary flex h-10 w-10 items-center justify-center rounded-full font-medium">{entry.username[0]?.toUpperCase()}</span>}</Link><div className="min-w-0 flex-1 ml-1"><Link to={profilePath} className="text-font-primary hover:text-hover block truncate font-medium">{entry.username}</Link><p className="text-font-muted mt-0.5 text-xs">{board === "experience" ? `${entry.earned_badges} badges earned` : `${entry.earned_experience.toLocaleString()} EXP earned`}</p></div><span className="text-font-primary ml-1 shrink-0 text-sm font-bold">{scoreLabel}</span></li>;
 }
 
 function podiumRankClass(rank: number) {

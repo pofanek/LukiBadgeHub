@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
 import { FocusContent, LoadingIndicator } from "../../components";
 import { useAuthUser } from "../../hooks/useAuthUser";
@@ -18,7 +17,6 @@ import {
 export type ProfileTab = "games" | "mutuals" | "stats" | "recents";
 
 function Profile() {
-  const [activeTab, setActiveTab] = useState<ProfileTab>("games");
   const { username } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isLoading: isAuthLoading } = useAuthUser();
@@ -31,16 +29,14 @@ function Profile() {
     ? isUsernameProfileLoading
     : isOwnProfileLoading;
 
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab === "games" || tab === "mutuals" || tab === "stats" || tab === "recents") {
-      queueMicrotask(() => setActiveTab(tab));
-    }
-  }, [searchParams]);
+  const tab = searchParams.get("tab");
+  const activeTab: ProfileTab =
+    tab === "games" || tab === "mutuals" || tab === "stats" || tab === "recents"
+      ? tab
+      : "games";
 
   const changeTab = (tab: ProfileTab) => {
-    setActiveTab(tab);
-    setSearchParams({}, { replace: true });
+    setSearchParams({ tab });
   };
 
   if (!username && !isAuthLoading && !user) {

@@ -4,7 +4,6 @@ import { FaInstagram, FaSteam, FaThumbtack, FaYoutube } from "react-icons/fa";
 import {
   FiAlertCircle,
   FiEdit3,
-  FiGlobe,
   FiUserCheck,
   FiUserPlus,
   FiX,
@@ -12,7 +11,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { SiBluesky } from "react-icons/si";
 import { userchomik } from "../../../assets";
-import { RoleBadge } from "../../../components/UI";
+import { CountryFlag, RoleBadge } from "../../../components";
 import {
   BADGE_DIFFICULTY_DETAILS,
   getBadgeExperience,
@@ -221,18 +220,7 @@ function ProfileHeader({
             </div>
             <div className="mt-3 flex items-center gap-2">
               <p className="text-font-secondary flex items-center gap-2 text-sm">
-              {country.flag ? (
-                <span aria-label={country.name} role="img">
-                  {country.flag}
-                </span>
-              ) : (
-                <span
-                  aria-label="Country not set"
-                  className="border-border bg-surface-raised text-font-secondary inline-flex h-4 w-5 items-center justify-center rounded-sm border"
-                >
-                  <FiGlobe className="h-3 w-3" />
-                </span>
-              )}
+              <CountryFlag country={country} />
               {country.name}
               </p>
               {isOwnProfile && profile.country_code === "unknown" && (
