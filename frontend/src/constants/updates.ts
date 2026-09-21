@@ -36,7 +36,7 @@ export type ProjectUpdate = {
 
 export const projectUpdates: ProjectUpdate[] = [
   {
-    date: "2026-09-14",
+    date: "2026-09-21",
     type: "New",
     title: "The website is released!",
     summary:
