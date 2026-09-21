@@ -33,6 +33,7 @@ prompt.txt
 skills-lock.json
 AGENTS.md
 .agents
+docs
 .env.test
 achievementVerificationPlan.md
 .env.owner
