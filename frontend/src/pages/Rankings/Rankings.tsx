@@ -38,11 +38,8 @@ function Rankings() {
     user?.id,
   );
   const pageCount = entries[0] ? Math.ceil(entries[0].total_players / 100) : 0;
-  const podium = entries
-    .filter(({ player_rank }) => player_rank <= 3)
-    .sort((left, right) => left.player_rank - right.player_rank)
-    .slice(0, 3);
-  const visibleRanks = page === 1 ? entries.filter(({ player_rank }) => player_rank > 3) : entries;
+  const podium = page === 1 ? entries.slice(0, 3) : [];
+  const visibleRanks = page === 1 ? entries.slice(podium.length) : entries;
   const setBoard = (nextBoard: LeaderboardBoard) => {
     const next = new URLSearchParams();
     if (nextBoard !== "experience") next.set("board", nextBoard);

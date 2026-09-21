@@ -193,7 +193,7 @@ function ProfileHeader({
             </div>
           </div>
 
-          <div className="min-w-0 self-start sm:pt-1 md:pr-72 lg:pr-0">
+          <div className="min-w-0 self-start sm:pt-1 md:ml-[6px] md:pr-72">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex min-w-0 items-center gap-2">
                 <h1 className="text-font-primary font-serif text-3xl leading-none break-words sm:text-4xl">
@@ -237,7 +237,7 @@ function ProfileHeader({
             </p>
           </div>
 
-          <p className="text-font-secondary col-span-2 max-w-3xl leading-relaxed break-words lg:hidden">
+          <p className="text-font-secondary col-span-2 max-w-3xl leading-relaxed break-words md:pr-72 lg:hidden">
             {profile.bio || "No bio provided."}
           </p>
 

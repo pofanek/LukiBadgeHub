@@ -46,6 +46,7 @@ type GameForm = {
   genres: string;
   description: string;
   steamUrl: string;
+  isPublished: boolean;
 };
 
 type CropTarget = {
@@ -71,6 +72,7 @@ const emptyForm: GameForm = {
   genres: "",
   description: "",
   steamUrl: "",
+  isPublished: false,
 };
 
 const emptyBadgeForm: BadgeForm = {
@@ -90,6 +92,7 @@ function formFromGame(game: GameRow): GameForm {
     genres: game.genres.join(", "),
     description: game.description,
     steamUrl: game.steam_url || "",
+    isPublished: game.is_published,
   };
 }
 
@@ -692,7 +695,7 @@ function AdminGames() {
           .map((genre) => genre.trim())
           .filter(Boolean),
         steam_url: form.steamUrl.trim() || null,
-        is_published: true,
+        is_published: isAdmin ? form.isPublished : selectedGame.is_published,
       })
       .eq("id", selectedGame.id)
       .select(GAME_FIELDS)
@@ -709,7 +712,11 @@ function AdminGames() {
       ),
     );
     invalidateCatalogueCache();
-    setNotice(selectedGame.is_published ? "Game saved." : "Game published.");
+    if (isAdmin && form.isPublished !== selectedGame.is_published) {
+      setNotice(form.isPublished ? "Game published." : "Game hidden from public pages.");
+      return;
+    }
+    setNotice("Game saved.");
   };
 
   const chooseImage = (target: CropTarget["target"], file?: File) => {
@@ -1258,6 +1265,34 @@ function AdminGames() {
                   className={`${inputClass} resize-none`}
                 />
               </Field>
+              {isAdmin && (
+                <section className="border-border border-t pt-7">
+                  <h2 className="text-font-primary font-serif text-2xl">
+                    Public visibility
+                  </h2>
+                  <p className="text-font-muted mt-1 text-sm">
+                    Hidden games remain available in the CMS but cannot be viewed by visitors.
+                  </p>
+                  <label className="border-border bg-surface-soft mt-4 flex cursor-pointer items-center justify-between gap-4 rounded-xl border p-4">
+                    <span>
+                      <span className="text-font-primary block text-sm font-medium">
+                        Show this game publicly
+                      </span>
+                      <span className="text-font-muted mt-1 block text-xs">
+                        Players can find it in the catalogue and open its game page.
+                      </span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={form.isPublished}
+                      onChange={(event) =>
+                        setForm({ ...form, isPublished: event.target.checked })
+                      }
+                      className="accent-accent-cold h-5 w-5 shrink-0"
+                    />
+                  </label>
+                </section>
+              )}
               {isLeaderboardOwner && <section className="border-border border-t pt-7"><h2 className="text-font-primary font-serif text-2xl">Badge creators</h2><p className="text-font-muted mt-1 text-sm">Select every community member who created badges for this game.</p><label className="relative mt-4 block"><span className="sr-only">Find a badge creator</span><FiSearch className="text-font-muted pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" /><input value={creatorQuery} onChange={(event) => setCreatorQuery(event.target.value)} placeholder="Search usernames" className={`${inputClass} pl-9`} /></label>{creatorMatches.length > 0 && <div className="border-border bg-surface mt-2 rounded-lg border p-1.5">{creatorMatches.map((creator) => <button key={creator.id} type="button" onClick={() => void addCreator(creator)} disabled={selectedCreators.some((item) => item.id === creator.id)} className="text-font-secondary hover:bg-surface-soft hover:text-font-primary flex w-full rounded-md px-2.5 py-2 text-left text-sm disabled:opacity-50">{creator.username}</button>)}</div>}<div className="mt-3 flex flex-wrap gap-2">{selectedCreators.length ? selectedCreators.map((creator) => <span key={creator.id} className="border-border bg-surface-soft text-font-primary inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm">{creator.username}<button type="button" onClick={() => void removeCreator(creator.id)} className="text-font-muted hover:text-font-primary" aria-label={`Remove ${creator.username}`}><FiX /></button></span>) : <p className="text-font-muted text-sm">No badge creators selected.</p>}</div></section>}
               <section className="border-border mt-4 border-t pt-8">
                 <div className="flex flex-wrap items-center justify-between gap-3">

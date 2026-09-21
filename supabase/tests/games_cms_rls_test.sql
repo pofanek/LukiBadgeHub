@@ -1,6 +1,6 @@
 begin;
 
-select plan(25);
+select plan(28);
 
 insert into auth.users (id, email)
 values
@@ -108,6 +108,19 @@ select throws_ok(
   null,
   'members cannot claim a badge for another user'
 );
+set local role postgres;
+insert into public.game_badge_creators (game_id, profile_id)
+select id, '11111111-1111-1111-1111-111111111111'
+from public.games
+where name = 'CMS test published';
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
+select throws_ok(
+  $$update public.games set is_published = false where name = 'CMS test published'$$,
+  '42501',
+  'Only admins can change game visibility.',
+  'assigned badge creators cannot hide a game from the public'
+);
 select lives_ok(
   $$delete from public.user_badges where user_id = '11111111-1111-1111-1111-111111111111' and badge_id = (select id from public.game_badges where name = 'CMS test published badge')$$,
   'members can remove their own badge claim'
@@ -172,6 +185,18 @@ select throws_ok(
   '42501',
   null,
   'moderators cannot award non-special badges to another user'
+);
+
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', true);
+select lives_ok(
+  $$update public.games set is_published = false where name = 'CMS test published'$$,
+  'admins can hide a published game'
+);
+select set_config('request.jwt.claim.sub', '', true);
+set local role anon;
+select is_empty(
+  $$select 1 from public.games where name = 'CMS test published'$$,
+  'hidden games are not visible to anonymous visitors'
 );
 
 select * from finish();
